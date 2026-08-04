@@ -1,0 +1,606 @@
+import { BullMQSchedulerService } from '../bullmqSchedulerService'
+import type { EntityManager } from '@mikro-orm/core'
+import { ScheduledJob } from '../../data/entities.js'
+import { createLogger } from '@helios/shared/lib/logger'
+
+jest.mock('@helios/shared/lib/logger', () => {
+  const mocked = {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    child: jest.fn(),
+  }
+  mocked.child.mockImplementation(() => mocked)
+  return { createLogger: jest.fn(() => mocked) }
+})
+
+const mockedLogger = createLogger('scheduler')
+const loggerDebug = mockedLogger.debug as jest.Mock
+const loggerInfo = mockedLogger.info as jest.Mock
+const loggerError = mockedLogger.error as jest.Mock
+
+// Mock BullMQ module
+const mockQueue = {
+  add: jest.fn(),
+  getRepeatableJobs: jest.fn(),
+  removeRepeatableByKey: jest.fn(),
+}
+
+const mockQueueConstructor = jest.fn(() => mockQueue)
+
+jest.mock('bullmq', () => ({
+  Queue: mockQueueConstructor,
+}))
+
+jest.mock('@helios/shared/lib/redis/connection', () => ({
+  getRedisUrlOrThrow: jest.fn(() => 'redis://localhost:6379'),
+}))
+
+
+describe('BullMQSchedulerService', () => {
+  let service: BullMQSchedulerService
+  let mockEm: jest.Mocked<EntityManager>
+  let mockForkedEm: jest.Mocked<EntityManager>
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockQueue.add.mockResolvedValue({})
+    mockQueue.getRepeatableJobs.mockResolvedValue([])
+    mockQueue.removeRepeatableByKey.mockResolvedValue(true)
+
+    // Create mock forked EM
+    mockForkedEm = {
+      find: jest.fn(),
+    } as any
+
+    // Create mock main EM
+    mockEm = {
+      fork: jest.fn(() => mockForkedEm),
+    } as any
+
+    service = new BullMQSchedulerService(() => mockEm)
+  })
+
+  describe('register', () => {
+    it('should skip disabled schedules', async () => {
+      const schedule = {
+        id: 'test-1',
+        name: 'Test Schedule',
+        isEnabled: false,
+      } as ScheduledJob
+
+      await service.register(schedule)
+
+      expect(loggerDebug).toHaveBeenCalledWith(
+        'Skipping disabled schedule',
+        { scheduleId: 'test-1' }
+      )
+      expect(mockQueue.add).not.toHaveBeenCalled()
+    })
+
+    it('should register cron schedule with BullMQ', async () => {
+      const schedule = {
+        id: 'test-1',
+        name: 'Test Cron Schedule',
+        isEnabled: true,
+        scheduleType: 'cron',
+        scheduleValue: '0 0 * * *',
+        timezone: 'UTC',
+        scopeType: 'system',
+        tenantId: null,
+        organizationId: null,
+      } as ScheduledJob
+
+      mockQueue.add.mockResolvedValue({})
+
+      await service.register(schedule)
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'schedule-test-1',
+        expect.objectContaining({
+          id: 'schedule-test-1',
+          payload: expect.objectContaining({
+            scheduleId: 'test-1',
+            scopeType: 'system',
+          }),
+        }),
+        expect.objectContaining({
+          repeat: expect.objectContaining({
+            pattern: '0 0 * * *',
+            tz: 'UTC',
+          }),
+        })
+      )
+    })
+
+    it('should register interval schedule with BullMQ', async () => {
+      const schedule = {
+        id: 'test-2',
+        name: 'Test Interval Schedule',
+        isEnabled: true,
+        scheduleType: 'interval',
+        scheduleValue: '15m',
+        timezone: 'UTC',
+        scopeType: 'tenant',
+        tenantId: 'tenant-1',
+        organizationId: null,
+      } as ScheduledJob
+
+      mockQueue.add.mockResolvedValue({})
+
+      await service.register(schedule)
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'schedule-test-2',
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            scheduleId: 'test-2',
+            tenantId: 'tenant-1',
+            scopeType: 'tenant',
+          }),
+        }),
+        expect.objectContaining({
+          repeat: expect.objectContaining({
+            every: 15 * 60 * 1000, // 15 minutes in ms
+            tz: 'UTC',
+          }),
+        })
+      )
+    })
+
+    it('should include organization scope in job data', async () => {
+      const schedule = {
+        id: 'test-3',
+        name: 'Test Org Schedule',
+        isEnabled: true,
+        scheduleType: 'cron',
+        scheduleValue: '0 0 * * *',
+        timezone: 'UTC',
+        scopeType: 'organization',
+        tenantId: 'tenant-1',
+        organizationId: 'org-1',
+      } as ScheduledJob
+
+      mockQueue.add.mockResolvedValue({})
+
+      await service.register(schedule)
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            scheduleId: 'test-3',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            scopeType: 'organization',
+          }),
+        }),
+        expect.any(Object)
+      )
+    })
+
+    it('should remove stale repeatable jobs before registering an updated schedule', async () => {
+      const schedule = {
+        id: 'test-1',
+        name: 'Test',
+        isEnabled: true,
+        scheduleType: 'cron',
+        scheduleValue: '*/15 * * * *',
+        timezone: 'UTC',
+        scopeType: 'system',
+      } as ScheduledJob
+
+      mockQueue.getRepeatableJobs.mockResolvedValue([
+        { id: 'schedule-test-1', name: 'schedule-test-1', key: 'old-cron-key' },
+        { id: 'schedule-test-1', name: 'schedule-test-1', key: 'older-cron-key' },
+        { id: 'schedule-other', name: 'schedule-other', key: 'other-key' },
+      ])
+      mockQueue.removeRepeatableByKey.mockResolvedValue(true)
+      mockQueue.add.mockResolvedValue({})
+
+      await service.register(schedule)
+
+      expect(mockQueue.removeRepeatableByKey).toHaveBeenCalledTimes(2)
+      expect(mockQueue.removeRepeatableByKey).toHaveBeenNthCalledWith(1, 'old-cron-key')
+      expect(mockQueue.removeRepeatableByKey).toHaveBeenNthCalledWith(2, 'older-cron-key')
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'schedule-test-1',
+        expect.any(Object),
+        expect.objectContaining({
+          repeat: expect.objectContaining({
+            pattern: '*/15 * * * *',
+          }),
+        }),
+      )
+      expect(mockQueue.removeRepeatableByKey.mock.invocationCallOrder[1]).toBeLessThan(
+        mockQueue.add.mock.invocationCallOrder[0],
+      )
+    })
+
+    it('should update nextRunAt when skipNextRunUpdate is false', async () => {
+      const schedule = {
+        id: 'test-1',
+        name: 'Test',
+        isEnabled: true,
+        scheduleType: 'cron',
+        scheduleValue: '0 0 * * *',
+        timezone: 'UTC',
+        scopeType: 'system',
+        nextRunAt: new Date('2020-01-01'),
+      } as ScheduledJob
+
+      mockQueue.add.mockResolvedValue({})
+
+      await service.register(schedule, { skipNextRunUpdate: false })
+
+      // nextRunAt should be updated
+      expect(schedule.nextRunAt).not.toEqual(new Date('2020-01-01'))
+    })
+
+    it('should not update nextRunAt when skipNextRunUpdate is true', async () => {
+      const originalDate = new Date('2020-01-01')
+      const schedule = {
+        id: 'test-1',
+        name: 'Test',
+        isEnabled: true,
+        scheduleType: 'cron',
+        scheduleValue: '0 0 * * *',
+        timezone: 'UTC',
+        scopeType: 'system',
+        nextRunAt: originalDate,
+      } as ScheduledJob
+
+      mockQueue.add.mockResolvedValue({})
+
+      await service.register(schedule, { skipNextRunUpdate: true })
+
+      // nextRunAt should not be updated
+      expect(schedule.nextRunAt).toEqual(originalDate)
+    })
+
+    it('should throw on BullMQ registration error', async () => {
+      const schedule = {
+        id: 'test-1',
+        name: 'Test',
+        isEnabled: true,
+        scheduleType: 'cron',
+        scheduleValue: '0 0 * * *',
+        timezone: 'UTC',
+        scopeType: 'system',
+      } as ScheduledJob
+
+      const error = new Error('BullMQ connection failed')
+      mockQueue.add.mockRejectedValue(error)
+
+      await expect(service.register(schedule)).rejects.toThrow('BullMQ connection failed')
+
+      expect(loggerError).toHaveBeenCalledWith(
+        'Failed to register schedule',
+        { scheduleId: 'test-1', err: error }
+      )
+    })
+
+    it('should throw on invalid cron expression', async () => {
+      const schedule = {
+        id: 'test-1',
+        name: 'Test',
+        isEnabled: true,
+        scheduleType: 'cron',
+        scheduleValue: 'invalid-cron',
+        timezone: 'UTC',
+        scopeType: 'system',
+      } as ScheduledJob
+
+      await expect(service.register(schedule)).rejects.toThrow()
+    })
+
+    it('should throw on invalid interval', async () => {
+      const schedule = {
+        id: 'test-1',
+        name: 'Test',
+        isEnabled: true,
+        scheduleType: 'interval',
+        scheduleValue: 'invalid',
+        timezone: 'UTC',
+        scopeType: 'system',
+      } as ScheduledJob
+
+      await expect(service.register(schedule)).rejects.toThrow()
+    })
+  })
+
+  describe('unregister', () => {
+    it('should remove repeatable job by key', async () => {
+      mockQueue.getRepeatableJobs.mockResolvedValue([
+        { id: 'schedule-test-1', name: 'schedule-test-1', key: 'key-1' },
+        { id: 'schedule-test-2', name: 'schedule-test-2', key: 'key-2' },
+      ])
+      mockQueue.removeRepeatableByKey.mockResolvedValue(true)
+
+      await service.unregister('test-1')
+
+      expect(mockQueue.getRepeatableJobs).toHaveBeenCalled()
+      expect(mockQueue.removeRepeatableByKey).toHaveBeenCalledWith('key-1')
+      expect(loggerDebug).toHaveBeenCalledWith(
+        'Unregistered schedule',
+        { scheduleId: 'test-1' }
+      )
+    })
+
+    it('should remove all repeatable jobs for the same schedule id', async () => {
+      mockQueue.getRepeatableJobs.mockResolvedValue([
+        { id: 'schedule-test-1', name: 'schedule-test-1', key: 'key-1' },
+        { id: 'schedule-test-1', name: 'schedule-test-1', key: 'key-2' },
+        { name: 'schedule-test-1', key: 'key-3' },
+        { id: 'schedule-other', name: 'schedule-other', key: 'other-key' },
+      ])
+      mockQueue.removeRepeatableByKey.mockResolvedValue(true)
+
+      await service.unregister('test-1')
+
+      expect(mockQueue.removeRepeatableByKey).toHaveBeenCalledTimes(3)
+      expect(mockQueue.removeRepeatableByKey).toHaveBeenNthCalledWith(1, 'key-1')
+      expect(mockQueue.removeRepeatableByKey).toHaveBeenNthCalledWith(2, 'key-2')
+      expect(mockQueue.removeRepeatableByKey).toHaveBeenNthCalledWith(3, 'key-3')
+    })
+
+    it('should handle schedule not found', async () => {
+      mockQueue.getRepeatableJobs.mockResolvedValue([
+        { id: 'schedule-other', name: 'schedule-other', key: 'key-1' },
+      ])
+
+      await service.unregister('test-1')
+
+      expect(mockQueue.removeRepeatableByKey).not.toHaveBeenCalled()
+      expect(loggerDebug).toHaveBeenCalledWith(
+        'No repeatable job found for schedule',
+        { scheduleId: 'test-1' }
+      )
+    })
+
+    it('should match by name if id is not present', async () => {
+      mockQueue.getRepeatableJobs.mockResolvedValue([
+        { name: 'schedule-test-1', key: 'key-1' }, // No id field
+      ])
+      mockQueue.removeRepeatableByKey.mockResolvedValue(true)
+
+      await service.unregister('test-1')
+
+      expect(mockQueue.removeRepeatableByKey).toHaveBeenCalledWith('key-1')
+    })
+
+    it('should throw on BullMQ error', async () => {
+      const error = new Error('BullMQ error')
+      mockQueue.getRepeatableJobs.mockRejectedValue(error)
+
+      await expect(service.unregister('test-1')).rejects.toThrow('BullMQ error')
+
+      expect(loggerError).toHaveBeenCalledWith(
+        'Failed to unregister schedule',
+        { scheduleId: 'test-1', err: error }
+      )
+    })
+  })
+
+  describe('syncAll', () => {
+    it('should register missing schedules', async () => {
+      const dbSchedules = [
+        { id: 'schedule-1', name: 'Schedule 1', isEnabled: true, scheduleType: 'cron', scheduleValue: '0 0 * * *', timezone: 'UTC', scopeType: 'system' },
+        { id: 'schedule-2', name: 'Schedule 2', isEnabled: true, scheduleType: 'cron', scheduleValue: '0 0 * * *', timezone: 'UTC', scopeType: 'system' },
+      ] as ScheduledJob[]
+
+      mockForkedEm.find.mockResolvedValue(dbSchedules)
+      mockQueue.getRepeatableJobs.mockResolvedValue([
+        { id: 'schedule-schedule-1', name: 'schedule-schedule-1', key: 'key-1' },
+      ])
+      mockQueue.add.mockResolvedValue({})
+
+      await service.syncAll()
+
+      expect(mockForkedEm.find).toHaveBeenCalledWith(ScheduledJob, {
+        isEnabled: true,
+        deletedAt: null,
+      }, { limit: 500, offset: 0 })
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'schedule-schedule-2',
+        expect.any(Object),
+        expect.any(Object)
+      )
+      expect(loggerDebug).toHaveBeenCalledWith(
+        'Registering missing schedule',
+        { scheduleId: 'schedule-2', scheduleName: 'Schedule 2' }
+      )
+    })
+
+    it('should remove orphaned BullMQ jobs', async () => {
+      const dbSchedules = [
+        { id: 'schedule-1', name: 'Schedule 1', isEnabled: true },
+      ] as ScheduledJob[]
+
+      mockForkedEm.find.mockResolvedValue(dbSchedules)
+      mockQueue.getRepeatableJobs.mockResolvedValue([
+        { id: 'schedule-schedule-1', name: 'schedule-schedule-1', key: 'key-1' },
+        { id: 'schedule-schedule-2', name: 'schedule-schedule-2', key: 'key-2' },
+      ])
+      mockQueue.removeRepeatableByKey.mockResolvedValue(true)
+
+      await service.syncAll()
+
+      expect(mockQueue.removeRepeatableByKey).toHaveBeenCalledWith('key-2')
+      expect(loggerInfo).toHaveBeenCalledWith(
+        'Removing orphaned schedule',
+        { scheduleId: 'schedule-2' }
+      )
+    })
+
+    it('should repair duplicate repeatable jobs for existing schedules', async () => {
+      const dbSchedules = [
+        { id: 'schedule-1', name: 'Schedule 1', isEnabled: true, scheduleType: 'cron', scheduleValue: '0 0 * * *', timezone: 'UTC', scopeType: 'system' },
+      ] as ScheduledJob[]
+
+      mockForkedEm.find.mockResolvedValue(dbSchedules)
+      mockQueue.getRepeatableJobs.mockResolvedValue([
+        { id: 'schedule-schedule-1', name: 'schedule-schedule-1', key: 'old-key-1' },
+        { id: 'schedule-schedule-1', name: 'schedule-schedule-1', key: 'old-key-2' },
+      ])
+      mockQueue.removeRepeatableByKey.mockResolvedValue(true)
+      mockQueue.add.mockResolvedValue({})
+
+      await service.syncAll()
+
+      expect(loggerInfo).toHaveBeenCalledWith(
+        'Repairing duplicate repeatable jobs',
+        { scheduleId: 'schedule-1' }
+      )
+      expect(mockQueue.removeRepeatableByKey).toHaveBeenCalledTimes(2)
+      expect(mockQueue.removeRepeatableByKey).toHaveBeenNthCalledWith(1, 'old-key-1')
+      expect(mockQueue.removeRepeatableByKey).toHaveBeenNthCalledWith(2, 'old-key-2')
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'schedule-schedule-1',
+        expect.any(Object),
+        expect.any(Object),
+      )
+    })
+
+    it('should log sync completion', async () => {
+      mockForkedEm.find.mockResolvedValue([])
+      mockQueue.getRepeatableJobs.mockResolvedValue([])
+
+      await service.syncAll()
+
+      expect(loggerDebug).toHaveBeenCalledWith('Starting full sync')
+      expect(loggerDebug).toHaveBeenCalledWith(
+        'Sync complete',
+        { activeSchedules: 0 }
+      )
+    })
+  })
+
+  describe('getRepeatableJobs', () => {
+    it('should return repeatable jobs', async () => {
+      const jobs = [
+        { id: 'schedule-1', key: 'key-1' },
+        { id: 'schedule-2', key: 'key-2' },
+      ]
+
+      mockQueue.getRepeatableJobs.mockResolvedValue(jobs)
+
+      const result = await service.getRepeatableJobs()
+
+      expect(result).toEqual(jobs)
+      expect(mockQueue.getRepeatableJobs).toHaveBeenCalled()
+    })
+
+    it('should return empty array on error', async () => {
+      mockQueue.getRepeatableJobs.mockRejectedValue(new Error('BullMQ error'))
+
+      const result = await service.getRepeatableJobs()
+
+      expect(result).toEqual([])
+      expect(loggerError).toHaveBeenCalledWith(
+        'Failed to get repeatable jobs',
+        { err: expect.any(Error) }
+      )
+    })
+  })
+
+  describe('buildRepeatOptions', () => {
+    it('should build cron repeat options', async () => {
+      const schedule = {
+        id: 'test-1',
+        name: 'Test',
+        isEnabled: true,
+        scheduleType: 'cron',
+        scheduleValue: '0 0 * * *',
+        timezone: 'America/New_York',
+        scopeType: 'system',
+      } as ScheduledJob
+
+      mockQueue.add.mockResolvedValue({})
+
+      await service.register(schedule)
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(Object),
+        expect.objectContaining({
+          repeat: {
+            pattern: '0 0 * * *',
+            tz: 'America/New_York',
+          },
+        })
+      )
+    })
+
+    it('should build interval repeat options', async () => {
+      const schedule = {
+        id: 'test-1',
+        name: 'Test',
+        isEnabled: true,
+        scheduleType: 'interval',
+        scheduleValue: '2h',
+        timezone: 'UTC',
+        scopeType: 'system',
+      } as ScheduledJob
+
+      mockQueue.add.mockResolvedValue({})
+
+      await service.register(schedule)
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(Object),
+        expect.objectContaining({
+          repeat: {
+            every: 2 * 60 * 60 * 1000, // 2 hours in ms
+            tz: 'UTC',
+          },
+        })
+      )
+    })
+
+    it('should default timezone to UTC', async () => {
+      const schedule = {
+        id: 'test-1',
+        name: 'Test',
+        isEnabled: true,
+        scheduleType: 'cron',
+        scheduleValue: '0 0 * * *',
+        timezone: null as any,
+        scopeType: 'system',
+        targetType: 'queue',
+        targetQueue: 'test',
+      } as ScheduledJob
+
+      mockQueue.add.mockResolvedValue({})
+
+      await service.register(schedule)
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(Object),
+        expect.objectContaining({
+          repeat: {
+            pattern: '0 0 * * *',
+            tz: 'UTC',
+          },
+        })
+      )
+    })
+
+    it('should throw on unsupported schedule type', async () => {
+      const schedule = {
+        id: 'test-1',
+        name: 'Test',
+        isEnabled: true,
+        scheduleType: 'unknown' as any,
+        scheduleValue: 'whatever',
+        timezone: 'UTC',
+        scopeType: 'system',
+      } as ScheduledJob
+
+      await expect(service.register(schedule)).rejects.toThrow('Unsupported schedule type: unknown')
+    })
+  })
+})

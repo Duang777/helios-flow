@@ -1,0 +1,185 @@
+import type { AppContainer } from '@helios/shared/lib/di/container'
+import { BasicQueryEngine, resolveEntityTableName } from '@helios/shared/lib/query/engine'
+import { HybridQueryEngine } from './lib/engine'
+import { markDeleted } from './lib/indexer'
+import type { EventBus } from '@helios/events'
+import type { VectorIndexService } from '@helios/search/vector'
+
+function toEntityTypeFromEvent(event: string): string | null {
+  // Expect '<module>.<entity>.<action>'
+  const parts = event.split('.')
+  if (parts.length !== 3) return null
+  const [mod, ent] = parts
+  return `${mod}:${ent}`
+}
+
+export function register(container: AppContainer) {
+  // Override queryEngine with hybrid that prefers JSONB index when available
+  try {
+    const em = (container.resolve('em') as any)
+    const basic = new BasicQueryEngine(
+      em,
+      undefined,
+      () => {
+        try {
+          return container.resolve('tenantEncryptionService') as any
+        } catch {
+          return null
+        }
+      },
+    )
+    const hybrid = new HybridQueryEngine(
+      em,
+      basic,
+      () => {
+        try {
+          return (container.resolve('eventBus') as EventBus)
+        } catch {
+          return null
+        }
+      },
+      () => {
+        try {
+          return (container.resolve('vectorIndexService') as VectorIndexService)
+        } catch {
+          return null
+        }
+      },
+      () => {
+        try {
+          return container.resolve('tenantEncryptionService') as any
+        } catch {
+          return null
+        }
+      },
+    )
+    // Replace existing registration
+    ;(container as any).register({ queryEngine: { resolve: () => hybrid } })
+  } catch {}
+
+  // Subscribe to CRUD events and forward to query_index subscribers for unified handling
+  const setup = () => {
+    let bus: any
+    try { bus = (container.resolve('eventBus') as any) } catch { bus = null }
+    if (!bus) { setTimeout(setup, 0); return }
+
+    const makeUpsertHandler = (entityType: string) => async (payload: any, ctx: any) => {
+      try {
+        const em = ctx.resolve('em')
+        let orgId = payload?.organizationId || payload?.orgId || ctx?.organizationId || null
+        let tenantId = payload?.tenantId || ctx?.tenantId || null
+        const id = String(payload?.id || payload?.recordId || '')
+        if (!id) return
+        if (!orgId || !tenantId) {
+          try {
+            const db = (em as any).getKysely()
+            const table = resolveEntityTableName(em, entityType)
+            const row = await db
+              .selectFrom(table as any)
+              .select(['organization_id' as any, 'tenant_id' as any])
+              .where('id' as any, '=', id)
+              .executeTakeFirst() as { organization_id: string | null; tenant_id: string | null } | undefined
+            orgId = row?.organization_id ?? orgId
+            tenantId = row?.tenant_id ?? tenantId
+          } catch {}
+        }
+        // Optional: only index when custom field definitions exist for this entity (org/global)
+        try {
+          const db = (em as any).getKysely()
+          let cfQuery = db
+            .selectFrom('custom_field_defs' as any)
+            .select(['id' as any])
+            .where('entity_id' as any, '=', entityType)
+            .where('is_active' as any, '=', true)
+          if (orgId != null) {
+            cfQuery = cfQuery.where((eb: any) => eb.or([
+              eb('organization_id' as any, '=', orgId),
+              eb('organization_id' as any, 'is', null),
+            ]))
+          } else {
+            cfQuery = cfQuery.where('organization_id' as any, 'is', null as any)
+          }
+          if (tenantId != null) {
+            cfQuery = cfQuery.where((eb: any) => eb.or([
+              eb('tenant_id' as any, '=', tenantId),
+              eb('tenant_id' as any, 'is', null),
+            ]))
+          } else {
+            cfQuery = cfQuery.where('tenant_id' as any, 'is', null as any)
+          }
+          const hasCf = await cfQuery.executeTakeFirst()
+          if (!hasCf) return
+        } catch {}
+        try {
+          const bus = ctx.resolve('eventBus') as any
+          await bus.emitEvent('query_index.upsert_one', { entityType, recordId: id, organizationId: orgId, tenantId })
+        } catch {}
+      } catch {}
+    }
+    const makeDeleteHandler = (entityType: string) => async (payload: any, ctx: any) => {
+      try {
+        const em = ctx.resolve('em')
+        let orgId = payload?.organizationId || payload?.orgId || ctx?.organizationId || null
+        let tenantId = payload?.tenantId || ctx?.tenantId || null
+        const id = String(payload?.id || payload?.recordId || '')
+        if (!id) return
+        if (!orgId || !tenantId) {
+          try {
+            const db = (em as any).getKysely()
+            const table = resolveEntityTableName(em, entityType)
+            const row = await db
+              .selectFrom(table as any)
+              .select(['organization_id' as any, 'tenant_id' as any])
+              .where('id' as any, '=', id)
+              .executeTakeFirst() as { organization_id: string | null; tenant_id: string | null } | undefined
+            orgId = row?.organization_id ?? orgId
+            tenantId = row?.tenant_id ?? tenantId
+          } catch {}
+        }
+        try {
+          const bus = ctx.resolve('eventBus') as any
+          await bus.emitEvent('query_index.delete_one', { entityType, recordId: id, organizationId: orgId, tenantId })
+        } catch {}
+      } catch {}
+    }
+
+    // Build list of entity ids to subscribe to
+    try {
+      const em = (container.resolve('em') as any)
+      const db = (em as any).getKysely()
+      const cfEntityIds: string[] = []
+      db
+        .selectFrom('custom_field_defs' as any)
+        .select(['entity_id' as any])
+        .distinct()
+        .execute()
+        .then((rows: any[]) => {
+          for (const r of rows || []) cfEntityIds.push(String(r.entity_id))
+        })
+        .catch(() => {})
+        .finally(() => {
+          const proceed = (ids: string[]) => {
+            for (const entityType of Array.from(new Set(ids))) {
+              const [mod, ent] = entityType.split(':')
+              if (!mod || !ent) continue
+              bus.on(`${mod}.${ent}.created`, makeUpsertHandler(entityType), { moduleId: 'query_index' })
+              bus.on(`${mod}.${ent}.updated`, makeUpsertHandler(entityType), { moduleId: 'query_index' })
+              bus.on(`${mod}.${ent}.deleted`, makeDeleteHandler(entityType), { moduleId: 'query_index' })
+            }
+          }
+          if (cfEntityIds.length > 0) {
+            proceed(cfEntityIds)
+          } else {
+            // Fallback to generated entity ids without await
+          import('#generated/entities.ids.generated').then((core) => {
+              const flatten = (E: any): string[] => Object.values(E || {}).flatMap((o: any) => Object.values(o || {}) as string[])
+              const guesses = new Set<string>([...flatten((core as any).E)])
+              proceed(Array.from(guesses))
+            }).catch(() => {})
+          }
+        })
+    } catch {}
+  }
+
+  try { setup() } catch {}
+}

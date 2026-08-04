@@ -1,0 +1,76 @@
+{
+  "$schema": "./tiers.schema.json",
+  "default": ["core"],
+  "external": {
+    "source": "helios/skills",
+    "description": "Skills installed from the shared helios/skills collection via `npx skills add` (see scripts/install-skills.sh). A folder under .ai/skills/ matching one of these names is a repo-local override read by the external skill, never symlinked into the harness directories.",
+    "skills": [
+      "helios-approve-merge-pr",
+      "helios-auto-continue-pr",
+      "helios-auto-continue-pr-loop",
+      "helios-auto-create-pr",
+      "helios-auto-create-pr-loop",
+      "helios-auto-fix-issue",
+      "helios-auto-review-pr",
+      "helios-auto-update-changelog",
+      "helios-auto-qa-pr",
+      "helios-check-and-commit",
+      "helios-code-review",
+      "helios-fix",
+      "helios-followup-issue-from-pr",
+      "helios-integration-tests",
+      "helios-merge-buddy",
+      "helios-open-pr",
+      "helios-prepare-issue",
+      "helios-prepare-test-env",
+      "helios-review-prs",
+      "helios-root-cause",
+      "helios-setup-agent-pipeline",
+      "helios-spec-writing",
+      "helios-auto-fix-pr",
+      "helios-close-fixed-issues",
+      "helios-verify-in-repo"
+    ]
+  },
+  "tiers": {
+    "core": {
+      "description": "Daily-driver skills installed by default.",
+      "skills": [
+        "helios-ds-guardian",
+        "helios-backend-ui-design",
+        "helios-implement-spec",
+        "helios-pre-implement-spec",
+        "helios-smart-test",
+        "helios-create-agents-md",
+        "helios-skill-creator",
+        "helios-fix-specs",
+        "helios-migrate-mikro-orm",
+        "helios-create-ai-agent",
+        "helios-help"
+      ]
+    },
+    "automation": {
+      "description": "PR/issue automation skills. Opt-in; agent-driven workflows.",
+      "skills": [
+        "helios-auto-publish-pr",
+        "helios-auto-qa-scenarios"
+      ]
+    },
+    "security": {
+      "description": "Security audit skills. Opt-in.",
+      "skills": ["helios-auto-sec-report", "helios-auto-sec-report-pr"]
+    },
+    "analysis": {
+      "description": "Business/engagement analysis skills (app specs, platform gap analysis). Opt-in.",
+      "skills": ["helios-app-spec-writing", "helios-gap-analysis"]
+    },
+    "migration": {
+      "description": "One-shot, version-pinned migrations. Install only when needed.",
+      "skills": ["helios-auto-upgrade-0.4.10-to-0.5.0"]
+    },
+    "infra": {
+      "description": "Rare, special-case skills.",
+      "skills": ["helios-dev-container-maintenance", "helios-integration-builder"]
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "_comment": "Copy to .cursor/mcp.json and set MCP_API_KEY (printed by yarn initialize)",
+  "mcpServers": {
+    "helios": {
+      "command": "yarn",
+      "args": ["helios", "mcp:dev"],
+      "env": {
+        "APP_URL": "http://localhost:3000",
+        "MCP_API_KEY": "${MCP_API_KEY}"
+      }
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "$schema": "./tiers.schema.json",
+  "default": ["core"],
+  "external": {
+    "source": "helios/skills",
+    "description": "Skills installed from the shared helios/skills collection via `npx skills add` (see scripts/install-skills.sh). Only the subset this standalone app ships is installed. A folder under .ai/skills/ matching one of these names is a repo-local override read by the external skill, never symlinked into the harness directories.",
+    "skills": [
+      "helios-apply-upgrade-notes",
+      "helios-auto-continue-pr",
+      "helios-auto-continue-pr-loop",
+      "helios-auto-create-pr",
+      "helios-auto-create-pr-loop",
+      "helios-auto-fix-issue",
+      "helios-auto-review-pr",
+      "helios-code-review",
+      "helios-fix",
+      "helios-integration-tests",
+      "helios-open-pr",
+      "helios-prepare-issue",
+      "helios-prepare-test-env",
+      "helios-root-cause",
+      "helios-setup-agent-pipeline",
+      "helios-spec-writing",
+      "helios-verify-in-repo"
+    ]
+  },
+  "tiers": {
+    "core": {
+      "description": "Daily-driver standalone skills installed by default.",
+      "skills": [
+        "helios-help",
+        "helios-implement-spec",
+        "helios-backend-ui-design",
+        "helios-module-scaffold",
+        "helios-data-model-design",
+        "helios-system-extension",
+        "helios-troubleshooter",
+        "helios-eject-and-customize"
+      ]
+    },
+    "automation": {
+      "description": "Module-management helpers. Opt-in.",
+      "skills": ["helios-trim-unused-modules"]
+    },
+    "infra": {
+      "description": "Rare, special-case skills.",
+      "skills": ["helios-integration-builder"]
+    },
+    "migration": {
+      "description": "One-shot, version-pinned migrations. Install only when needed.",
+      "skills": ["helios-auto-upgrade-0.4.10-to-0.5.0"]
+    }
+  }
+}

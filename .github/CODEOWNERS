@@ -1,0 +1,36 @@
+# CODEOWNERS — requires explicit approval from named owners for sensitive paths.
+# Changes to auth, CI, and publish infrastructure must be reviewed by a maintainer
+# even if another reviewer has already approved the PR.
+#
+# Configure the @helios/maintainers team at:
+# https://github.com/helios/helios/settings/teams
+
+# CI/CD and publish pipeline — any change requires maintainer sign-off
+.github/workflows/                     @helios/maintainers
+scripts/publish-packages.sh            @helios/maintainers
+scripts/release-patch.sh               @helios/maintainers
+scripts/release-minor.sh               @helios/maintainers
+scripts/release-major.sh               @helios/maintainers
+scripts/release-existing.sh            @helios/maintainers
+scripts/release-snapshot.sh            @helios/maintainers
+
+# Container and infrastructure definitions
+Dockerfile                             @helios/maintainers
+docker-compose.fullapp.yml             @helios/maintainers
+
+# Authentication and authorization modules
+packages/core/src/modules/auth/        @helios/maintainers
+packages/core/src/modules/customer_accounts/  @helios/maintainers
+
+# Security policy and tooling
+SECURITY.md                            @helios/maintainers
+.github/CODEOWNERS                     @helios/maintainers
+
+# Certified partner gate. These two files decide who may run `/label` on pull
+# requests, so each one needs sign-off from @matgren specifically — a single
+# owner, because any owner on a line can approve alone.
+#
+# Listed last on purpose: CODEOWNERS applies the LAST matching pattern, so these
+# lines must stay below the `.github/workflows/` rule above to take effect.
+.github/certified-partners.yml         @matgren
+.github/workflows/community-labels.yml @matgren

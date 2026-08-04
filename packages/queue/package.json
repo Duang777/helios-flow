@@ -1,0 +1,62 @@
+{
+  "name": "@helios/queue",
+  "version": "0.6.6",
+  "license": "MIT",
+  "description": "Multi-strategy job queue with local and BullMQ support",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node watch.mjs",
+    "test": "jest --config jest.config.cjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./worker": {
+      "types": "./src/worker/runner.ts",
+      "default": "./dist/worker/runner.js"
+    },
+    "./*": {
+      "types": [
+        "./src/*.ts"
+      ],
+      "default": "./dist/*.js"
+    },
+    "./*/*": {
+      "types": [
+        "./src/*/*.ts"
+      ],
+      "default": "./dist/*/*.js"
+    }
+  },
+  "peerDependencies": {
+    "bullmq": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "bullmq": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.0.1",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.11",
+    "typescript": "7.0.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@helios/shared": "workspace:*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/helios/helios",
+    "directory": "packages/queue"
+  }
+}

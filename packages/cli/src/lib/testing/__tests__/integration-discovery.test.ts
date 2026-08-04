@@ -1,0 +1,210 @@
+import os from 'node:os'
+import path from 'node:path'
+import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
+import { discoverIntegrationSpecFiles } from '../integration-discovery'
+
+async function writeTestFile(projectRoot: string, relativePath: string, content = 'export {}\n'): Promise<void> {
+  const absolutePath = path.join(projectRoot, relativePath)
+  await mkdir(path.dirname(absolutePath), { recursive: true })
+  await writeFile(absolutePath, content, 'utf8')
+}
+
+describe('integration discovery', () => {
+  let tempRoot = ''
+  const previousEnterpriseFlag = process.env.HELIOS_ENABLE_ENTERPRISE_MODULES
+  const testEnvKeys = [
+    'HELIOS_TEST_DISCOVERY_AI_KEY',
+    'HELIOS_TEST_DISCOVERY_FALLBACK_AI_KEY',
+    'HELIOS_TEST_DISCOVERY_REQUIRED_KEY',
+  ] as const
+  const previousTestEnvValues = new Map<string, string | undefined>()
+
+  beforeEach(async () => {
+    tempRoot = await mkdtemp(path.join(os.tmpdir(), 'helios-integration-discovery-'))
+    delete process.env.HELIOS_ENABLE_ENTERPRISE_MODULES
+    for (const key of testEnvKeys) {
+      previousTestEnvValues.set(key, process.env[key])
+      delete process.env[key]
+    }
+  })
+
+  afterEach(async () => {
+    if (tempRoot) {
+      await rm(tempRoot, { recursive: true, force: true })
+    }
+    if (previousEnterpriseFlag === undefined) {
+      delete process.env.HELIOS_ENABLE_ENTERPRISE_MODULES
+    } else {
+      process.env.HELIOS_ENABLE_ENTERPRISE_MODULES = previousEnterpriseFlag
+    }
+    for (const key of testEnvKeys) {
+      const previousValue = previousTestEnvValues.get(key)
+      if (previousValue === undefined) {
+        delete process.env[key]
+      } else {
+        process.env[key] = previousValue
+      }
+    }
+    previousTestEnvValues.clear()
+  })
+
+  it('applies folder and per-test metadata dependencies', async () => {
+    await writeTestFile(tempRoot, 'apps/helios/src/modules/sales/.gitkeep')
+    await writeTestFile(tempRoot, 'apps/helios/src/modules/auth/.gitkeep')
+    await writeTestFile(
+      tempRoot,
+      'apps/helios/src/modules/sales/__integration__/payments/meta.ts',
+      "export const integrationMeta = { dependsOnModules: ['currencies'] }\n",
+    )
+    await writeTestFile(
+      tempRoot,
+      'apps/helios/src/modules/sales/__integration__/payments/TC-SALES-001.spec.ts',
+      'export {}\n',
+    )
+    await writeTestFile(
+      tempRoot,
+      'apps/helios/src/modules/sales/__integration__/TC-SALES-002.spec.ts',
+      'export {}\n',
+    )
+    await writeTestFile(
+      tempRoot,
+      'apps/helios/src/modules/sales/__integration__/TC-SALES-002.meta.ts',
+      "export const integrationMeta = { requiredModules: ['auth'] }\n",
+    )
+
+    let discovered = discoverIntegrationSpecFiles(tempRoot, path.join(tempRoot, '.ai', 'qa', 'tests'))
+    expect(discovered.map((entry) => entry.path)).toEqual([
+      'apps/helios/src/modules/sales/__integration__/TC-SALES-002.spec.ts',
+    ])
+
+    await writeTestFile(tempRoot, 'apps/helios/src/modules/currencies/.gitkeep')
+    discovered = discoverIntegrationSpecFiles(tempRoot, path.join(tempRoot, '.ai', 'qa', 'tests'))
+    expect(discovered.map((entry) => entry.path)).toEqual([
+      'apps/helios/src/modules/sales/__integration__/payments/TC-SALES-001.spec.ts',
+      'apps/helios/src/modules/sales/__integration__/TC-SALES-002.spec.ts',
+    ])
+  })
+
+  it('loads enterprise integration tests only when enterprise modules are enabled', async () => {
+    await writeTestFile(tempRoot, 'packages/core/src/modules/sales/.gitkeep')
+    await writeTestFile(
+      tempRoot,
+      'packages/core/src/modules/sales/__integration__/TC-SALES-010.spec.ts',
+      'export {}\n',
+    )
+    await writeTestFile(
+      tempRoot,
+      'packages/enterprise/src/modules/sales/__integration__/TC-SALES-910.spec.ts',
+      'export {}\n',
+    )
+    await writeTestFile(
+      tempRoot,
+      'packages/enterprise/src/modules/record_locks/__integration__/TC-LOCK-910.spec.ts',
+      'export {}\n',
+    )
+
+    let discovered = discoverIntegrationSpecFiles(tempRoot, path.join(tempRoot, '.ai', 'qa', 'tests'))
+    expect(discovered.map((entry) => entry.path)).toEqual([
+      'packages/core/src/modules/sales/__integration__/TC-SALES-010.spec.ts',
+    ])
+
+    process.env.HELIOS_ENABLE_ENTERPRISE_MODULES = 'true'
+    discovered = discoverIntegrationSpecFiles(tempRoot, path.join(tempRoot, '.ai', 'qa', 'tests'))
+    expect(discovered.map((entry) => entry.path)).toEqual([
+      'packages/core/src/modules/sales/__integration__/TC-SALES-010.spec.ts',
+      'packages/enterprise/src/modules/record_locks/__integration__/TC-LOCK-910.spec.ts',
+      'packages/enterprise/src/modules/sales/__integration__/TC-SALES-910.spec.ts',
+    ])
+  })
+
+  it('discovers tests from create-app template modules', async () => {
+    await writeTestFile(
+      tempRoot,
+      'packages/create-app/template/src/modules/auth/__integration__/TC-AUTH-001.spec.ts',
+      'export {}\n',
+    )
+    const discovered = discoverIntegrationSpecFiles(tempRoot, path.join(tempRoot, '.ai', 'qa', 'tests'))
+    expect(discovered.map((entry) => entry.path)).toEqual([
+      'packages/create-app/template/src/modules/auth/__integration__/TC-AUTH-001.spec.ts',
+    ])
+  })
+
+  it('discovers standalone app integration tests from src/modules', async () => {
+    await writeTestFile(tempRoot, 'src/modules/auth/.gitkeep')
+    await writeTestFile(tempRoot, 'src/modules/sales/.gitkeep')
+    await writeTestFile(
+      tempRoot,
+      'src/modules/sales/__integration__/TC-SALES-020.spec.ts',
+      'export {}\n',
+    )
+
+    const discovered = discoverIntegrationSpecFiles(tempRoot, path.join(tempRoot, '.ai', 'qa', 'tests'))
+    expect(discovered.map((entry) => entry.path)).toEqual([
+      'src/modules/sales/__integration__/TC-SALES-020.spec.ts',
+    ])
+  })
+
+  it('discovers standalone package integration tests from node_modules/@helios', async () => {
+    await writeTestFile(tempRoot, 'src/modules/customers/.gitkeep')
+    await writeTestFile(tempRoot, 'node_modules/@helios/core/src/modules/customers/.gitkeep')
+    await writeTestFile(
+      tempRoot,
+      'node_modules/@helios/core/src/modules/customers/__integration__/TC-CRM-020.spec.ts',
+      'export {}\n',
+    )
+
+    const discovered = discoverIntegrationSpecFiles(tempRoot, path.join(tempRoot, '.ai', 'qa', 'tests'))
+    expect(discovered.map((entry) => entry.path)).toEqual([
+      'node_modules/@helios/core/src/modules/customers/__integration__/TC-CRM-020.spec.ts',
+    ])
+  })
+
+  it('applies folder and per-test metadata environment requirements', async () => {
+    await writeTestFile(tempRoot, 'packages/ai-assistant/src/modules/ai_assistant/.gitkeep')
+    await writeTestFile(
+      tempRoot,
+      'packages/ai-assistant/src/modules/ai_assistant/__integration__/TC-AI-001.spec.ts',
+      'export {}\n',
+    )
+    await writeTestFile(
+      tempRoot,
+      'packages/ai-assistant/src/modules/ai_assistant/__integration__/TC-AI-002.spec.ts',
+      'export {}\n',
+    )
+    await writeTestFile(
+      tempRoot,
+      'packages/ai-assistant/src/modules/ai_assistant/__integration__/TC-AI-002.meta.ts',
+      "export const integrationMeta = { requiredAnyEnvVars: ['HELIOS_TEST_DISCOVERY_AI_KEY', 'HELIOS_TEST_DISCOVERY_FALLBACK_AI_KEY'] }\n",
+    )
+    await writeTestFile(
+      tempRoot,
+      'packages/ai-assistant/src/modules/ai_assistant/__integration__/live/meta.ts',
+      "export const integrationMeta = { requiredEnvVars: ['HELIOS_TEST_DISCOVERY_REQUIRED_KEY'] }\n",
+    )
+    await writeTestFile(
+      tempRoot,
+      'packages/ai-assistant/src/modules/ai_assistant/__integration__/live/TC-AI-003.spec.ts',
+      'export {}\n',
+    )
+
+    let discovered = discoverIntegrationSpecFiles(tempRoot, path.join(tempRoot, '.ai', 'qa', 'tests'))
+    expect(discovered.map((entry) => entry.path)).toEqual([
+      'packages/ai-assistant/src/modules/ai_assistant/__integration__/TC-AI-001.spec.ts',
+    ])
+
+    process.env.HELIOS_TEST_DISCOVERY_FALLBACK_AI_KEY = 'test-key'
+    discovered = discoverIntegrationSpecFiles(tempRoot, path.join(tempRoot, '.ai', 'qa', 'tests'))
+    expect(discovered.map((entry) => entry.path)).toEqual([
+      'packages/ai-assistant/src/modules/ai_assistant/__integration__/TC-AI-001.spec.ts',
+      'packages/ai-assistant/src/modules/ai_assistant/__integration__/TC-AI-002.spec.ts',
+    ])
+
+    process.env.HELIOS_TEST_DISCOVERY_REQUIRED_KEY = 'required-key'
+    discovered = discoverIntegrationSpecFiles(tempRoot, path.join(tempRoot, '.ai', 'qa', 'tests'))
+    expect(discovered.map((entry) => entry.path)).toEqual([
+      'packages/ai-assistant/src/modules/ai_assistant/__integration__/live/TC-AI-003.spec.ts',
+      'packages/ai-assistant/src/modules/ai_assistant/__integration__/TC-AI-001.spec.ts',
+      'packages/ai-assistant/src/modules/ai_assistant/__integration__/TC-AI-002.spec.ts',
+    ])
+  })
+})

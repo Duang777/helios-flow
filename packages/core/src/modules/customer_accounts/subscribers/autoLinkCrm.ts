@@ -1,0 +1,63 @@
+import type { EntityManager } from '@mikro-orm/postgresql'
+import { CustomerUser } from '@helios/core/modules/customer_accounts/data/entities'
+import { findWithDecryption, findOneWithDecryption } from '@helios/shared/lib/encryption/find'
+import { createLogger } from '@helios/shared/lib/logger'
+
+const logger = createLogger('customer_accounts').child({ component: 'auto-link-crm' })
+
+export const metadata = {
+  event: 'customer_accounts.user.created',
+  persistent: true,
+  id: 'customer_accounts:auto-link-crm',
+}
+
+export default async function handle(
+  payload: unknown,
+  ctx: { resolve: <T = unknown>(name: string) => T; eventName?: string },
+): Promise<void> {
+  const data = payload as Record<string, unknown>
+  const userId = data?.id as string
+  const tenantId = data?.tenantId as string
+  const organizationId = data?.organizationId as string | undefined
+  if (!userId || !tenantId) return
+
+  const em = ctx.resolve<EntityManager>('em')
+
+  try {
+    const user = await findOneWithDecryption(em, CustomerUser, { id: userId, tenantId, deletedAt: null }, undefined, { tenantId, organizationId })
+    if (!user) return
+    if (user.personEntityId) return
+
+    const email = (data?.email ? (data.email as string) : user.email)?.toLowerCase().trim()
+    if (!email) return
+
+    const { CustomerEntity } = await import('@helios/core/modules/customers/data/entities')
+
+    const personEntities = await findWithDecryption(
+      em,
+      CustomerEntity,
+      { tenantId, kind: 'person', deletedAt: null } as any,
+      { limit: 500 } as any,
+      { tenantId, organizationId },
+    )
+
+    const matchingEntity = personEntities.find(
+      (e: any) => e.primaryEmail && e.primaryEmail.toLowerCase().trim() === email,
+    ) as any
+
+    if (!matchingEntity) return
+
+    const { CustomerPersonProfile } = await import('@helios/core/modules/customers/data/entities')
+    const profile = await em.findOne(CustomerPersonProfile as any, { entity: matchingEntity.id } as any) as any
+    const companyEntityId = profile?.companyEntityId as string | undefined
+
+    const updates: Record<string, unknown> = { personEntityId: matchingEntity.id }
+    if (companyEntityId) {
+      updates.customerEntityId = companyEntityId
+    }
+
+    await em.nativeUpdate(CustomerUser, { id: userId }, updates)
+  } catch (err) {
+    logger.error('Failed to link customer user to CRM person', { err })
+  }
+}

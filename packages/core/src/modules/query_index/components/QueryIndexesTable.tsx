@@ -1,0 +1,479 @@
+"use client"
+import * as React from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import type { ColumnDef, SortingState } from '@tanstack/react-table'
+import { DataTable } from '@helios/ui/backend/DataTable'
+import { RowActions } from '@helios/ui/backend/RowActions'
+import { Button } from '@helios/ui/primitives/button'
+import { apiCallOrThrow, readApiResultOrThrow } from '@helios/ui/backend/utils/apiCall'
+import { flash } from '@helios/ui/backend/FlashMessages'
+import { useOrganizationScopeVersion } from '@helios/shared/lib/frontend/useOrganizationScope'
+import { useT } from '@helios/shared/lib/i18n/context'
+import { useConfirmDialog } from '@helios/ui/backend/confirm-dialog'
+import { useGuardedMutation } from '@helios/ui/backend/injection/useGuardedMutation'
+import { StatusBadge, type StatusBadgeVariant } from '@helios/ui/primitives/status-badge'
+import { createLogger } from '@helios/shared/lib/logger'
+
+const logger = createLogger('query_index').child({ component: 'indexes-table' })
+
+const MUTATION_CONTEXT_ID = 'query_index.status.list:actions'
+
+type Translator = (key: string, params?: Record<string, string | number>) => string
+
+type PartitionStatus = {
+  partitionIndex: number | null
+  partitionCount: number | null
+  status: 'reindexing' | 'purging' | 'stalled' | 'completed' | 'failed'
+  processedCount?: number | null
+  totalCount?: number | null
+  heartbeatAt?: string | null
+  startedAt?: string | null
+  finishedAt?: string | null
+}
+
+type JobStatus = {
+  status: 'idle' | 'reindexing' | 'purging' | 'stalled' | 'failed'
+  startedAt?: string | null
+  finishedAt?: string | null
+  heartbeatAt?: string | null
+  processedCount?: number | null
+  totalCount?: number | null
+  partitions?: PartitionStatus[]
+  scope?: {
+    status?: 'reindexing' | 'purging' | 'stalled' | 'completed' | 'failed' | null
+    processedCount?: number | null
+    totalCount?: number | null
+  } | null
+}
+
+type Row = {
+  entityId: string
+  label: string
+  baseCount: number | null
+  indexCount: number | null
+  vectorCount: number | null
+  vectorEnabled: boolean
+  fulltextCount: number | null
+  fulltextEnabled: boolean
+  ok: boolean
+  job?: JobStatus
+}
+
+type Resp = { items: Row[] }
+
+function formatCount(value: number | null): string {
+  if (value == null) return '—'
+  return value.toLocaleString()
+}
+
+function formatNumeric(value: number | null | undefined): string | null {
+  if (value == null) return null
+  return Number(value).toLocaleString()
+}
+
+function formatProgressLabel(
+  processed: number | null | undefined,
+  total: number | null | undefined,
+  t: Translator,
+): string | null {
+  const processedText = formatNumeric(processed)
+  if (!processedText) return null
+  const totalText = formatNumeric(total)
+  if (totalText) return t('query_index.table.status.progress', { processed: processedText, total: totalText })
+  return t('query_index.table.status.progressSingle', { processed: processedText })
+}
+
+function translateJobStatus(t: Translator, status: JobStatus['status'] | undefined, ok: boolean): string {
+  if (!status || status === 'idle') {
+    return ok ? t('query_index.table.status.in_sync') : t('query_index.table.status.out_of_sync')
+  }
+  if (status === 'reindexing') return t('query_index.table.status.reindexing')
+  if (status === 'purging') return t('query_index.table.status.purging')
+  if (status === 'stalled') return t('query_index.table.status.stalled')
+  if (status === 'failed') return t('query_index.table.status.failed')
+  return ok ? t('query_index.table.status.in_sync') : t('query_index.table.status.out_of_sync')
+}
+
+function translateScopeStatus(
+  t: Translator,
+  status: PartitionStatus['status'] | JobStatus['status'] | undefined | null,
+): string {
+  if (status === 'reindexing') return t('query_index.table.status.scope.reindexing')
+  if (status === 'purging') return t('query_index.table.status.scope.purging')
+  if (status === 'stalled') return t('query_index.table.status.scope.stalled')
+  if (status === 'failed') return t('query_index.table.status.scope.failed')
+  return t('query_index.table.status.scope.completed')
+}
+
+
+function createColumns(t: Translator): ColumnDef<Row>[] {
+  return [
+    { id: 'entityId', header: () => t('query_index.table.columns.entity'), accessorKey: 'entityId', meta: { priority: 1 } },
+    { id: 'label', header: () => t('query_index.table.columns.label'), accessorKey: 'label', meta: { priority: 2 } },
+    {
+      id: 'baseCount',
+      header: () => t('query_index.table.columns.records'),
+      accessorFn: (row) => row.baseCount ?? 0,
+      cell: ({ row }) => <span>{formatCount(row.original.baseCount)}</span>,
+      meta: { priority: 2 },
+    },
+    {
+      id: 'indexCount',
+      header: () => t('query_index.table.columns.indexed'),
+      accessorFn: (row) => row.indexCount ?? 0,
+      cell: ({ row }) => <span>{formatCount(row.original.indexCount)}</span>,
+      meta: { priority: 2 },
+    },
+    {
+      id: 'vectorCount',
+      header: () => t('query_index.table.columns.vector'),
+      accessorFn: (row) => (row.vectorEnabled ? row.vectorCount ?? 0 : -1),
+      cell: ({ row }) => {
+        const record = row.original
+        if (!record.vectorEnabled) return <span>—</span>
+        const ok = record.vectorCount != null && record.baseCount != null && record.vectorCount === record.baseCount
+        const display = formatCount(record.vectorCount)
+        const className = ok ? 'text-status-success-text' : 'text-status-warning-text'
+        return <span className={className}>{display}</span>
+      },
+      meta: { priority: 2 },
+    },
+    {
+      id: 'fulltextCount',
+      header: () => t('query_index.table.columns.fulltext'),
+      accessorFn: (row) => (row.fulltextEnabled ? row.fulltextCount ?? 0 : -1),
+      cell: ({ row }) => {
+        const record = row.original
+        if (!record.fulltextEnabled) return <span>—</span>
+        const ok = record.fulltextCount != null && record.baseCount != null && record.fulltextCount === record.baseCount
+        const display = formatCount(record.fulltextCount)
+        const className = ok ? 'text-status-success-text' : 'text-status-warning-text'
+        return <span className={className}>{display}</span>
+      },
+      meta: { priority: 2 },
+    },
+    {
+      id: 'status',
+      header: () => t('query_index.table.columns.status'),
+      cell: ({ row }) => {
+        const record = row.original
+        const job = record.job
+        const partitions = job?.partitions ?? []
+        const ok = record.ok && (!job || job.status === 'idle')
+        const jobFailed = job?.status === 'failed'
+        const statusText = translateJobStatus(t, job?.status, ok)
+        const jobProgress = job ? formatProgressLabel(job.processedCount ?? null, job.totalCount ?? null, t) : null
+        const label = jobProgress
+          ? t('query_index.table.status.withProgress', { status: statusText, progress: jobProgress })
+          : statusText
+        let variant: StatusBadgeVariant = 'neutral'
+        if (job) {
+          if (job.status === 'stalled' || jobFailed) variant = 'error'
+          else if (job.status === 'reindexing' || job.status === 'purging') variant = 'warning'
+          else variant = ok ? 'success' : 'neutral'
+        } else {
+          variant = ok ? 'success' : 'neutral'
+        }
+
+        const lines: string[] = []
+
+        if (job?.scope && partitions.length <= 1) {
+          const scopeStatus = translateScopeStatus(t, job.scope.status ?? null)
+          const scopeProgress = formatProgressLabel(job.scope.processedCount ?? null, job.scope.totalCount ?? null, t)
+          const scopeLabel = t('query_index.table.status.scopeLabel')
+          lines.push(`${scopeLabel}: ${scopeStatus}${scopeProgress ? ` (${scopeProgress})` : ''}`)
+        }
+
+        if (partitions.length > 1) {
+          for (const part of partitions) {
+            const partitionLabel =
+              part.partitionIndex != null
+                ? t('query_index.table.status.partitionLabel', { index: Number(part.partitionIndex) + 1 })
+                : t('query_index.table.status.scopeLabel')
+            const partitionStatus = translateScopeStatus(t, part.status)
+            const partitionProgress = formatProgressLabel(part.processedCount ?? null, part.totalCount ?? null, t)
+            lines.push(`${partitionLabel}: ${partitionStatus}${partitionProgress ? ` (${partitionProgress})` : ''}`)
+          }
+        }
+
+        if (record.vectorEnabled) {
+          const vectorLabel = t('query_index.table.status.vectorLabel')
+          const vectorCount = formatCount(record.vectorCount)
+          const vectorTotal = record.baseCount != null ? formatCount(record.baseCount) : null
+          const vectorValue = vectorTotal
+            ? t('query_index.table.status.vectorValue', { count: vectorCount, total: vectorTotal })
+            : vectorCount
+          lines.push(`${vectorLabel}: ${vectorValue}`)
+        }
+
+        return (
+          <div className="space-y-1.5">
+            <div>
+              <StatusBadge variant={variant} dot>
+                {label}
+              </StatusBadge>
+            </div>
+            {lines.length > 0 && (
+              <div className="text-xs text-muted-foreground">
+                {lines.map((line, idx) => (
+                  <div key={idx}>{line}</div>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      },
+      meta: { priority: 1 },
+    },
+  ]
+}
+
+export default function QueryIndexesTable() {
+  const [sorting, setSorting] = React.useState<SortingState>([{ id: 'entityId', desc: false }])
+  const [page, setPage] = React.useState(1)
+  const [search, setSearch] = React.useState('')
+  const qc = useQueryClient()
+  const scopeVersion = useOrganizationScopeVersion()
+  const [refreshSeq, setRefreshSeq] = React.useState(0)
+  const t = useT()
+  const { confirm, ConfirmDialogElement } = useConfirmDialog()
+  const columns = React.useMemo(() => createColumns(t), [t])
+  const { runMutation, retryLastMutation } = useGuardedMutation<{
+    formId: string
+    resourceKind: string
+    resourceId: string
+    retryLastMutation: () => Promise<boolean>
+  }>({
+    contextId: MUTATION_CONTEXT_ID,
+    blockedMessage: t('ui.forms.flash.saveBlocked', 'Save blocked by validation'),
+  })
+
+  const { data, isLoading } = useQuery<Resp>({
+    queryKey: ['query-index-status', scopeVersion, refreshSeq],
+    queryFn: async () => {
+      const baseUrl = '/api/query_index/status'
+      const url = refreshSeq > 0 ? `${baseUrl}?refresh=${refreshSeq}` : baseUrl
+      return readApiResultOrThrow<Resp>(
+        url,
+        undefined,
+        { errorMessage: t('query_index.table.errors.loadFailed') },
+      )
+    },
+    refetchInterval: 4000,
+  })
+
+  const rowsAll = data?.items || []
+  const rows = React.useMemo(() => {
+    if (!search) return rowsAll
+    const q = search.toLowerCase()
+    return rowsAll.filter((r) => r.entityId.toLowerCase().includes(q) || r.label.toLowerCase().includes(q))
+  }, [rowsAll, search])
+
+  const trigger = React.useCallback(
+    async (action: 'reindex' | 'purge', entityId: string, opts?: { force?: boolean }) => {
+      const body: Record<string, unknown> = { entityType: entityId }
+      if (opts?.force) body.force = true
+      const actionLabel =
+        action === 'purge' ? t('query_index.table.actions.purge') : t('query_index.table.actions.reindex')
+      const errorMessage = t('query_index.table.errors.actionFailed', { action: actionLabel })
+      try {
+        await runMutation({
+          operation: () =>
+            apiCallOrThrow(`/api/query_index/${action}`, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify(body),
+            }, { errorMessage }),
+          context: {
+            formId: MUTATION_CONTEXT_ID,
+            resourceKind: 'query_index',
+            resourceId: entityId,
+            retryLastMutation,
+          },
+          mutationPayload: { action, entityType: entityId, force: Boolean(opts?.force) },
+        })
+      } catch (err) {
+        // Expected operational failures (e.g. a 503 when a search backend is not
+        // configured) — surface a flash toast, not an alert or an error-level
+        // stack dump that reads like an unhandled exception.
+        const message = err instanceof Error && err.message ? err.message : errorMessage
+        logger.warn('Index action failed', { message })
+        flash(message, 'error')
+      }
+      qc.invalidateQueries({ queryKey: ['query-index-status'] })
+    },
+    [qc, t, runMutation, retryLastMutation],
+  )
+
+  const triggerVector = React.useCallback(
+    async (action: 'reindex' | 'purge', entityId: string) => {
+      if (action === 'purge') {
+        const confirmed = await confirm({
+          title: t('query_index.table.confirm.vectorPurge'),
+          variant: 'destructive',
+        })
+        if (!confirmed) return
+      }
+
+      const actionLabel = action === 'purge'
+        ? t('query_index.table.actions.vectorPurge')
+        : t('query_index.table.actions.vectorReindex')
+      const errorMessage = t('query_index.table.errors.actionFailed', { action: actionLabel })
+      try {
+        await runMutation({
+          operation: () =>
+            apiCallOrThrow('/api/search/embeddings/reindex', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({
+                entityId,
+                purgeFirst: action === 'purge',
+              }),
+            }, { errorMessage }),
+          context: {
+            formId: MUTATION_CONTEXT_ID,
+            resourceKind: 'query_index.vector',
+            resourceId: entityId,
+            retryLastMutation,
+          },
+          mutationPayload: { action, entityId, purgeFirst: action === 'purge' },
+        })
+      } catch (err) {
+        const message = err instanceof Error && err.message ? err.message : errorMessage
+        logger.warn('Vector action failed', { message })
+        flash(message, 'error')
+      }
+      qc.invalidateQueries({ queryKey: ['query-index-status'] })
+    },
+    [confirm, qc, t, runMutation, retryLastMutation],
+  )
+
+  const triggerFulltext = React.useCallback(
+    async (action: 'reindex' | 'purge', entityId: string) => {
+      if (action === 'purge') {
+        const confirmed = await confirm({
+          title: t('query_index.table.confirm.fulltextPurge'),
+          variant: 'destructive',
+        })
+        if (!confirmed) return
+      }
+
+      const actionLabel = action === 'purge'
+        ? t('query_index.table.actions.fulltextPurge')
+        : t('query_index.table.actions.fulltextReindex')
+      const errorMessage = t('query_index.table.errors.actionFailed', { action: actionLabel })
+      try {
+        await runMutation({
+          operation: () =>
+            apiCallOrThrow('/api/search/reindex', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({
+                action: action === 'purge' ? 'clear' : 'reindex',
+                entityId,
+              }),
+            }, { errorMessage }),
+          context: {
+            formId: MUTATION_CONTEXT_ID,
+            resourceKind: 'query_index.fulltext',
+            resourceId: entityId,
+            retryLastMutation,
+          },
+          mutationPayload: { action, entityId },
+        })
+      } catch (err) {
+        const message = err instanceof Error && err.message ? err.message : errorMessage
+        logger.warn('Fulltext action failed', { message })
+        flash(message, 'error')
+      }
+      qc.invalidateQueries({ queryKey: ['query-index-status'] })
+    },
+    [confirm, qc, t, runMutation, retryLastMutation],
+  )
+
+  return (
+    <>
+      <DataTable
+        title={t('query_index.nav.queryIndexes')}
+        actions={(
+          <>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRefreshSeq((v) => v + 1)
+                qc.invalidateQueries({ queryKey: ['query-index-status'] })
+              }}
+            >
+              {t('query_index.table.refresh')}
+            </Button>
+          </>
+        )}
+        columns={columns}
+        data={rows}
+        searchValue={search}
+        searchPlaceholder={t('query_index.table.searchPlaceholder')}
+        onSearchChange={(value) => {
+          setSearch(value)
+          setPage(1)
+        }}
+        sortable
+        sorting={sorting}
+        onSortingChange={setSorting}
+        perspective={{ tableId: 'query_index.status.list' }}
+        rowActions={(row) => {
+          const items: Array<{ id: string; label: string; onSelect: () => void; destructive?: boolean }> = [
+            { id: 'reindex', label: t('query_index.table.actions.reindex'), onSelect: () => void trigger('reindex', row.entityId) },
+            {
+              id: 'reindex-force',
+              label: t('query_index.table.actions.reindexForce'),
+              onSelect: () => void trigger('reindex', row.entityId, { force: true }),
+            },
+            {
+              id: 'purge',
+              label: t('query_index.table.actions.purge'),
+              destructive: true,
+              onSelect: () => void trigger('purge', row.entityId),
+            },
+          ]
+
+          if (row.vectorEnabled) {
+            items.push(
+              {
+                id: 'vector-reindex',
+                label: t('query_index.table.actions.vectorReindex'),
+                onSelect: () => void triggerVector('reindex', row.entityId),
+              },
+              {
+                id: 'vector-purge',
+                label: t('query_index.table.actions.vectorPurge'),
+                destructive: true,
+                onSelect: () => void triggerVector('purge', row.entityId),
+              },
+            )
+          }
+
+          if (row.fulltextEnabled) {
+            items.push(
+              {
+                id: 'fulltext-reindex',
+                label: t('query_index.table.actions.fulltextReindex'),
+                onSelect: () => void triggerFulltext('reindex', row.entityId),
+              },
+              {
+                id: 'fulltext-purge',
+                label: t('query_index.table.actions.fulltextPurge'),
+                destructive: true,
+                onSelect: () => void triggerFulltext('purge', row.entityId),
+              },
+            )
+          }
+
+          return <RowActions items={items} />
+        }}
+        pagination={{ page, pageSize: 50, total: rows.length, totalPages: 1, onPageChange: setPage }}
+        isLoading={isLoading}
+      />
+      {ConfirmDialogElement}
+    </>
+  )
+}

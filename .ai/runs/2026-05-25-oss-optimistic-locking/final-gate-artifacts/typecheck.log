@@ -1,0 +1,33 @@
+• turbo 2.9.14
+
+   • Packages in scope: @helios/ai-assistant, @helios/app, @helios/cache, @helios/checkout, @helios/cli, @helios/content, @helios/core, @helios/enterprise, @helios/events, @helios/gateway-stripe, @helios/onboarding, @helios/queue, @helios/scheduler, @helios/search, @helios/shared, @helios/storage-s3, @helios/sync-akeneo, @helios/ui, @helios/webhooks, create-helios-app, helios-docs
+   • Running typecheck in 21 packages
+   • Remote caching disabled, using shared worktree cache
+
+@helios/app:typecheck: cache miss, executing 0bc26b75355ee0c7
+@helios/ui:typecheck: cache miss, executing c69f93bf919a3dec
+@helios/core:typecheck: cache miss, executing f4da9f71cb0e8655
+@helios/shared:typecheck: cache miss, executing 14be03dec13b2609
+@helios/queue:typecheck: cache hit, replaying logs caa5f5545f37ec1a
+@helios/events:typecheck: cache hit, replaying logs edae38d5aa2ea81a
+@helios/webhooks:typecheck: cache hit, replaying logs 130b4e4f603ac3a1
+@helios/sync-akeneo:typecheck: cache hit, replaying logs bd763da59e287280
+create-helios-app:typecheck: cache hit, replaying logs da5aba70f06392e5
+@helios/content:typecheck: cache hit, replaying logs c7d3878f6faf22f7
+@helios/checkout:typecheck: cache hit, replaying logs 987a8ab80ded6708
+@helios/cli:typecheck: cache hit, replaying logs 64b62cf1b92a709e
+@helios/search:typecheck: cache hit, replaying logs 503955cb33460afb
+@helios/scheduler:typecheck: cache hit, replaying logs 8abb96e0279a1be1
+@helios/onboarding:typecheck: cache hit, replaying logs 20287b38f7e1bbfb
+@helios/gateway-stripe:typecheck: cache hit, replaying logs 3ecc793f1e1a8207
+@helios/storage-s3:typecheck: cache hit, replaying logs de8944f39550c9dd
+@helios/enterprise:typecheck: cache hit, replaying logs 01b16c89e6ba8c44
+@helios/cache:typecheck: cache hit, replaying logs 086a41227862fc79
+ ERROR  @helios/app#typecheck: command (/home/pkarw/Projects/helios-development/.ai/tmp/auto-continue-pr/pr-2055-20260525-104412/apps/helios) /tmp/xfs-a8557719/yarn run typecheck exited (129)
+
+ Tasks:    16 successful, 19 total
+Cached:    15 cached, 19 total
+  Time:    19.71s 
+Failed:    @helios/app#typecheck
+
+ ERROR  run failed: command  exited (129)

@@ -1,0 +1,25 @@
+---
+title: helios feature_toggles toggle-delete
+sidebar_label: toggle-delete
+description: Soft-deletes a feature toggle.
+---
+
+`yarn helios feature_toggles toggle-delete` soft-deletes an existing feature toggle.
+
+## Usage
+
+```bash
+yarn helios feature_toggles toggle-delete --identifier <id>
+```
+
+## Options
+
+| Option | Description | Required | Default |
+| :--- | :--- | :--- | :--- |
+| `--identifier` | Unique identifier of the toggle to delete. | Yes | - |
+
+## Behavior
+
+- Marks the toggle as deleted in the database (soft delete).
+- If successful, outputs: `✅ Feature toggle deleted: <identifier>`.
+- If the toggle is not found, outputs an error message.

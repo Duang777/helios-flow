@@ -1,0 +1,127 @@
+{
+  "name": "@helios/ai-assistant",
+  "version": "0.6.6",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node watch.mjs",
+    "mcp:dev": "helios ai_assistant mcp:dev",
+    "mcp:serve": "helios ai_assistant mcp:serve-http",
+    "test": "jest --config jest.config.cjs --forceExit"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./modules/ai_assistant": {
+      "types": "./src/modules/ai_assistant/index.ts",
+      "default": "./dist/modules/ai_assistant/index.js"
+    },
+    "./tools": {
+      "types": "./src/modules/ai_assistant/lib/tool-registry.ts",
+      "default": "./dist/modules/ai_assistant/lib/tool-registry.js"
+    },
+    "./types": {
+      "types": "./src/modules/ai_assistant/lib/types.ts",
+      "default": "./dist/modules/ai_assistant/lib/types.js"
+    },
+    "./ai-sdk": {
+      "types": "./src/modules/ai_assistant/lib/ai-sdk.ts",
+      "default": "./dist/modules/ai_assistant/lib/ai-sdk.js"
+    },
+    "./frontend": {
+      "types": "./src/frontend/index.ts",
+      "default": "./dist/frontend/index.js"
+    },
+    "./*.ts": {
+      "types": "./src/*.ts",
+      "default": "./dist/*.js"
+    },
+    "./*.tsx": {
+      "types": "./src/*.tsx",
+      "default": "./dist/*.js"
+    },
+    "./*.json": "./src/*.json",
+    "./*": {
+      "types": [
+        "./src/*.ts",
+        "./src/*.tsx"
+      ],
+      "default": "./dist/*.js"
+    },
+    "./*/*.json": "./src/*/*.json",
+    "./*/*": {
+      "types": [
+        "./src/*/*.ts",
+        "./src/*/*.tsx"
+      ],
+      "default": "./dist/*/*.js"
+    },
+    "./*/*/*.json": "./src/*/*/*.json",
+    "./*/*/*": {
+      "types": [
+        "./src/*/*/*.ts",
+        "./src/*/*/*.tsx"
+      ],
+      "default": "./dist/*/*/*.js"
+    },
+    "./*/*/*/*.json": "./src/*/*/*/*.json",
+    "./*/*/*/*": {
+      "types": [
+        "./src/*/*/*/*.ts",
+        "./src/*/*/*/*.tsx"
+      ],
+      "default": "./dist/*/*/*/*.js"
+    },
+    "./*/*/*/*/*.json": "./src/*/*/*/*/*.json",
+    "./*/*/*/*/*": {
+      "types": [
+        "./src/*/*/*/*/*.ts",
+        "./src/*/*/*/*/*.tsx"
+      ],
+      "default": "./dist/*/*/*/*/*.js"
+    }
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.1",
+    "@ai-sdk/google": "^4.0.2",
+    "@ai-sdk/openai": "^4.0.2",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "ai": "^7.0.4",
+    "cmdk": "^1.0.0",
+    "framer-motion": "^12.42.2",
+    "isolated-vm": "^7.0.0",
+    "react-json-view-lite": "^2.5.0",
+    "react-markdown": "^10.1.0",
+    "zod-to-json-schema": "^3.25.2"
+  },
+  "peerDependencies": {
+    "@helios/shared": "workspace:*",
+    "@helios/ui": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": ">=3.23.0"
+  },
+  "devDependencies": {
+    "@helios/cli": "workspace:*",
+    "@helios/shared": "workspace:*",
+    "@helios/ui": "workspace:*",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "tsx": "^4.23.1",
+    "zod": "^4.4.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/helios/helios",
+    "directory": "packages/ai-assistant"
+  }
+}

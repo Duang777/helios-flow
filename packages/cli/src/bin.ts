@@ -1,0 +1,114 @@
+/**
+ * CLI binary entry point for @helios/cli package.
+ *
+ * Called from within a Next.js app directory as: yarn helios <command>
+ * Uses dynamic app resolution to find generated files at .helios/generated/
+ */
+import { run } from './helios.js'
+
+// Commands that can run without bootstrap (without generated files)
+// - generate: creates the generated files
+// - db: uses resolver directly to find modules and migrations
+// - init: runs yarn commands to set up the app
+// - help: just shows help text
+const BOOTSTRAP_FREE_COMMANDS = [
+  'generate',
+  'module',
+  'deploy',
+  'db',
+  'init',
+  'agentic:init',
+  'eject',
+  'test',
+  'test:integration',
+  'test:integration:coverage',
+  'test:integration:spec-coverage',
+  'test:ephemeral',
+  'test:integration:interactive',
+  'umes:list',
+  'umes:inspect',
+  'umes:check',
+  'help',
+  '--help',
+  '-h',
+]
+
+function assertNode24Runtime(): void {
+  const detectedNodeVersion = process.versions.node
+  const majorVersion = Number.parseInt(detectedNodeVersion.split('.')[0] ?? '0', 10)
+  if (majorVersion >= 24) {
+    return
+  }
+  throw new Error(
+    [
+      'Unsupported Node.js runtime.',
+      `Cause: Detected Node ${detectedNodeVersion}, but Helios requires Node 24.x.`,
+      'What to do: switch your shell to Node 24 (for example `nvm use 24`), run `yarn install`, then retry.',
+    ].join(' '),
+  )
+}
+
+function needsBootstrap(argv: string[]): boolean {
+  const [, , first] = argv
+  if (!first) return false // help screen
+  return !BOOTSTRAP_FREE_COMMANDS.includes(first)
+}
+
+async function tryBootstrap(): Promise<boolean> {
+  try {
+    const { bootstrapFromAppRoot } = await import('@helios/shared/lib/bootstrap/dynamicLoader')
+    const { registerCliModules } = await import('./helios.js')
+    // Use the CLI resolver to find the app directory (handles monorepo detection)
+    const { createResolver } = await import('./lib/resolver.js')
+    const resolver = createResolver()
+    const appDir = resolver.getAppDir()
+    const data = await bootstrapFromAppRoot(appDir)
+    // Register CLI modules directly to avoid module resolution issues
+    registerCliModules(data.modules)
+    return true
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    // Check if the error is about missing generated files
+    if (
+      message.includes('Cannot find module') &&
+      (message.includes('/generated/') || message.includes('.generated') || message.includes('.helios'))
+    ) {
+      return false
+    }
+    // Re-throw other errors
+    throw err
+  }
+}
+
+async function main(): Promise<void> {
+  assertNode24Runtime()
+  const requiresBootstrap = needsBootstrap(process.argv)
+
+  if (requiresBootstrap) {
+    const bootstrapSucceeded = await tryBootstrap()
+    if (!bootstrapSucceeded) {
+      console.error('╔═══════════════════════════════════════════════════════════════════╗')
+      console.error('║  Generated files not found!                                       ║')
+      console.error('║                                                                   ║')
+      console.error('║  The CLI requires generated files to discover modules.           ║')
+      console.error('║  Please run the following command first:                         ║')
+      console.error('║                                                                   ║')
+      console.error('║    yarn helios generate                                         ║')
+      console.error('║                                                                   ║')
+      console.error('╚═══════════════════════════════════════════════════════════════════╝')
+      process.exit(1)
+    }
+  }
+
+  const code = await run(process.argv)
+  process.exit(code ?? 0)
+}
+
+main().catch((error: unknown) => {
+  if (error instanceof Error) {
+    console.error(error.message)
+  } else {
+    console.error(error)
+  }
+  process.exit(1)
+})

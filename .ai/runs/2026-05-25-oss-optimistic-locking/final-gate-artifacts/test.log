@@ -1,0 +1,200 @@
+@helios/core:test: PASS src/modules/attachments/components/__tests__/AttachmentContentPreview.test.tsx
+@helios/core:test: PASS src/modules/perspectives/services/__tests__/perspectiveService.migration.test.ts
+@helios/ui:test: PASS src/backend/utils/__tests__/customFieldDefs.test.ts
+@helios/core:test: PASS src/modules/entities/api/__tests__/encryption.api.test.ts
+@helios/ui:test: PASS src/backend/notifications/__tests__/NotificationCountBadge.test.tsx
+@helios/core:test: PASS src/modules/customers/components/detail/__tests__/CompanyCard.primaryBadge.test.tsx
+@helios/core:test: PASS src/modules/catalog/components/products/__tests__/ProductImageCell.test.tsx
+@helios/core:test: PASS src/modules/messages/api/object-types/__tests__/route.test.ts
+@helios/ui:test: PASS src/ai/__tests__/conversation-store.test.ts
+@helios/core:test: PASS src/modules/auth/lib/__tests__/tenantAccess.test.ts
+@helios/core:test: PASS src/modules/messages/lib/__tests__/message-objects-registry.test.ts
+@helios/ui:test: PASS src/backend/injection/__tests__/useAppEvent.test.ts
+@helios/core:test: PASS src/modules/customers/components/detail/__tests__/ChangelogFilters.test.tsx
+@helios/core:test: PASS src/modules/customer_accounts/lib/__tests__/proxyRanges.test.ts
+@helios/core:test: PASS src/modules/messages/__tests__/search.test.ts
+@helios/core:test: PASS src/modules/sales/api/__tests__/documents.factory.test.ts
+@helios/core:test: PASS src/modules/translations/lib/__tests__/translatable-fields.test.ts
+@helios/core:test: PASS src/modules/customers/api/__tests__/utils.test.ts
+@helios/core:test: PASS src/modules/customers/components/detail/schedule/__tests__/FooterFields.test.tsx
+@helios/core:test: PASS src/modules/customers/components/detail/__tests__/DetailTabsLayout.test.tsx
+@helios/core:test: PASS src/modules/customer_accounts/__tests__/featureMatch.test.ts
+@helios/core:test: PASS src/modules/workflows/subscribers/__tests__/event-trigger.test.ts
+@helios/core:test: PASS src/modules/resources/data/__tests__/validators.test.ts
+@helios/core:test: PASS src/modules/messages/api/unread-count/__tests__/route.test.ts
+@helios/core:test: PASS src/modules/attachments/lib/__tests__/imageSafety.test.ts
+@helios/core:test: PASS src/modules/customers/__tests__/ai-tools/aggregator.test.ts
+@helios/core:test: PASS src/modules/staff/data/__tests__/validators.test.ts
+@helios/core:test: PASS src/modules/customers/api/dashboard/widgets/new-deals/__tests__/route.test.ts
+@helios/core:test: PASS src/modules/customers/components/detail/__tests__/PlannedActivitiesSection.test.tsx
+@helios/core:test: PASS src/modules/entities/api/__tests__/records.get.custom-entity.test.ts
+@helios/ui:test: PASS src/backend/__tests__/DataTable.namespaces.test.ts
+@helios/core:test: PASS src/modules/messages/lib/__tests__/object-validation.test.ts
+@helios/core:test: PASS src/modules/auth/services/__tests__/session-refresh-deleted.test.ts
+@helios/core:test:   ● Console
+@helios/core:test: 
+@helios/core:test:     console.warn
+@helios/core:test:       [auth.tokenHash] No AUTH_TOKEN_SECRET/AUTH_SECRET/NEXTAUTH_SECRET/JWT_SECRET set — using insecure dev-only default. Set a secret before deploying to production.
+@helios/core:test: 
+@helios/core:test:       19 |     if (!missingSecretWarned) {
+@helios/core:test:       20 |       missingSecretWarned = true
+@helios/core:test:     > 21 |       console.warn(
+@helios/core:test:          |               ^
+@helios/core:test:       22 |         '[auth.tokenHash] No AUTH_TOKEN_SECRET/AUTH_SECRET/NEXTAUTH_SECRET/JWT_SECRET set — ' +
+@helios/core:test:       23 |         'using insecure dev-only default. Set a secret before deploying to production.',
+@helios/core:test:       24 |       )
+@helios/core:test: 
+@helios/core:test:       at resolveTokenSecret (src/modules/auth/lib/tokenHash.ts:21:15)
+@helios/core:test:       at hashAuthToken (src/modules/auth/lib/tokenHash.ts:36:31)
+@helios/core:test:       at AuthService.refreshFromSessionToken (src/modules/auth/services/authService.ts:110:38)
+@helios/core:test:       at Object.<anonymous> (src/modules/auth/services/__tests__/session-refresh-deleted.test.ts:17:30)
+@helios/core:test: 
+@helios/core:test: PASS src/modules/customers/components/detail/schedule/__tests__/LinkedEntitiesField.test.tsx
+@helios/core:test: PASS src/modules/customers/components/detail/__tests__/DealWonPopup.test.tsx
+@helios/core:test: PASS src/modules/customers/components/detail/__tests__/ObjectHistoryButton.test.tsx
+@helios/core:test: PASS src/modules/messages/api/[id]/conversation/archive/__tests__/route.test.ts
+@helios/core:test: PASS src/modules/messages/components/__tests__/useMessagesInboxBulkActions.test.tsx
+@helios/core:test: PASS src/modules/entities/backend/entities/user/__tests__/create-entity-submit.test.ts
+@helios/core:test: PASS src/modules/messages/api/[id]/conversation/read/__tests__/route.test.ts
+@helios/ui:test: PASS src/backend/__tests__/CrudForm.validation.test.tsx
+@helios/ui:test:   ● Console
+@helios/ui:test: 
+@helios/ui:test:     console.debug
+@helios/ui:test:       [crud-form] Required field errors prevented submit {
+@helios/ui:test:         name: 'This field is required',
+@helios/ui:test:         gatewayProviderKey: 'This field is required'
+@helios/ui:test:       }
+@helios/ui:test: 
+@helios/ui:test:       at handleSubmit (src/backend/CrudForm.tsx:2362:17)
+@helios/ui:test: 
+@helios/ui:test:     console.debug
+@helios/ui:test:       [crud-form] Schema validation failed [
+@helios/ui:test:         {
+@helios/ui:test:           origin: 'string',
+@helios/ui:test:           code: 'invalid_format',
+@helios/ui:test:           format: 'regex',
+@helios/ui:test:           pattern: '/^[a-z][A-Za-z0-9]*$/',
+@helios/ui:test:           path: [ 'customerFieldsSchema', 0, 'key' ],
+@helios/ui:test:           message: 'Use camelCase starting with a letter.'
+@helios/ui:test:         }
+@helios/ui:test:       ]
+@helios/ui:test: 
+@helios/ui:test:       at handleSubmit (src/backend/CrudForm.tsx:2433:19)
+@helios/ui:test: 
+@helios/core:test: PASS src/modules/sales/widgets/dashboard/new-orders/__tests__/config.test.ts
+@helios/core:test: PASS src/modules/messages/api/[id]/conversation/__tests__/route.test.ts
+@helios/core:test: PASS src/modules/messages/api/types/__tests__/route.test.ts
+@helios/core:test: PASS src/modules/sales/api/__tests__/channels.route.test.ts
+@helios/core:test: PASS src/modules/sales/widgets/dashboard/new-quotes/__tests__/config.test.ts
+@helios/core:test: PASS src/modules/business_rules/backend/__tests__/page-metadata.test.ts
+@helios/core:test: PASS src/modules/directory/backend/directory/organizations/__tests__/edit-submit.test.ts
+@helios/core:test: PASS src/modules/messages/__tests__/detail-access.test.ts
+@helios/core:test: PASS src/modules/customers/components/detail/__tests__/RoleAssignmentRow.test.tsx
+@helios/core:test: PASS src/modules/customers/lib/__tests__/interactionReadModel.test.ts
+@helios/core:test: PASS src/modules/audit_logs/lib/__tests__/projections.test.ts
+@helios/core:test: PASS src/modules/customer_accounts/widgets/injection/portal-ai-assistant-trigger/__tests__/widget.client.test.tsx
+@helios/core:test: PASS src/modules/attachments/lib/__tests__/ocr-config.test.ts
+@helios/core:test: PASS src/modules/customers/components/detail/__tests__/PersonCard.test.tsx
+@helios/core:test: PASS src/modules/catalog/api/__tests__/utils.test.ts
+@helios/core:test: PASS src/modules/sync_excel/lib/__tests__/upload-storage.test.ts
+@helios/core:test: PASS src/modules/customer_accounts/lib/__tests__/secretCompare.test.ts
+@helios/core:test: PASS src/modules/customers/__tests__/search.test.ts
+@helios/core:test: PASS src/modules/catalog/api/__tests__/variants.route.test.ts
+@helios/ui:test: PASS src/backend/__tests__/CrudForm.render.test.tsx
+@helios/core:test: PASS src/modules/sales/lib/__tests__/returnQuantity.test.ts
+@helios/core:test: PASS src/modules/customer_accounts/lib/__tests__/rateLimitIdentifier.test.ts
+@helios/core:test: PASS src/modules/customers/lib/__tests__/roleTypeUsage.test.ts
+@helios/core:test: PASS src/modules/customer_accounts/__tests__/encryption.test.ts
+@helios/core:test: PASS src/modules/customers/components/detail/__tests__/TaskForm.submit.test.ts
+@helios/core:test: PASS src/modules/messages/commands/__tests__/registration.test.ts
+@helios/core:test: PASS src/modules/directory/backend/directory/organizations/__tests__/create-submit.test.ts
+@helios/core:test: PASS src/modules/customer_accounts/__tests__/signup-security-email-url.test.ts
+@helios/core:test: PASS src/modules/messages/components/__tests__/DefaultMessageListItem.test.tsx
+@helios/ui:test: PASS src/backend/__tests__/CrudForm.custom-fields.test.tsx
+@helios/core:test: PASS src/modules/customer_accounts/lib/__tests__/platformDomains.test.ts
+@helios/core:test: PASS src/modules/messages/lib/__tests__/message-types-registry.test.ts
+@helios/core:test: PASS src/modules/catalog/widgets/__tests__/injection-table.test.ts
+@helios/core:test: PASS src/modules/sync_excel/lib/__tests__/column-detector.test.ts
+@helios/core:test: PASS src/modules/customers/components/__tests__/CollectionPreviewCell.test.ts
+@helios/core:test: PASS src/modules/customer_accounts/__tests__/tokenGenerator.test.ts
+@helios/core:test: PASS src/modules/notifications/__tests__/deliveryStrategies.test.ts
+@helios/core:test: PASS src/modules/auth/__tests__/encryption.test.ts
+@helios/core:test: PASS src/modules/customers/components/detail/__tests__/ActivityForm.validation.test.ts
+@helios/core:test: PASS src/modules/sync_excel/lib/__tests__/parser.test.ts
+@helios/core:test: PASS src/modules/sales/data/__tests__/encryption.test.ts
+@helios/core:test: PASS src/modules/catalog/lib/__tests__/categoryTree.test.ts
+@helios/core:test: PASS src/modules/catalog/services/__tests__/catalogPricingService.test.ts
+@helios/core:test: PASS src/modules/messages/data/__tests__/encryption.test.ts
+@helios/core:test: PASS src/modules/customers/__tests__/events.broadcast.test.ts
+@helios/ui:test: PASS src/backend/__tests__/CrudForm.unsavedNavigation.test.tsx
+@helios/ui:test:   ● Console
+@helios/ui:test: 
+@helios/ui:test:     console.error
+@helios/ui:test:       Error: Not implemented: navigation (except hash changes)
+@helios/ui:test:           at module.exports (/home/pkarw/Projects/helios-development/.ai/tmp/auto-continue-pr/pr-2055-20260525-104412/node_modules/jsdom/lib/jsdom/browser/not-implemented.js:9:17)
+@helios/ui:test:           at navigateFetch (/home/pkarw/Projects/helios-development/.ai/tmp/auto-continue-pr/pr-2055-20260525-104412/node_modules/jsdom/lib/jsdom/living/window/navigation.js:77:3)
+@helios/ui:test:           at exports.navigate (/home/pkarw/Projects/helios-development/.ai/tmp/auto-continue-pr/pr-2055-20260525-104412/node_modules/jsdom/lib/jsdom/living/window/navigation.js:55:3)
+@helios/ui:test:           at Timeout._onTimeout (/home/pkarw/Projects/helios-development/.ai/tmp/auto-continue-pr/pr-2055-20260525-104412/node_modules/jsdom/lib/jsdom/living/nodes/HTMLHyperlinkElementUtils-impl.js:80:7)
+@helios/ui:test:           at listOnTimeout (node:internal/timers:605:17)
+@helios/ui:test:           at processTimers (node:internal/timers:541:7) {
+@helios/ui:test:         type: 'not implemented'
+@helios/ui:test:       }
+@helios/ui:test: 
+@helios/ui:test:       at VirtualConsole.<anonymous> (../../node_modules/@jest/environment-jsdom-abstract/build/index.js:87:23)
+@helios/ui:test:       at module.exports (../../node_modules/jsdom/lib/jsdom/browser/not-implemented.js:12:26)
+@helios/ui:test:       at navigateFetch (../../node_modules/jsdom/lib/jsdom/living/window/navigation.js:77:3)
+@helios/ui:test:       at exports.navigate (../../node_modules/jsdom/lib/jsdom/living/window/navigation.js:55:3)
+@helios/ui:test:       at Timeout._onTimeout (../../node_modules/jsdom/lib/jsdom/living/nodes/HTMLHyperlinkElementUtils-impl.js:80:7)
+@helios/ui:test: 
+@helios/ui:test: PASS src/backend/__tests__/CrudForm.navigation.test.tsx
+@helios/core:test: PASS src/modules/integrations/data/__tests__/validators.test.ts
+@helios/core:test: PASS src/modules/customers/components/detail/__tests__/changelogValues.test.ts
+@helios/core:test: PASS src/modules/customers/api/__tests__/detailCustomFields.test.ts
+@helios/ui:test: PASS src/backend/__tests__/CrudForm.defaults.test.tsx
+@helios/core:test: PASS src/modules/customers/components/detail/__tests__/utils.test.ts
+@helios/core:test: PASS src/modules/messages/components/__tests__/messageListLabels.test.ts
+@helios/core:test: PASS src/modules/audit_logs/lib/__tests__/changeRows.test.ts
+@helios/core:test: PASS src/modules/shipping_carriers/lib/__tests__/status-sync.test.ts
+@helios/core:test: PASS src/modules/auth/lib/__tests__/displayName.test.ts
+@helios/core:test: PASS src/modules/shipping_carriers/widgets/injection/__tests__/tracking-status-badge.widget.test.tsx
+@helios/core:test: PASS src/modules/attachments/data/__tests__/entities-ocr.test.ts
+@helios/core:test: PASS src/modules/catalog/api/__tests__/prices.route.test.ts
+@helios/core:test: PASS src/modules/customers/__tests__/ce.default-fields.test.ts
+@helios/core:test: PASS src/modules/catalog/commands/__tests__/registration.test.ts
+@helios/core:test: PASS src/modules/customers/backend/customers/companies-v2/[id]/__tests__/page.test.tsx
+@helios/core:test: PASS src/modules/auth/api/__tests__/users-consents.route.test.ts
+@helios/core:test: PASS src/modules/customers/api/__tests__/detail.metadata.test.ts
+@helios/ui:test: PASS src/backend/__tests__/CrudForm.sortable.test.tsx
+@helios/ui:test: PASS src/backend/__tests__/CrudForm.transformData.test.tsx
+@helios/ui:test: PASS src/backend/__tests__/CrudForm.doubleSubmit.test.tsx
+@helios/ui:test: PASS src/backend/__tests__/CrudForm.datetime.test.tsx
+@helios/ui:test: PASS src/backend/utils/__tests__/optimisticLock.test.ts
+@helios/core:test: PASS src/modules/customers/components/detail/__tests__/DealForm.validation.test.ts
+@helios/ui:test: PASS src/backend/injection/__tests__/useGuardedMutation.optimisticLock.test.tsx
+@helios/core:test: PASS src/modules/customers/components/detail/__tests__/ActivityHistorySection.test.tsx
+@helios/ui:test: PASS src/backend/__tests__/CrudForm.optimisticLock.test.tsx
+@helios/ui:test: 
+@helios/ui:test: Test Suites: 140 passed, 140 total
+@helios/ui:test: Tests:       1067 passed, 1067 total
+@helios/ui:test: Snapshots:   0 total
+@helios/ui:test: Time:        34.845 s
+@helios/ui:test: Ran all test suites.
+@helios/cli:test: PASS src/lib/generators/__tests__/structural-contracts.test.ts (30.737 s)
+@helios/core:test: A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+@helios/core:test: 
+@helios/core:test: Test Suites: 498 passed, 498 total
+@helios/core:test: Tests:       4189 passed, 4189 total
+@helios/core:test: Snapshots:   0 total
+@helios/core:test: Time:        33.869 s
+@helios/core:test: Ran all test suites.
+@helios/cli:test: 
+@helios/cli:test: Test Suites: 39 passed, 39 total
+@helios/cli:test: Tests:       876 passed, 876 total
+@helios/cli:test: Snapshots:   0 total
+@helios/cli:test: Time:        35.145 s
+@helios/cli:test: Ran all test suites.
+
+ Tasks:    20 successful, 20 total
+Cached:    0 cached, 20 total
+  Time:    37.241s 
+

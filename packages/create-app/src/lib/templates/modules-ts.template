@@ -1,0 +1,29 @@
+// Central place to enable modules and their source.
+// - id: module id (plural snake_case; special cases: 'auth')
+// - from: '@helios/core' | '@app' | custom alias/path in future
+import { parseBooleanWithDefault } from '@helios/shared/lib/boolean'
+
+export type ModuleEntry = { id: string; from?: '@helios/core' | '@app' | string }
+
+export const enabledModules: ModuleEntry[] = [
+{{MODULES}}
+]
+
+const enterpriseModulesEnabled = parseBooleanWithDefault(process.env.HELIOS_ENABLE_ENTERPRISE_MODULES, false)
+const enterpriseSsoEnabled = parseBooleanWithDefault(process.env.HELIOS_ENABLE_ENTERPRISE_MODULES_SSO, false)
+const enterpriseSecurityEnabled = parseBooleanWithDefault(process.env.HELIOS_ENABLE_ENTERPRISE_MODULES_SECURITY, false)
+
+if (enterpriseModulesEnabled) {
+  enabledModules.push(
+    { id: 'record_locks', from: '@helios/enterprise' },
+    { id: 'system_status_overlays', from: '@helios/enterprise' },
+  )
+}
+
+if (enterpriseModulesEnabled && enterpriseSsoEnabled) {
+  enabledModules.push({ id: 'sso', from: '@helios/enterprise' })
+}
+
+if (enterpriseModulesEnabled && enterpriseSecurityEnabled) {
+  enabledModules.push({ id: 'security', from: '@helios/enterprise' })
+}

@@ -1,0 +1,100 @@
+@helios/app:build: - remove them if possible, or
+@helios/app:build: - only use them in development, or
+@helios/app:build: - make sure they are statically scoped to some subfolder: path.join(process.cwd(), 'data', bar), or
+@helios/app:build: - add ignore comments: path.join(/*turbopackIgnore: true*/ process.cwd(), bar)
+@helios/app:build: 
+@helios/app:build: Output asset trace:
+@helios/app:build:   [output]/apps/helios/.helios/next/server/app/(backend)/backend/[...slug]/page_client-reference-manifest.js
+@helios/app:build:   [output]/apps/helios/.helios/next/server/chunks/ssr/[root-of-the-server]__0lyj7~w._.js
+@helios/app:build:   [output]/apps/helios/.helios/next/server/chunks/ssr/[root-of-the-server]__0fxhj.r._.js
+@helios/app:build: 
+@helios/app:build: Import trace:
+@helios/app:build:   App Route:
+@helios/app:build:     ./apps/helios/next.config.ts
+@helios/app:build:     ./packages/queue/dist/strategies/local.js
+@helios/app:build:     ./packages/queue/dist/factory.js
+@helios/app:build:     ./packages/events/dist/bus.js
+@helios/app:build:     ./packages/core/dist/bootstrap.js
+@helios/app:build:     ./apps/helios/src/app/api/[...slug]/route.ts
+@helios/app:build: 
+@helios/app:build: 
+@helios/app:build: ./apps/helios/next.config.ts
+@helios/app:build: Encountered unexpected file in NFT list
+@helios/app:build: A file was traced that indicates that the whole project was traced unintentionally. Somewhere in the import trace below, there are:
+@helios/app:build: - filesystem operations (like path.join, path.resolve or fs.readFile), or
+@helios/app:build: - very dynamic requires (like require('./' + foo)).
+@helios/app:build: To resolve this, you can
+@helios/app:build: - remove them if possible, or
+@helios/app:build: - only use them in development, or
+@helios/app:build: - make sure they are statically scoped to some subfolder: path.join(process.cwd(), 'data', bar), or
+@helios/app:build: - add ignore comments: path.join(/*turbopackIgnore: true*/ process.cwd(), bar)
+@helios/app:build: 
+@helios/app:build: Output asset trace:
+@helios/app:build:   [output]/apps/helios/.helios/next/server/app/(backend)/backend/page_client-reference-manifest.js
+@helios/app:build:   [output]/apps/helios/.helios/next/server/chunks/ssr/[root-of-the-server]__0lyj7~w._.js
+@helios/app:build:   [output]/apps/helios/.helios/next/server/chunks/ssr/[root-of-the-server]__0fxhj.r._.js
+@helios/app:build: 
+@helios/app:build: Import trace:
+@helios/app:build:   App Route:
+@helios/app:build:     ./apps/helios/next.config.ts
+@helios/app:build:     ./packages/queue/dist/strategies/local.js
+@helios/app:build:     ./packages/queue/dist/factory.js
+@helios/app:build:     ./packages/events/dist/bus.js
+@helios/app:build:     ./packages/core/dist/bootstrap.js
+@helios/app:build:     ./apps/helios/src/app/api/[...slug]/route.ts
+@helios/app:build: 
+@helios/app:build: 
+@helios/app:build: ./apps/helios/next.config.ts
+@helios/app:build: Encountered unexpected file in NFT list
+@helios/app:build: A file was traced that indicates that the whole project was traced unintentionally. Somewhere in the import trace below, there are:
+@helios/app:build: - filesystem operations (like path.join, path.resolve or fs.readFile), or
+@helios/app:build: - very dynamic requires (like require('./' + foo)).
+@helios/app:build: To resolve this, you can
+@helios/app:build: - remove them if possible, or
+@helios/app:build: - only use them in development, or
+@helios/app:build: - make sure they are statically scoped to some subfolder: path.join(process.cwd(), 'data', bar), or
+@helios/app:build: - add ignore comments: path.join(/*turbopackIgnore: true*/ process.cwd(), bar)
+@helios/app:build: 
+@helios/app:build: Output asset trace:
+@helios/app:build:   [output]/apps/helios/.helios/next/server/app/page_client-reference-manifest.js
+@helios/app:build:   [output]/apps/helios/.helios/next/server/chunks/ssr/[root-of-the-server]__0lyj7~w._.js
+@helios/app:build:   [output]/apps/helios/.helios/next/server/chunks/ssr/[root-of-the-server]__0fxhj.r._.js
+@helios/app:build: 
+@helios/app:build: Import trace:
+@helios/app:build:   App Route:
+@helios/app:build:     ./apps/helios/next.config.ts
+@helios/app:build:     ./packages/queue/dist/strategies/local.js
+@helios/app:build:     ./packages/queue/dist/factory.js
+@helios/app:build:     ./packages/events/dist/bus.js
+@helios/app:build:     ./packages/core/dist/bootstrap.js
+@helios/app:build:     ./apps/helios/src/app/api/[...slug]/route.ts
+@helios/app:build: 
+@helios/app:build: 
+@helios/app:build: ✓ Compiled successfully in 18.0s
+@helios/app:build:   Running TypeScript ...
+@helios/app:build:   Finished TypeScript in 57s ...
+@helios/app:build:   Collecting page data using 10 workers ...
+@helios/app:build:   Generating static pages using 10 workers (0/3) ...
+@helios/app:build: ✓ Generating static pages using 10 workers (3/3) in 1542ms
+@helios/app:build:   Finalizing page optimization ...
+@helios/app:build: 
+@helios/app:build: Route (app)
+@helios/app:build: ┌ ƒ /
+@helios/app:build: ├ ƒ /_not-found
+@helios/app:build: ├ ƒ /[...slug]
+@helios/app:build: ├ ƒ /api/[...slug]
+@helios/app:build: ├ ƒ /api/docs/markdown
+@helios/app:build: ├ ƒ /api/docs/openapi
+@helios/app:build: ├ ƒ /backend
+@helios/app:build: └ ƒ /backend/[...slug]
+@helios/app:build: 
+@helios/app:build: 
+@helios/app:build: ƒ Proxy (Middleware)
+@helios/app:build: 
+@helios/app:build: ƒ  (Dynamic)  server-rendered on demand
+@helios/app:build: 
+
+ Tasks:    1 successful, 1 total
+Cached:    0 cached, 1 total
+  Time:    1m22.42s 
+

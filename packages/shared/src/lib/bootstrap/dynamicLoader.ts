@@ -1,0 +1,447 @@
+import type { BootstrapData } from './types'
+import { findAppRoot, type AppRoot } from './appResolver'
+import { registerEntityIds } from '../encryption/entityIds'
+import {
+  ensureMikroOrmV7GeneratedCacheCompatibility,
+  recoverMikroOrmV7GeneratedCacheFromImportError,
+} from './generatedCacheRecovery'
+import path from 'node:path'
+import fs from 'node:fs'
+import crypto from 'node:crypto'
+import { createRequire } from 'node:module'
+import { pathToFileURL } from 'node:url'
+
+const DYNAMIC_LOADER_CACHE_VERSION = 4
+
+type DynamicLoaderCacheMetadata = {
+  version: number
+  inputHash: string
+  outputHash: string
+  dependencies: Record<string, string>
+}
+
+function cacheMetadataPath(jsPath: string): string {
+  return `${jsPath}.cache.json`
+}
+
+function contentHash(content: Buffer | string): string {
+  return crypto.createHash('sha256').update(content).digest('hex')
+}
+
+function parseJsonConfig(content: string): unknown {
+  let normalized = ''
+  let inString = false
+  let escaped = false
+
+  for (let index = 0; index < content.length; index += 1) {
+    const character = content[index]
+    const nextCharacter = content[index + 1]
+
+    if (inString) {
+      normalized += character
+      if (escaped) {
+        escaped = false
+      } else if (character === '\\') {
+        escaped = true
+      } else if (character === '"') {
+        inString = false
+      }
+      continue
+    }
+
+    if (character === '"') {
+      inString = true
+      normalized += character
+      continue
+    }
+
+    if (character === '/' && nextCharacter === '/') {
+      while (index < content.length && content[index] !== '\n') index += 1
+      normalized += '\n'
+      continue
+    }
+
+    if (character === '/' && nextCharacter === '*') {
+      index += 2
+      while (index < content.length && !(content[index] === '*' && content[index + 1] === '/')) {
+        index += 1
+      }
+      index += 1
+      continue
+    }
+
+    if (character === ',') {
+      let lookahead = index + 1
+      while (lookahead < content.length && /\s/.test(content[lookahead])) lookahead += 1
+      if (content[lookahead] === '}' || content[lookahead] === ']') continue
+    }
+
+    normalized += character
+  }
+
+  return JSON.parse(normalized)
+}
+
+function resolveExistingConfigPath(candidate: string): string | null {
+  for (const configPath of [candidate, `${candidate}.json`, path.join(candidate, 'tsconfig.json')]) {
+    if (fs.existsSync(configPath) && fs.statSync(configPath).isFile()) return configPath
+  }
+  return null
+}
+
+function resolvePackageConfig(configPath: string, reference: string): string | null {
+  try {
+    const resolved = createRequire(pathToFileURL(configPath)).resolve(reference)
+    return path.extname(resolved) === '.json' ? resolved : null
+  } catch {
+    return null
+  }
+}
+
+function resolveExtendedConfig(configPath: string, reference: string): string {
+  if (path.isAbsolute(reference) || reference.startsWith('.')) {
+    const resolved = resolveExistingConfigPath(path.resolve(path.dirname(configPath), reference))
+    if (resolved) return resolved
+  } else {
+    for (const packageReference of [reference, `${reference}/tsconfig.json`]) {
+      const resolved = resolvePackageConfig(configPath, packageReference)
+      if (resolved) return resolved
+    }
+  }
+
+  throw new Error(`[internal] TypeScript config extends target not found: ${reference}`)
+}
+
+function collectTsconfigPaths(entryPath: string, visited: Set<string> = new Set()): string[] {
+  const configPath = path.resolve(entryPath)
+  if (visited.has(configPath)) return []
+  visited.add(configPath)
+
+  const parsed = parseJsonConfig(fs.readFileSync(configPath, 'utf8'))
+  if (typeof parsed !== 'object' || parsed === null || !('extends' in parsed)) return [configPath]
+
+  const extendsValue = parsed.extends
+  const references = typeof extendsValue === 'string'
+    ? [extendsValue]
+    : Array.isArray(extendsValue) && extendsValue.every((value) => typeof value === 'string')
+      ? extendsValue
+      : []
+
+  return [
+    ...references.flatMap((reference) => collectTsconfigPaths(
+      resolveExtendedConfig(configPath, reference),
+      visited,
+    )),
+    configPath,
+  ]
+}
+
+function hashFilesRelativeTo(appRoot: string, filePaths: string[]): Record<string, string> {
+  return Object.fromEntries(filePaths.map((filePath) => [
+    path.relative(appRoot, filePath).split(path.sep).join('/'),
+    contentHash(fs.readFileSync(filePath)),
+  ]))
+}
+
+function cacheInputHash(tsPath: string, appRoot: string, tsconfigPaths: string[]): string {
+  const hash = crypto.createHash('sha256')
+  hash.update(JSON.stringify({
+    version: DYNAMIC_LOADER_CACHE_VERSION,
+    sourceHash: contentHash(fs.readFileSync(tsPath)),
+    tsconfigHashes: hashFilesRelativeTo(appRoot, tsconfigPaths),
+  }))
+  return hash.digest('hex')
+}
+
+function dependenciesAreValid(appRoot: string, dependencies: Record<string, string>): boolean {
+  return Object.entries(dependencies).every(([relativePath, expectedHash]) => {
+    const dependencyPath = path.resolve(appRoot, relativePath)
+    return fs.existsSync(dependencyPath)
+      && contentHash(fs.readFileSync(dependencyPath)) === expectedHash
+  })
+}
+
+function collectDependencyHashes(
+  appRoot: string,
+  inputs: Record<string, unknown>,
+): Record<string, string> {
+  return Object.fromEntries(
+    Object.keys(inputs)
+      .map((inputPath) => {
+        const absolutePath = path.isAbsolute(inputPath)
+          ? inputPath
+          : path.resolve(appRoot, inputPath)
+        const relativePath = path.relative(appRoot, absolutePath).split(path.sep).join('/')
+        return [relativePath, contentHash(fs.readFileSync(absolutePath))]
+      })
+      .sort(([left], [right]) => left.localeCompare(right)),
+  )
+}
+
+function readCacheMetadata(metadataPath: string): DynamicLoaderCacheMetadata | null {
+  try {
+    const parsed: unknown = JSON.parse(fs.readFileSync(metadataPath, 'utf8'))
+    if (
+      typeof parsed === 'object'
+      && parsed !== null
+      && 'version' in parsed
+      && parsed.version === DYNAMIC_LOADER_CACHE_VERSION
+      && 'inputHash' in parsed
+      && typeof parsed.inputHash === 'string'
+      && 'outputHash' in parsed
+      && typeof parsed.outputHash === 'string'
+      && 'dependencies' in parsed
+      && typeof parsed.dependencies === 'object'
+      && parsed.dependencies !== null
+      && Object.values(parsed.dependencies).every((hash) => typeof hash === 'string')
+    ) {
+      return {
+        version: parsed.version,
+        inputHash: parsed.inputHash,
+        outputHash: parsed.outputHash,
+        dependencies: parsed.dependencies as Record<string, string>,
+      }
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
+function cacheIsValid(
+  appRoot: string,
+  jsPath: string,
+  metadataPath: string,
+  expectedInputHash: string,
+): boolean {
+  if (!fs.existsSync(jsPath)) return false
+  const metadata = readCacheMetadata(metadataPath)
+  if (!metadata || metadata.inputHash !== expectedInputHash) return false
+  return contentHash(fs.readFileSync(jsPath)) === metadata.outputHash
+    && dependenciesAreValid(appRoot, metadata.dependencies)
+}
+
+/**
+ * Compile a TypeScript file to JavaScript using esbuild bundler.
+ * This bundles the file and all its dependencies, handling JSON imports properly.
+ * The compiled file is written next to the source file with a .mjs extension.
+ */
+async function compileAndImport(tsPath: string, allowRecovery: boolean = true): Promise<Record<string, unknown>> {
+  const jsPath = tsPath.replace(/\.ts$/, '.mjs')
+  const appRoot = path.dirname(path.dirname(path.dirname(tsPath)))
+  const appTsconfig = path.join(appRoot, 'tsconfig.json')
+  const metadataPath = cacheMetadataPath(jsPath)
+
+  const tsExists = fs.existsSync(tsPath)
+  const tsconfigExists = fs.existsSync(appTsconfig)
+
+  if (!tsExists) {
+    throw new Error(`Generated file not found: ${tsPath}`)
+  }
+  if (!tsconfigExists) {
+    throw new Error(`App TypeScript config not found: ${appTsconfig}`)
+  }
+
+  const tsconfigPaths = collectTsconfigPaths(appTsconfig)
+  const expectedInputHash = cacheInputHash(tsPath, appRoot, tsconfigPaths)
+  const needsCompile = !cacheIsValid(appRoot, jsPath, metadataPath, expectedInputHash)
+
+  if (needsCompile) {
+    // Dynamically import esbuild only when needed
+    const esbuild = await import('esbuild')
+
+    // Plugin to resolve @/ alias to app root (works for @app modules)
+    const aliasPlugin: import('esbuild').Plugin = {
+      name: 'alias-resolver',
+      setup(build) {
+        // Resolve @/ alias to app root
+        build.onResolve({ filter: /^@\// }, (args) => {
+          const resolved = path.join(appRoot, args.path.slice(2))
+          // Try with .ts extension if base path doesn't exist
+          if (!fs.existsSync(resolved) && fs.existsSync(resolved + '.ts')) {
+            return { path: resolved + '.ts' }
+          }
+          // Also check for /index.ts if it's a directory
+          if (fs.existsSync(resolved) && fs.statSync(resolved).isDirectory() && fs.existsSync(path.join(resolved, 'index.ts'))) {
+            return { path: path.join(resolved, 'index.ts') }
+          }
+          return { path: resolved }
+        })
+      },
+    }
+
+    // Plugin to mark non-JSON package imports as external
+    const externalNonJsonPlugin: import('esbuild').Plugin = {
+      name: 'external-non-json',
+      setup(build) {
+        // Mark all package imports as external EXCEPT JSON files
+        // Filter matches paths that don't start with . or / (package imports like @helios/shared)
+        build.onResolve({ filter: /^[^./]/ }, (args) => {
+          // Skip Windows absolute paths (e.g., C:\...) - they're local files, not packages
+          if (/^[a-zA-Z]:/.test(args.path)) {
+            return null // Let esbuild handle it
+          }
+          // If it's a JSON file, let esbuild bundle it
+          if (args.path.endsWith('.json')) {
+            return null // Let esbuild handle it
+          }
+          // Otherwise mark as external
+          return { path: args.path, external: true }
+        })
+      },
+    }
+
+    // Use esbuild.build with bundling to handle JSON imports
+    const result = await esbuild.build({
+      entryPoints: [tsPath],
+      outfile: jsPath,
+      absWorkingDir: appRoot,
+      bundle: true,
+      metafile: true,
+      format: 'esm',
+      platform: 'node',
+      target: 'node18',
+      tsconfig: appTsconfig,
+      plugins: [aliasPlugin, externalNonJsonPlugin],
+      // Allow JSON imports
+      loader: { '.json': 'json' },
+    })
+    const metadata: DynamicLoaderCacheMetadata = {
+      version: DYNAMIC_LOADER_CACHE_VERSION,
+      inputHash: expectedInputHash,
+      outputHash: contentHash(fs.readFileSync(jsPath)),
+      dependencies: {
+        ...collectDependencyHashes(appRoot, result.metafile.inputs),
+        ...hashFilesRelativeTo(appRoot, tsconfigPaths),
+      },
+    }
+    fs.writeFileSync(metadataPath, JSON.stringify(metadata))
+  }
+
+  // Import the compiled JavaScript
+  try {
+    const outputHash = contentHash(fs.readFileSync(jsPath))
+    const fileUrl = `${pathToFileURL(jsPath).href}?cache=${outputHash}`
+    return await import(fileUrl)
+  } catch (error) {
+    if (!allowRecovery) {
+      throw error
+    }
+
+    const recovered = recoverMikroOrmV7GeneratedCacheFromImportError(appRoot, error)
+    if (!recovered.applied) {
+      throw error
+    }
+
+    return compileAndImport(tsPath, false)
+  }
+}
+
+
+/**
+ * Dynamically load bootstrap data from a resolved app directory.
+ *
+ * IMPORTANT: This only works in unbundled contexts (CLI, tsx).
+ * Do NOT use this in Next.js bundled code - use static imports instead.
+ *
+ * For CLI context, we skip loading modules.generated.ts which has Next.js dependencies.
+ * CLI commands are discovered separately via the CLI module system.
+ *
+ * @param appRoot - Optional explicit app root path. If not provided, will search from cwd.
+ * @returns The loaded bootstrap data
+ * @throws Error if app root cannot be found or generated files are missing
+ */
+export async function loadBootstrapData(appRoot?: string): Promise<BootstrapData> {
+  const resolved: AppRoot | null = appRoot
+    ? {
+        generatedDir: path.join(appRoot, '.helios', 'generated'),
+        appDir: appRoot,
+        heliosDir: path.join(appRoot, '.helios'),
+      }
+    : findAppRoot()
+
+  if (!resolved) {
+    throw new Error(
+      'Could not find app root with .helios/generated directory. ' +
+        'Make sure you run this command from within a Next.js app directory, ' +
+        'or run "yarn helios generate" first to create the generated files.',
+    )
+  }
+
+  const { generatedDir } = resolved
+
+  ensureMikroOrmV7GeneratedCacheCompatibility(resolved.appDir)
+
+  // IMPORTANT: Load entity IDs FIRST and register them before loading modules.
+  // This is because modules (e.g., ce.ts files) use E.xxx.xxx at module scope,
+  // and they need entity IDs to be available when they're imported.
+  const entityIdsModule = await compileAndImport(path.join(generatedDir, 'entities.ids.generated.ts'))
+  registerEntityIds(entityIdsModule.E as BootstrapData['entityIds'])
+
+  // Now load the rest of the generated files.
+  // modules.cli.generated.ts excludes Next.js-dependent code (routes, APIs, widgets)
+  const [
+    modulesModule,
+    entitiesModule,
+    diModule,
+    searchModule,
+    commandLoadersModule,
+    commandInterceptorsModule,
+    workflowsModule,
+  ] = await Promise.all([
+    compileAndImport(path.join(generatedDir, 'modules.cli.generated.ts')),
+    compileAndImport(path.join(generatedDir, 'entities.generated.ts')),
+    compileAndImport(path.join(generatedDir, 'di.generated.ts')),
+    compileAndImport(path.join(generatedDir, 'search.generated.ts')).catch(() => ({ searchModuleConfigs: [] })),
+    compileAndImport(path.join(generatedDir, 'command-loaders.generated.ts')).catch(() => ({ commandLoaderEntries: [] })),
+    compileAndImport(path.join(generatedDir, 'command-interceptors.generated.ts')).catch(() => ({ commandInterceptorEntries: [] })),
+    compileAndImport(path.join(generatedDir, 'workflows.generated.ts')).catch(() => ({ allCodeWorkflows: [] })),
+  ])
+
+  return {
+    modules: modulesModule.modules as BootstrapData['modules'],
+    entities: entitiesModule.entities as BootstrapData['entities'],
+    diRegistrars: diModule.diRegistrars as BootstrapData['diRegistrars'],
+    entityIds: entityIdsModule.E as BootstrapData['entityIds'],
+    // Search configs are needed by workers for indexing
+    searchModuleConfigs: (searchModule.searchModuleConfigs ?? []) as BootstrapData['searchModuleConfigs'],
+    commandLoaderEntries: (commandLoadersModule.commandLoaderEntries ?? []) as BootstrapData['commandLoaderEntries'],
+    // Command interceptors must apply in worker/CLI processes too — the
+    // interceptor registry is per-process, so relying on the Next.js runtime's
+    // registration silently no-ops every interceptor for queued/CLI commands
+    // (#4327).
+    commandInterceptorEntries: (commandInterceptorsModule.commandInterceptorEntries ??
+      []) as BootstrapData['commandInterceptorEntries'],
+    // Code workflow definitions are needed by workers to resume code-defined instances
+    codeWorkflows: (workflowsModule.allCodeWorkflows ?? []) as BootstrapData['codeWorkflows'],
+    // Empty UI-related data - not needed for CLI
+    dashboardWidgetEntries: [],
+    injectionWidgetEntries: [],
+    injectionTables: [],
+    interceptorEntries: [],
+    componentOverrideEntries: [],
+  }
+}
+
+/**
+ * Create and execute bootstrap in CLI context.
+ *
+ * This is a convenience function that finds the app root, loads the generated
+ * data dynamically, and runs bootstrap. Use this in CLI entry points.
+ *
+ * Returns the loaded bootstrap data so the CLI can register modules directly
+ * (avoids module resolution issues when importing @helios/cli/helios).
+ *
+ * @param appRoot - Optional explicit app root path
+ * @returns The loaded bootstrap data (modules, entities, etc.)
+ */
+export async function bootstrapFromAppRoot(appRoot?: string): Promise<BootstrapData> {
+  const { createBootstrap, waitForAsyncRegistration } = await import('./factory.js')
+  const data = await loadBootstrapData(appRoot)
+  const bootstrap = createBootstrap(data)
+  bootstrap()
+  // In CLI context, wait for async registrations (UI widgets, search configs, etc.)
+  await waitForAsyncRegistration()
+
+  return data
+}

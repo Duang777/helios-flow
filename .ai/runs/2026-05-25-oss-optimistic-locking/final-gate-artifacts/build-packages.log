@@ -1,0 +1,75 @@
+• turbo 2.9.14
+
+   • Packages in scope: @helios/ai-assistant, @helios/cache, @helios/checkout, @helios/cli, @helios/content, @helios/core, @helios/enterprise, @helios/events, @helios/gateway-stripe, @helios/onboarding, @helios/queue, @helios/scheduler, @helios/search, @helios/shared, @helios/storage-s3, @helios/sync-akeneo, @helios/ui, @helios/webhooks, create-helios-app
+   • Running build in 19 packages
+   • Remote caching disabled, using shared worktree cache
+
+@helios/content:build: cache hit, replaying logs 321c50d366f61932
+@helios/events:build: cache hit, replaying logs b1aa0270d0545912
+@helios/content:build: [build:content] found 7 entry points
+@helios/content:build: [build:content] built successfully
+@helios/events:build: [build:events] found 8 entry points
+@helios/events:build: [build:events] built successfully
+@helios/cache:build: cache hit, replaying logs a9dec7a2267a2ab1
+@helios/cache:build: [build:cache] found 11 entry points
+@helios/cache:build: [build:cache] built successfully
+@helios/queue:build: cache hit, replaying logs 01fa18ca5527145f
+@helios/queue:build: [build:queue] found 8 entry points
+@helios/queue:build: [build:queue] built successfully
+@helios/scheduler:build: cache hit, replaying logs bc43ce23db6a2a4a
+@helios/gateway-stripe:build: cache hit, replaying logs 0fbe32d0b56e1dd0
+@helios/scheduler:build: [build:scheduler] found 42 entry points
+@helios/scheduler:build: [build:scheduler] built successfully
+@helios/gateway-stripe:build: [build:gateway-stripe] found 25 entry points
+@helios/gateway-stripe:build: [build:gateway-stripe] built successfully
+@helios/sync-akeneo:build: cache hit, replaying logs 32f154e33d5e6b1f
+@helios/sync-akeneo:build: [build:sync-akeneo] found 29 entry points
+@helios/sync-akeneo:build: [build:sync-akeneo] built successfully
+@helios/webhooks:build: cache hit, replaying logs a5ea682ca16a7704
+@helios/webhooks:build: [build:webhooks] found 58 entry points
+@helios/webhooks:build: [build:webhooks] built successfully
+@helios/storage-s3:build: cache hit, replaying logs 66f9776e7a07762b
+@helios/storage-s3:build: Found 18 entry points
+@helios/storage-s3:build: storage-s3 built successfully
+@helios/search:build: cache hit, replaying logs 895a23c9d3fc90b7
+@helios/search:build: [build:search] found 81 entry points
+@helios/search:build: [build:search] built successfully
+@helios/onboarding:build: cache hit, replaying logs 2b1d58aebca3bea3
+@helios/onboarding:build: [build:onboarding] found 24 entry points
+@helios/onboarding:build: [build:onboarding] built successfully
+@helios/checkout:build: cache hit, replaying logs 950ed16ff87f5a36
+@helios/checkout:build: [build:checkout] found 147 entry points
+@helios/checkout:build: [build:checkout] built successfully
+@helios/ai-assistant:build: cache hit, replaying logs 4004a17d05b7ae42
+@helios/ai-assistant:build: [build:ai-assistant] found 192 entry points
+@helios/ai-assistant:build: [build:ai-assistant] built successfully
+@helios/cli:build: cache hit, replaying logs 20c42525a0178d5c
+@helios/cli:build: [build:cli] found 71 entry points
+@helios/cli:build: Copied create-app/agentic/ → dist/agentic/
+@helios/cli:build: Discovered 16 standalone guides → dist/agentic/guides/
+@helios/cli:build: [build:cli] built successfully
+@helios/shared:build: cache hit, replaying logs 39e07b68592492f3
+@helios/shared:build: [build:shared] found 214 entry points
+@helios/shared:build: [build:shared] built successfully
+create-helios-app:build: cache hit, replaying logs a4d15211e275a87d
+create-helios-app:build: Copied src/lib/templates/ → dist/templates/
+create-helios-app:build: Copied agentic/ → dist/agentic/
+create-helios-app:build: Discovered 16 standalone guides → dist/agentic/guides/
+create-helios-app:build: Build complete: dist/index.js
+@helios/ui:build: cache hit, replaying logs f21650611b014aa8
+@helios/ui:build: Generated lucide registry with 135 icons -> /home/pkarw/Projects/helios-development/.ai/tmp/auto-continue-pr/pr-2055-20260525-104412/packages/ui/src/backend/icons/lucideRegistry.generated.tsx
+@helios/ui:build: [build:ui] found 354 entry points
+@helios/ui:build: [build:ui] built successfully
+@helios/enterprise:build: cache hit, replaying logs e10c43bcb0694537
+@helios/enterprise:build: [build:enterprise] found 292 entry points
+@helios/enterprise:build: [build:enterprise] built successfully
+@helios/core:build: cache hit, replaying logs 5e9eb1d7436e6331
+@helios/core:build: [build:core] found 2601 entry points
+@helios/core:build: [build:core] built successfully
+@helios/core:build: [build:core:generated] found 172 entry points
+@helios/core:build: [build:core:generated] built successfully
+
+ Tasks:    19 successful, 19 total
+Cached:    19 cached, 19 total
+  Time:    711ms >>> FULL TURBO
+
