@@ -56,12 +56,12 @@
     "node": "24.x"
   },
   "dependencies": {
+    "@helios/queue": "workspace:*",
+    "@helios/shared": "workspace:*",
     "@mikro-orm/core": "^7.1.5",
     "@mikro-orm/decorators": "^7.1.5",
     "@mikro-orm/migrations": "^7.1.5",
     "@mikro-orm/postgresql": "^7.1.5",
-    "@helios/queue": "workspace:*",
-    "@helios/shared": "workspace:*",
     "cross-spawn": "^7.0.6",
     "pg": "8.22.0",
     "semver": "^7.8.5",

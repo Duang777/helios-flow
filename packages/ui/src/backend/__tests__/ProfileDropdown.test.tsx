@@ -19,7 +19,13 @@ jest.mock('../injection/useInjectedMenuItems', () => ({
 }))
 
 jest.mock('@helios/ui/theme', () => ({
-  useTheme: () => ({ theme: 'light', resolvedTheme: 'light', setTheme: jest.fn() }),
+  useTheme: () => ({
+    theme: 'light',
+    resolvedTheme: 'light',
+    setTheme: jest.fn(),
+    palette: 'warm',
+    setPalette: jest.fn(),
+  }),
 }))
 
 import { ProfileDropdown } from '../ProfileDropdown'

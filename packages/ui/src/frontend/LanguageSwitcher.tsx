@@ -21,6 +21,7 @@ export function LanguageSwitcher() {
 
   const languageLabels: Record<Locale, string> = {
     en: t('common.languages.english', 'English'),
+    zh: t('common.languages.chinese', '中文'),
     pl: t('common.languages.polish', 'Polski'),
     es: t('common.languages.spanish', 'Español'),
     de: t('common.languages.german', 'Deutsch'),

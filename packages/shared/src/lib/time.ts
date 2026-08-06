@@ -41,12 +41,18 @@ const format = (unit: RelativeTimeUnit, divisor: number) => {
   const valueToFormat = Math.round(diffSeconds / divisor)
   const isPast = diffSeconds < 0
 
+  // Prefer Intl when a locale is available so units localize (e.g. zh: "4个月后").
+  // Custom translate only wins when Intl is unavailable or no locale was provided.
+  if (rtf && options?.locale) return rtf.format(valueToFormat, unit)
+
   if (translate) {
     const suffixKey = isPast ? 'time.relative.ago' : 'time.relative.fromNow'
     const fallbackSuffix = isPast ? 'ago' : 'from now'
     const suffix = translate(suffixKey, fallbackSuffix)
     const magnitude = Math.abs(valueToFormat)
-    return `${magnitude} ${unit}${magnitude === 1 ? '' : 's'} ${suffix}`
+    const unitKey = magnitude === 1 ? `time.relative.unit.${unit}` : `time.relative.unit.${unit}s`
+    const unitLabel = translate(unitKey, `${unit}${magnitude === 1 ? '' : 's'}`)
+    return `${magnitude} ${unitLabel} ${suffix}`
   }
 
   if (rtf) return rtf.format(valueToFormat, unit)

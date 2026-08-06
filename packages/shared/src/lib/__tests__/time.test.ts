@@ -98,6 +98,14 @@ it('uses custom translate if provided', () => {
   expect(formatRelativeTime(sub(3_600_000), { translate })).toMatch(/T\(time\.relative\.ago\)/)
   expect(formatRelativeTime(add(3_600_000), { translate })).toMatch(/T\(time\.relative\.fromNow\)/)
 })
+
+it('prefers Intl locale over translate when locale is set', () => {
+  const translate = (key: string, fallback?: string) => `T(${key})`
+  const future = formatRelativeTime(add(3_456_000_000), { locale: 'zh', translate })
+  expect(future).toBeTruthy()
+  expect(future!).not.toMatch(/T\(/)
+  expect(/月|个月/.test(future!)).toBeTruthy()
+})
 })
 describe('formatDateTime', () => {
   it('returns null for invalid or missing values', () => {

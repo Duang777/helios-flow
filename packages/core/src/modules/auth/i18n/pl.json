@@ -39,6 +39,7 @@
   "auth.email.resetPassword.subject": "Zresetuj swoje hasło",
   "auth.email.resetPassword.title": "Zresetuj swoje hasło",
   "auth.login.brandName": "Helios",
+  "auth.login.panelHeadline": "Prowadź firmę ze spokojem i jasnością.",
   "auth.login.errors.generic": "Wystąpił błąd. Spróbuj ponownie.",
   "auth.login.errors.invalidCredentials": "Nieprawidłowy email lub hasło",
   "auth.login.errors.permissionDenied": "Nie masz uprawnień do tego obszaru. Skontaktuj się z administratorem.",
@@ -250,5 +251,8 @@
   "ui.profileMenu.settings": "Ustawienia",
   "ui.profileMenu.theme": "Motyw",
   "ui.profileMenu.theme.dark": "Ciemny",
-  "ui.profileMenu.theme.light": "Jasny"
+  "ui.profileMenu.theme.light": "Jasny",
+  "ui.profileMenu.palette": "Wygląd",
+  "ui.profileMenu.palette.warm": "Ciepły",
+  "ui.profileMenu.palette.classic": "Biały"
 }

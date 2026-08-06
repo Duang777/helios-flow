@@ -64,8 +64,8 @@
     "cron-parser": "^5.6.2"
   },
   "peerDependencies": {
-    "@mikro-orm/core": "^7.0.14",
     "@helios/shared": "workspace:*",
+    "@mikro-orm/core": "^7.0.14",
     "bullmq": "^5.0.0",
     "ioredis": "^5.0.0",
     "zod": ">=3.23.0"

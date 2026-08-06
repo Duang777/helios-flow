@@ -518,7 +518,8 @@ function AppShellBody({ productName, logo, email, canManageUpgradeActions = fals
     return label.toLowerCase().includes(navQueryNorm)
   }, [navQueryActive, navQueryNorm])
   const effectiveCollapsed = collapsed
-  const expandedSidebarWidth = '240px'
+  const expandedSidebarWidth = '256px'
+  const collapsedSidebarWidth = '76px'
 
   // Track scroll position of the desktop sidebar's inner scroll container so we can
   // flip the affordance chevron between down/up (and hide it entirely when content
@@ -672,10 +673,9 @@ function AppShellBody({ productName, logo, email, canManageUpgradeActions = fals
 
   const toggleGroup = (groupId: string) => setOpenGroups((prev) => ({ ...prev, [groupId]: prev[groupId] === false }))
 
-  const asideWidth = effectiveCollapsed ? '80px' : expandedSidebarWidth
+  const asideWidth = effectiveCollapsed ? collapsedSidebarWidth : expandedSidebarWidth
   // Use min-h-svh so the border extends with tall content; no overflow so sticky bottom works
-  const asideClassesBase = `border-r bg-background py-4`;
-
+  const asideClassesBase = 'border-r border-sidebar-border bg-sidebar text-sidebar-foreground py-5'
   // Persist collapse state to localStorage and cookie. Both writes can throw in
   // private/incognito mode (storage blocked) or when cookies are disabled —
   // the persisted preference is purely a UX nice-to-have, never functional, so
@@ -757,11 +757,11 @@ function AppShellBody({ productName, logo, email, canManageUpgradeActions = fals
           <div className="mb-2">
             <Link
               href="/backend"
-              className={`flex items-center gap-3 rounded-xl transition-colors hover:bg-muted ${compact ? 'p-2 justify-center' : 'p-3'}`}
+              className={`flex items-center gap-3 rounded-2xl transition-colors hover:bg-sidebar-accent ${compact ? 'p-2 justify-center' : 'px-3 py-3'}`}
               aria-label={t('appShell.goToDashboard')}
             >
-              <Image src={resolvedLogo?.src ?? "/helios.svg"} alt={resolvedLogo?.alt ?? resolvedBrandName} width={40} height={40} className="shrink-0 dark:invert" unoptimized={resolvedLogoBypassesOptimization ? true : undefined} />
-              {!compact && <span className="truncate text-sm font-medium text-foreground">{resolvedBrandName}</span>}
+              <Image src={resolvedLogo?.src ?? "/helios.svg"} alt={resolvedLogo?.alt ?? resolvedBrandName} width={36} height={36} className="shrink-0 dark:invert" unoptimized={resolvedLogoBypassesOptimization ? true : undefined} />
+              {!compact && <span className="truncate text-sm font-semibold tracking-tight text-sidebar-foreground">{resolvedBrandName}</span>}
             </Link>
           </div>
         )}
@@ -890,11 +890,11 @@ function AppShellBody({ productName, logo, email, canManageUpgradeActions = fals
             <div className="mb-2">
               <Link
                 href="/backend"
-                className={`flex items-center gap-3 rounded-xl transition-colors hover:bg-muted ${compact ? 'p-2 justify-center' : 'p-3'}`}
+                className={`flex items-center gap-3 rounded-2xl transition-colors hover:bg-sidebar-accent ${compact ? 'p-2 justify-center' : 'px-3 py-3'}`}
                 aria-label={t('appShell.goToDashboard')}
               >
-                <Image src={resolvedLogo?.src ?? "/helios.svg"} alt={resolvedLogo?.alt ?? resolvedBrandName} width={40} height={40} className="shrink-0 dark:invert" unoptimized={resolvedLogoBypassesOptimization ? true : undefined} />
-                {!compact && <span className="truncate text-sm font-medium text-foreground">{resolvedBrandName}</span>}
+                <Image src={resolvedLogo?.src ?? "/helios.svg"} alt={resolvedLogo?.alt ?? resolvedBrandName} width={36} height={36} className="shrink-0 dark:invert" unoptimized={resolvedLogoBypassesOptimization ? true : undefined} />
+                {!compact && <span className="truncate text-sm font-semibold tracking-tight text-sidebar-foreground">{resolvedBrandName}</span>}
               </Link>
             </div>
           ) : null}
@@ -956,11 +956,11 @@ function AppShellBody({ productName, logo, email, canManageUpgradeActions = fals
           <div className="mb-2">
             <Link
               href="/backend"
-              className={`flex items-center gap-3 rounded-xl transition-colors hover:bg-muted ${compact ? 'p-2 justify-center' : 'p-3'}`}
+              className={`flex items-center gap-3 rounded-2xl transition-colors hover:bg-sidebar-accent ${compact ? 'p-2 justify-center' : 'px-3 py-3'}`}
               aria-label={t('appShell.goToDashboard')}
             >
-              <Image src={resolvedLogo?.src ?? "/helios.svg"} alt={resolvedLogo?.alt ?? resolvedBrandName} width={40} height={40} className="shrink-0 dark:invert" unoptimized={resolvedLogoBypassesOptimization ? true : undefined} />
-              {!compact && <span className="truncate text-sm font-medium text-foreground">{resolvedBrandName}</span>}
+              <Image src={resolvedLogo?.src ?? "/helios.svg"} alt={resolvedLogo?.alt ?? resolvedBrandName} width={36} height={36} className="shrink-0 dark:invert" unoptimized={resolvedLogoBypassesOptimization ? true : undefined} />
+              {!compact && <span className="truncate text-sm font-semibold tracking-tight text-sidebar-foreground">{resolvedBrandName}</span>}
             </Link>
           </div>
         )}
@@ -1193,8 +1193,8 @@ function AppShellBody({ productName, logo, email, canManageUpgradeActions = fals
     (sidebarMode === 'settings' && !!resolvedSettingsSections && resolvedSettingsSections.length > 0) ||
     (sidebarMode === 'profile' && !!resolvedProfileSections && resolvedProfileSections.length > 0)
   const gridColsClass = isSectionView
-    ? (effectiveCollapsed ? 'lg:grid-cols-[80px_240px_1fr]' : 'lg:grid-cols-[240px_240px_1fr]')
-    : (effectiveCollapsed ? 'lg:grid-cols-[80px_1fr]' : 'lg:grid-cols-[240px_1fr]')
+    ? (effectiveCollapsed ? 'lg:grid-cols-[76px_240px_1fr]' : 'lg:grid-cols-[256px_240px_1fr]')
+    : (effectiveCollapsed ? 'lg:grid-cols-[76px_1fr]' : 'lg:grid-cols-[256px_1fr]')
   const headerCtxValue = React.useMemo(() => ({
     setBreadcrumb: setHeaderBreadcrumb,
     setTitle: setHeaderTitle,
@@ -1261,7 +1261,7 @@ function AppShellBody({ productName, logo, email, canManageUpgradeActions = fals
             IconButton restores `pointer-events-auto` so it stays interactive. */}
         {sidebarScrollState !== 'none' ? (
           <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 flex h-10 items-end justify-center bg-gradient-to-t from-background via-background/80 to-transparent pb-1.5"
+            className="pointer-events-none absolute inset-x-0 bottom-0 flex h-10 items-end justify-center bg-gradient-to-t from-sidebar via-sidebar/80 to-transparent pb-1.5"
           >
             {/* The IconButton owns hover/focus affordance; the inner span owns the
                 rotate transition so it doesn't fight with the animate-bounce
@@ -1305,13 +1305,13 @@ function AppShellBody({ productName, logo, email, canManageUpgradeActions = fals
               affordance but without the chevron / scroll-state machinery. */}
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-background via-background/80 to-transparent"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-sidebar via-sidebar/80 to-transparent"
           />
         </aside>
       ) : null}
 
       <div className="flex min-h-svh flex-col min-w-0">
-        <header className="sticky top-0 z-sticky border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 px-3 sm:px-4 lg:px-6 py-3 flex items-center justify-between gap-2 sm:gap-3">
+        <header className="sticky top-0 z-sticky border-b border-border/80 bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75 px-3 sm:px-4 lg:px-6 py-3.5 flex items-center justify-between gap-2 sm:gap-3">
           <div
             data-testid="backend-chrome-ready"
             data-ready={isChromeReady ? 'true' : 'false'}

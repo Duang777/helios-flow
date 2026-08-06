@@ -79,7 +79,15 @@ cp apps/helios/.env.example apps/helios/.env
 yarn dev:greenfield
 ```
 
-Open http://localhost:3000/backend. Login credentials are printed in the terminal.
+Open http://localhost:3000/login (or `/backend` after signing in). After `yarn initialize` / `yarn dev:greenfield`, the default local accounts are:
+
+| Role | Email | Password |
+|------|-------|----------|
+| Superadmin | `superadmin@acme.com` | `secret` |
+| Admin | `admin@acme.com` | `secret` |
+| Employee | `employee@acme.com` | `secret` |
+
+You can also open http://localhost:3000/start and pick a role. If the port is already taken, the dev server may bind elsewhere (for example `3001`) — use the URL printed in the terminal.
 
 For AI chat features, set the LLM provider keys documented in `apps/helios/.env.example`.
 

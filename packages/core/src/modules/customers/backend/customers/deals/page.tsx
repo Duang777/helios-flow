@@ -32,9 +32,10 @@ import { ViewTabsRow } from './pipeline/components/ViewTabsRow'
 import { DealsKpiStrip } from '../../../components/DealsKpiStrip'
 import { E } from '#generated/entities.ids.generated'
 import { useOrganizationScopeVersion } from '@helios/shared/lib/frontend/useOrganizationScope'
-import { useT } from '@helios/shared/lib/i18n/context'
+import { useLocale, useT } from '@helios/shared/lib/i18n/context'
 import { useConfirmDialog } from '@helios/ui/backend/confirm-dialog'
 import {
+  translateCustomerDictionaryLabel,
   type CustomerDictionaryKind,
   type CustomerDictionaryMap,
 } from '../../../lib/dictionaries'
@@ -192,6 +193,7 @@ function formatGroupedAmount(amount: number | null | undefined): string | null {
 
 export default function CustomersDealsPage() {
   const t = useT()
+  const locale = useLocale()
   const { confirm, ConfirmDialogElement } = useConfirmDialog()
   const router = useRouter()
   const pathname = usePathname()
@@ -293,20 +295,36 @@ export default function CustomersDealsPage() {
     return () => { cancelled = true }
   }, [fetchDictionaryEntries, reloadToken])
   const dictionaryOptions = React.useMemo(() => {
-    const toOptions = (map?: CustomerDictionaryMap | null): DictionaryOptionWithTone[] =>
+    const toOptions = (
+      kind: DictionaryKey,
+      map?: CustomerDictionaryMap | null,
+    ): DictionaryOptionWithTone[] =>
       Object.values(map ?? {})
         .map((entry) => {
           const tone = mapDictionaryColorToTone(entry.color)
-          const option: DictionaryOptionWithTone = { value: entry.value, label: entry.label }
+          const label = translateCustomerDictionaryLabel(t, kind, entry.value, entry.label)
+          const option: DictionaryOptionWithTone = { value: entry.value, label }
           if (tone) option.tone = tone
           return option
         })
-        .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }))
+        .sort((a, b) => a.label.localeCompare(b.label, locale, { sensitivity: 'base' }))
     return {
-      dealStatuses: toOptions(dictionaryMaps['deal-statuses']),
-      pipelineStages: toOptions(dictionaryMaps['pipeline-stages']),
+      dealStatuses: toOptions('deal-statuses', dictionaryMaps['deal-statuses']),
+      pipelineStages: toOptions('pipeline-stages', dictionaryMaps['pipeline-stages']),
     }
-  }, [dictionaryMaps])
+  }, [dictionaryMaps, locale, t])
+
+  const localizedStageDictionary = React.useMemo(() => {
+    const source = dictionaryMaps['pipeline-stages'] ?? {}
+    const next: CustomerDictionaryMap = {}
+    for (const [value, entry] of Object.entries(source)) {
+      next[value] = {
+        ...entry,
+        label: translateCustomerDictionaryLabel(t, 'pipeline-stages', value, entry.label),
+      }
+    }
+    return next
+  }, [dictionaryMaps, t])
 
   React.useEffect(() => {
     let cancelled = false
@@ -757,7 +775,7 @@ export default function CustomersDealsPage() {
           const status = row.original.status
           if (!status) return noValue
           const entry = dictionaryMaps['deal-statuses']?.[status]
-          const label = entry?.label ?? status
+          const label = translateCustomerDictionaryLabel(t, 'deal-statuses', status, entry?.label ?? status)
           const variant = coerceStatusBadgeVariant(mapDictionaryColorToTone(entry?.color))
           return <StatusBadge variant={variant} dot>{label}</StatusBadge>
         },
@@ -775,7 +793,8 @@ export default function CustomersDealsPage() {
         cell: ({ row }) => {
           const stage = row.original.pipelineStage
           if (!stage) return noValue
-          const label = dictionaryMaps['pipeline-stages']?.[stage]?.label ?? stage
+          const fallback = dictionaryMaps['pipeline-stages']?.[stage]?.label ?? stage
+          const label = translateCustomerDictionaryLabel(t, 'pipeline-stages', stage, fallback)
           return <span className="text-foreground">{label}</span>
         },
       },
@@ -857,7 +876,7 @@ export default function CustomersDealsPage() {
               <span className="text-xs text-muted-foreground">{t('customers.deals.list.close.lost')}</span>
             )
           } else {
-            const relative = formatRelativeTime(expectedCloseAt, { translate: t })
+            const relative = formatRelativeTime(expectedCloseAt, { locale })
             if (relative) {
               subtitle = <span className="text-xs text-muted-foreground">{relative}</span>
             }
@@ -983,7 +1002,7 @@ export default function CustomersDealsPage() {
       },
       ...customColumns,
     ]
-  }, [customFieldDefs, dictionaryMaps, dictionaryOptions, isDealOverdue, loadOwnerFilterOptions, ownerNames, pipelineNames, resolvedOwnerFilterOptions, t])
+  }, [customFieldDefs, dictionaryMaps, dictionaryOptions, isDealOverdue, loadOwnerFilterOptions, locale, ownerNames, pipelineNames, resolvedOwnerFilterOptions, t])
 
   const { advancedFilterFields } = useAutoDiscoveredFields({ columns, customFieldDefs })
 
@@ -1059,7 +1078,7 @@ export default function CustomersDealsPage() {
         <ViewTabsRow active="list" className="mb-4" />
         <DealsKpiStrip
           ownerNames={ownerNames}
-          stageDictionary={dictionaryMaps['pipeline-stages'] ?? {}}
+          stageDictionary={localizedStageDictionary}
           pipelineCount={Object.keys(pipelineNames).length}
           scopeVersion={scopeVersion}
           reloadToken={reloadToken}

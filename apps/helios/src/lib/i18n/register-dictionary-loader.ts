@@ -7,6 +7,8 @@ registerModules(i18nModules)
 
 registerAppDictionaryLoader(async (locale: Locale): Promise<Record<string, unknown>> => {
   switch (locale) {
+    case 'zh':
+      return import('../../i18n/zh.json').then((m) => m.default)
     case 'en':
       return import('../../i18n/en.json').then((m) => m.default)
     case 'pl':

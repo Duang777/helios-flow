@@ -1,0 +1,20 @@
+{
+  "progress.actions.cancel": "取消",
+  "progress.actions.dismiss": "Dismiss",
+  "progress.actions.retry": "Retry",
+  "progress.activeCount": "{count} operations running",
+  "progress.errors.alreadyFinished": "Job has already finished",
+  "progress.errors.cannotCancel": "This job cannot be cancelled",
+  "progress.errors.notFound": "Job not found",
+  "progress.eta.hoursMinutes": "{hours}h {minutes}m remaining",
+  "progress.eta.minutes": "{count}m remaining",
+  "progress.eta.seconds": "{count}s remaining",
+  "progress.processed": "processed",
+  "progress.recentlyCompleted": "{count} operations completed",
+  "progress.status.cancelled": "取消led",
+  "progress.status.completed": "已完成",
+  "progress.status.failed": "失败",
+  "progress.status.pending": "待处理",
+  "progress.status.running": "Running",
+  "progress.title": "Progress"
+}

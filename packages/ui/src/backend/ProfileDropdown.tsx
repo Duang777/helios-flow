@@ -2,7 +2,7 @@
 import * as React from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
-import { User, LogOut, Bell, Moon, Sun, Globe, Key, Check, ChevronRight } from 'lucide-react'
+import { User, LogOut, Bell, Moon, Sun, Globe, Key, Check, ChevronRight, Palette } from 'lucide-react'
 import { useT, useLocale } from '@helios/shared/lib/i18n/context'
 import { locales, type Locale } from '@helios/shared/lib/i18n/config'
 import { useTheme } from '@helios/ui/theme'
@@ -26,6 +26,7 @@ const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? React.useLayou
 
 const localeLabels: Record<Locale, string> = {
   en: 'English',
+  zh: '中文',
   de: 'Deutsch',
   es: 'Español',
   pl: 'Polski',
@@ -39,7 +40,8 @@ export function ProfileDropdown({
 }: ProfileDropdownProps) {
   const t = useT()
   const currentLocale = useLocale()
-  const { resolvedTheme, setTheme } = useTheme()
+  const { resolvedTheme, setTheme, palette, setPalette } = useTheme()
+  const isWarmPalette = palette !== 'classic'
   const [open, setOpen] = React.useState(false)
   const [languageOpen, setLanguageOpen] = React.useState(false)
   const [mounted, setMounted] = React.useState(false)
@@ -119,6 +121,10 @@ export function ProfileDropdown({
     setTheme(isDark ? 'light' : 'dark')
   }
 
+  const handlePaletteToggle = () => {
+    setPalette(isWarmPalette ? 'classic' : 'warm')
+  }
+
   const handleLocaleChange = async (locale: Locale) => {
     try {
       await fetch('/api/auth/locale', {
@@ -153,7 +159,12 @@ export function ProfileDropdown({
     () => {
       const items: Array<{ id: string; separator?: boolean }> = [{ id: 'change-password' }]
       if (notificationsHref) items.push({ id: 'notifications' })
-      items.push({ id: 'theme-toggle', separator: true }, { id: 'language' }, { id: 'sign-out', separator: true })
+      items.push(
+        { id: 'theme-toggle', separator: true },
+        { id: 'palette-toggle' },
+        { id: 'language' },
+        { id: 'sign-out', separator: true },
+      )
       return items
     },
     [notificationsHref],
@@ -277,6 +288,41 @@ export function ProfileDropdown({
         )
       }
 
+      if (id === 'palette-toggle') {
+        if (!mounted || isDark) return null
+        return (
+          <div
+            key={id}
+            className={cn(menuItemClass, 'justify-between')}
+            role="menuitem"
+            onClick={handlePaletteToggle}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                handlePaletteToggle()
+              }
+            }}
+            tabIndex={0}
+          >
+            <span className="flex flex-1 items-center gap-3 min-w-0">
+              <Palette className={menuIconClass} />
+              <span className="flex-1 truncate">{t('ui.profileMenu.palette', 'Appearance')}</span>
+            </span>
+            <span className="shrink-0 text-xs text-muted-foreground">
+              {isWarmPalette
+                ? t('ui.profileMenu.palette.warm', 'Warm')
+                : t('ui.profileMenu.palette.classic', 'White')}
+            </span>
+            <Switch
+              checked={isWarmPalette}
+              onCheckedChange={handlePaletteToggle}
+              aria-label={t('ui.profileMenu.palette', 'Appearance')}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )
+      }
+
       if (id === 'language') {
         return (
           <div key={id} className="contents">
@@ -340,8 +386,10 @@ export function ProfileDropdown({
     [
       changePasswordHref,
       currentLocale,
+      handlePaletteToggle,
       handleThemeToggle,
       isDark,
+      isWarmPalette,
       languageOpen,
       menuItemClass,
       menuIconClass,

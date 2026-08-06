@@ -154,18 +154,18 @@ type ExampleOrder = {
 }
 
 const CHANNEL_SEEDS = [
-  { code: 'online', name: 'Online Store', description: 'Orders captured from the storefront.' },
+  { code: 'online', name: '线上商城', description: '来自官网/商城前台的订单。' },
   {
     code: 'field-sales',
-    name: 'Field Sales',
-    description: 'Quotes negotiated by the sales team and converted offline.',
+    name: '地推销售',
+    description: '销售团队线下洽谈并转化的报价。',
   },
 ] as const
 
 const CUSTOMER_LINKS: CustomerLookup[] = [
-  { key: 'brightside', displayName: 'Brightside Solar' },
-  { key: 'harborview', displayName: 'Harborview Analytics' },
-  { key: 'copperleaf', displayName: 'Copperleaf Design Co.' },
+  { key: 'brightside', displayName: '阳光绿能科技' },
+  { key: 'harborview', displayName: '智海数科' },
+  { key: 'copperleaf', displayName: '青桐设计' },
 ] as const
 
 const QUOTE_SEEDS: ExampleQuote[] = [
