@@ -337,51 +337,17 @@ export default function LoginPage() {
   const formReady = clientReady && !authOverridePending
 
   return (
-    <div className="min-h-svh lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
-      <aside className="relative hidden overflow-hidden border-r border-sidebar-border bg-sidebar px-10 py-10 text-sidebar-foreground lg:flex lg:flex-col lg:justify-between">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-40"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle at 18% 18%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 45%), radial-gradient(circle at 88% 8%, color-mix(in oklab, var(--brand-violet) 12%, transparent), transparent 38%)',
-          }}
-        />
-        <div className="relative flex items-center gap-3">
-          <Image
-            alt={translate('auth.login.logoAlt', 'Helios logo')}
-            src="/helios.svg"
-            width={44}
-            height={44}
-            className="dark:invert"
-            priority
-          />
-          <span className="text-base font-semibold tracking-tight">
-            {translate('auth.login.brandName', 'Helios')}
-          </span>
-        </div>
-        <div className="relative max-w-md space-y-3">
-          <p className="text-balance text-3xl font-semibold tracking-tight">
-            {translate('auth.login.panelHeadline', 'Run your business with calm clarity.')}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {translate('auth.login.subtitle', 'Access your workspace')}
-          </p>
-        </div>
-        <p className="relative text-xs text-muted-foreground">
-          {translate('auth.login.brandName', 'Helios')}
-        </p>
-      </aside>
-
-      <div className="flex items-center justify-center bg-background px-4 py-10 sm:px-8">
+    <div className="min-h-svh lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+      {/* Form first (left on desktop) — flips the previous brand-left split. */}
+      <div className="flex items-center justify-center bg-background px-4 py-10 sm:px-8 lg:px-12">
         <div className="w-full max-w-sm">
           <div className="mb-8 flex flex-col items-center gap-3 text-center lg:items-start lg:text-left">
             <Image
               alt={translate('auth.login.logoAlt', 'Helios logo')}
               src="/helios.svg"
-              width={56}
-              height={56}
-              className="dark:invert lg:hidden"
+              width={48}
+              height={48}
+              className="dark:invert"
               priority
             />
             <h1 className="text-2xl font-semibold tracking-tight">
@@ -502,6 +468,41 @@ export default function LoginPage() {
           </LoginFormSection>
         </div>
       </div>
+
+      <aside className="relative hidden overflow-hidden border-l border-sidebar-border bg-sidebar px-10 py-10 text-sidebar-foreground lg:flex lg:flex-col lg:justify-between">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-40"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle at 82% 18%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 45%), radial-gradient(circle at 12% 88%, color-mix(in oklab, var(--brand-violet) 12%, transparent), transparent 38%)',
+          }}
+        />
+        <div className="relative flex items-center gap-3">
+          <Image
+            alt={translate('auth.login.logoAlt', 'Helios logo')}
+            src="/helios.svg"
+            width={44}
+            height={44}
+            className="dark:invert"
+            priority
+          />
+          <span className="text-base font-semibold tracking-tight">
+            {translate('auth.login.brandName', 'Helios')}
+          </span>
+        </div>
+        <div className="relative ml-auto max-w-md space-y-3 text-right">
+          <p className="text-balance text-3xl font-semibold tracking-tight">
+            {translate('auth.login.panelHeadline', 'Run your business with calm clarity.')}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {translate('auth.login.subtitle', 'Access your workspace')}
+          </p>
+        </div>
+        <p className="relative text-right text-xs text-muted-foreground">
+          {translate('auth.login.brandName', 'Helios')}
+        </p>
+      </aside>
     </div>
   )
 }

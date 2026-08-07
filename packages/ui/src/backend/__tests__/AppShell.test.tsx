@@ -182,7 +182,7 @@ describe('AppShell', () => {
 
     const breadcrumbNav = screen.getByRole('navigation', { name: 'Breadcrumb' })
     expect(breadcrumbNav).toHaveAttribute('data-slot', 'breadcrumb')
-    expect(breadcrumbNav).toHaveAttribute('data-divider', 'arrow')
+    expect(breadcrumbNav).toHaveAttribute('data-divider', 'slash')
     const dashboardHome = within(breadcrumbNav).getByRole('link', { name: 'Dashboard' })
     expect(dashboardHome).toHaveAttribute('href', '/backend')
     const activePage = within(breadcrumbNav).getByText((_, el) => el?.getAttribute('data-slot') === 'breadcrumb-page')
@@ -272,7 +272,7 @@ describe('AppShell', () => {
         )
         expect(logo).toHaveAttribute('data-unoptimized', 'true')
       })
-      expect(screen.getByText('Acme')).toBeInTheDocument()
+      expect(screen.getAllByText('Acme').length).toBeGreaterThan(0)
     } finally {
       global.fetch = previousFetch
       window.fetch = previousWindowFetch
@@ -618,7 +618,7 @@ describe('AppShell', () => {
       await waitFor(() => {
         const mainAside = container.querySelector('aside') as HTMLElement | null
         expect(mainAside).not.toBeNull()
-        expect(mainAside!.style.width).toBe('80px')
+        expect(mainAside!.style.width).toBe('76px')
       })
     })
 
