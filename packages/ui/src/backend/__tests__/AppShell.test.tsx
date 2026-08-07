@@ -618,7 +618,7 @@ describe('AppShell', () => {
       await waitFor(() => {
         const mainAside = container.querySelector('aside') as HTMLElement | null
         expect(mainAside).not.toBeNull()
-        expect(mainAside!.style.width).toBe('76px')
+        expect(mainAside!.style.width).toBe('72px')
       })
     })
 
