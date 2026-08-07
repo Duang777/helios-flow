@@ -482,12 +482,14 @@ export default function LoginPage() {
                   <span>{translate('auth.login.rememberMe', 'Remember me')}</span>
                 </label>
               )}
-              <Button type="submit" disabled={submitting || !formReady} className="mt-2 h-10">
+              <Button type="submit" disabled={submitting} className="mt-2 h-10">
                 {submitting
                   ? translate('auth.login.loading', 'Loading...')
-                  : authOverride
-                    ? authOverride.providerLabel
-                    : translate('auth.signIn', 'Sign in')}
+                  : authOverridePending
+                    ? translate('auth.login.loading', 'Loading...')
+                    : authOverride
+                      ? authOverride.providerLabel
+                      : translate('auth.signIn', 'Sign in')}
               </Button>
               {!authOverride?.hideForgotPassword && (
                 <div className="mt-2 text-xs text-muted-foreground">

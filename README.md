@@ -119,6 +119,7 @@ yarn workspace helios-docs dev
 
 ## Docs and contribution
 
+- Product requirements (PRD): [docs/PRD.md](./docs/PRD.md)
 - Agent notes for this monorepo: [AGENTS.md](./AGENTS.md)
 - Specs and ADRs: [`.ai/specs/`](./.ai/specs/)
 - Security: [SECURITY.md](./SECURITY.md)
