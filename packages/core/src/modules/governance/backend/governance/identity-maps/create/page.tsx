@@ -81,10 +81,11 @@ export default function CreateIdentityMapPage() {
       <PageBody>
         <CrudForm
           title={t('governance.identityMaps.create.title')}
+          fields={[]}
           groups={groups}
           submitLabel={t('governance.form.action.create')}
           onSubmit={async (values) => {
-            await createCrud('/api/governance/identity-maps', {
+            await createCrud('governance/identity-maps', {
               ...values,
               organizationId,
               tenantId,

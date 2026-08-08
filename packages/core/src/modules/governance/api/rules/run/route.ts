@@ -8,12 +8,12 @@ import type { CommandBus, CommandRuntimeContext } from '@helios/shared/lib/comma
 import { resolveTranslations } from '@helios/shared/lib/i18n/server'
 import { CrudHttpError, isCrudHttpError } from '@helios/shared/lib/crud/errors'
 import { parseScopedCommandInput } from '@helios/shared/lib/api/scoped'
-import { rulesRunSchema } from '../../data/validators'
+import { rulesRunSchema } from '../../../data/validators'
 import {
   validateCrudMutationGuard,
   runCrudMutationGuardAfterSuccess,
 } from '@helios/shared/lib/crud/mutation-guard'
-import type { RulesRunResult } from '../../commands/rules-run'
+import type { RulesRunResult } from '../../../commands/rules-run'
 
 export const metadata = {
   POST: { requireAuth: true, requireFeatures: ['governance.manage'] },
@@ -128,12 +128,13 @@ export const openApi: OpenApiRouteDoc = {
       requestBody: {
         schema: rulesRunSchema,
       },
-      responses: {
-        200: {
+      responses: [
+        {
+          status: 200,
           description: 'Rule run summary',
           schema: rulesRunResponseSchema,
         },
-      },
+      ],
     },
   },
 }

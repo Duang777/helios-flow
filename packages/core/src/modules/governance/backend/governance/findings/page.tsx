@@ -13,7 +13,7 @@ import { Input } from '@helios/ui/primitives/input'
 import { Label } from '@helios/ui/primitives/label'
 import { Play } from 'lucide-react'
 import { useT } from '@helios/shared/lib/i18n/context'
-import { apiCall, withScopedApiRequestHeaders } from '@helios/ui/backend/utils/apiCall'
+import { apiCall } from '@helios/ui/backend/utils/apiCall'
 import { flash } from '@helios/ui/backend/FlashMessages'
 import { useOrganizationScopeDetail, useOrganizationScopeVersion } from '@helios/shared/lib/frontend/useOrganizationScope'
 import { useConfirmDialog } from '@helios/ui/backend/confirm-dialog'
@@ -106,16 +106,14 @@ export default function FindingsPage() {
     try {
       const result = await runMutation({
         operation: async () => {
-          const call = await withScopedApiRequestHeaders(() =>
-            apiCall<{
-              created?: number
-              updated?: number
-            }>('/api/governance/rules/run', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ organizationId, tenantId, asOf }),
-            }),
-          )
+          const call = await apiCall<{
+            created?: number
+            updated?: number
+          }>('/api/governance/rules/run', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ organizationId, tenantId, asOf }),
+          })
           if (!call.ok) {
             throw Object.assign(new Error('[internal] governance.rules.run failed'), {
               status: call.status,
@@ -233,7 +231,11 @@ export default function FindingsPage() {
             />
           )}
           emptyState={
-            <ListEmptyState entityName={t('governance.findings.page.title')} onAction={() => void handleRunRules()} actionLabel={t('governance.actions.runRules')} />
+            <ListEmptyState
+              entityName={t('governance.findings.page.title')}
+              onCreate={() => void handleRunRules()}
+              createLabel={t('governance.actions.runRules')}
+            />
           }
           pagination={{ page, pageSize: 50, total, totalPages, onPageChange: setPage }}
           isLoading={isLoading}

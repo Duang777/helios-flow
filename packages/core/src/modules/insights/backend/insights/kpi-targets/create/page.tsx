@@ -107,7 +107,9 @@ export default function CreateKpiTargetPage() {
             unit: 'amount',
             periodType: 'year',
             periodKey: String(new Date().getFullYear()),
+            targetValue: '',
             currencyCode: 'CNY',
+            note: '',
             isActive: true,
           }}
           submitLabel={t('insights.form.action.create')}

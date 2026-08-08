@@ -138,7 +138,11 @@ export default function EditKpiTargetPage({ params }: { params?: { id?: string }
     return (
       <Page>
         <PageBody>
-          <RecordNotFoundState backHref="/backend/insights/kpi-targets" />
+          <RecordNotFoundState
+            label={t('insights.form.errors.notFound')}
+            backHref="/backend/insights/kpi-targets"
+            backLabel={t('insights.kpiTargets.page.title')}
+          />
         </PageBody>
       </Page>
     )
@@ -147,7 +151,7 @@ export default function EditKpiTargetPage({ params }: { params?: { id?: string }
     return (
       <Page>
         <PageBody>
-          <ErrorMessage message={error ?? t('insights.form.errors.notFound')} />
+          <ErrorMessage label={error ?? t('insights.form.errors.notFound')} />
         </PageBody>
       </Page>
     )
@@ -178,7 +182,7 @@ export default function EditKpiTargetPage({ params }: { params?: { id?: string }
               isActive: values.isActive !== false,
             }
             try {
-              await updateCrud('insights/kpi-targets', payload, record.updatedAt ?? undefined)
+              await updateCrud('insights/kpi-targets', payload)
               flash(t('insights.kpiTargets.flash.updated'), 'success')
               router.refresh()
             } catch (err) {
@@ -194,11 +198,7 @@ export default function EditKpiTargetPage({ params }: { params?: { id?: string }
             })
             if (!confirmed) return
             try {
-              await deleteCrud(
-                'insights/kpi-targets',
-                { id: record.id, organizationId: record.organizationId, tenantId: record.tenantId },
-                record.updatedAt ?? undefined,
-              )
+              await deleteCrud('insights/kpi-targets', record.id)
               flash(t('insights.kpiTargets.flash.deleted'), 'success')
               router.push('/backend/insights/kpi-targets')
             } catch (err) {

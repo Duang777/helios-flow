@@ -125,7 +125,11 @@ export default function FindingDetailPage({ params }: { params?: { id?: string }
     return (
       <Page>
         <PageBody>
-          <RecordNotFoundState message={t('governance.form.errors.notFound')} />
+          <RecordNotFoundState
+            label={t('governance.form.errors.notFound')}
+            backHref="/backend/governance/findings"
+            backLabel={t('governance.findings.page.title')}
+          />
         </PageBody>
       </Page>
     )
@@ -134,7 +138,7 @@ export default function FindingDetailPage({ params }: { params?: { id?: string }
     return (
       <Page>
         <PageBody>
-          <ErrorMessage message={error ?? t('governance.form.errors.load')} />
+          <ErrorMessage label={error ?? t('governance.form.errors.load')} />
         </PageBody>
       </Page>
     )
@@ -201,6 +205,7 @@ export default function FindingDetailPage({ params }: { params?: { id?: string }
 
         <CrudForm
           title={t('governance.findings.detail.title')}
+          fields={[]}
           groups={groups}
           initialValues={{
             status: record.status,
@@ -211,7 +216,7 @@ export default function FindingDetailPage({ params }: { params?: { id?: string }
           submitLabel={t('governance.form.action.save')}
           onSubmit={async (values) => {
             try {
-              await updateCrud('/api/governance/findings', {
+              await updateCrud('governance/findings', {
                 id: record.id,
                 organizationId: record.organizationId,
                 tenantId: record.tenantId,

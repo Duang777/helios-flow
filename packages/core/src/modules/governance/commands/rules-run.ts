@@ -47,7 +47,6 @@ const runGovernanceRulesCommand: CommandHandler<RulesRunInput, RulesRunResult> =
     await emitGovernanceEvent('governance.rules.run', {
       organizationId: parsed.organizationId,
       tenantId: parsed.tenantId,
-      asOf,
       ...summary,
     })
 

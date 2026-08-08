@@ -122,7 +122,11 @@ export default function EditIdentityMapPage({ params }: { params?: { id?: string
     return (
       <Page>
         <PageBody>
-          <RecordNotFoundState message={t('governance.form.errors.notFound')} />
+          <RecordNotFoundState
+            label={t('governance.form.errors.notFound')}
+            backHref="/backend/governance/identity-maps"
+            backLabel={t('governance.identityMaps.page.title')}
+          />
         </PageBody>
       </Page>
     )
@@ -131,7 +135,7 @@ export default function EditIdentityMapPage({ params }: { params?: { id?: string
     return (
       <Page>
         <PageBody>
-          <ErrorMessage message={error ?? t('governance.form.errors.load')} />
+          <ErrorMessage label={error ?? t('governance.form.errors.load')} />
         </PageBody>
       </Page>
     )
@@ -142,16 +146,17 @@ export default function EditIdentityMapPage({ params }: { params?: { id?: string
       <PageBody>
         <CrudForm
           title={t('governance.identityMaps.edit.title')}
+          fields={[]}
           groups={groups}
           initialValues={record}
           submitLabel={t('governance.form.action.save')}
           onSubmit={async (values) => {
             try {
-              await updateCrud('/api/governance/identity-maps', {
+              await updateCrud('governance/identity-maps', {
+                ...values,
                 id: record.id,
                 organizationId: record.organizationId,
                 tenantId: record.tenantId,
-                ...values,
                 sourceCustomerCode: values.sourceCustomerCode ? String(values.sourceCustomerCode).trim() : null,
                 canonicalCustomerCode: values.canonicalCustomerCode
                   ? String(values.canonicalCustomerCode).trim()
@@ -171,11 +176,7 @@ export default function EditIdentityMapPage({ params }: { params?: { id?: string
               variant: 'destructive',
             })
             if (!confirmed) return
-            await deleteCrud('/api/governance/identity-maps', {
-              id: record.id,
-              organizationId: record.organizationId,
-              tenantId: record.tenantId,
-            })
+            await deleteCrud('governance/identity-maps', record.id)
             flash(t('governance.identityMaps.flash.deleted'), 'success')
             router.push('/backend/governance/identity-maps')
           }}

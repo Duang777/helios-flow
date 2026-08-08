@@ -151,15 +151,23 @@ export function buildCompletionItem(input: {
   currencyCode: string | null
   actualSource: 'commercial.metrics' | 'projects'
 }): CompletionItem {
+  const normalizedTarget =
+    input.targetValue != null && input.unit === 'amount'
+      ? fromMoneyCents(toMoneyCents(input.targetValue))
+      : input.targetValue
+  const normalizedActual =
+    input.actualValue != null && input.unit === 'amount'
+      ? fromMoneyCents(toMoneyCents(input.actualValue))
+      : input.actualValue
   const completionRate =
-    input.targetValue && input.actualValue
-      ? computeCompletionRate(input.actualValue, input.targetValue)
+    normalizedTarget && normalizedActual
+      ? computeCompletionRate(normalizedActual, normalizedTarget)
       : null
   return {
     organizationId: input.organizationId,
     metricKey: input.metricKey,
-    targetValue: input.targetValue,
-    actualValue: input.actualValue,
+    targetValue: normalizedTarget,
+    actualValue: normalizedActual,
     completionRate,
     unit: input.unit,
     currencyCode: input.currencyCode,
