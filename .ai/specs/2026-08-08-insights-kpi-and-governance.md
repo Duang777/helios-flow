@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | implemented |
+| Status | implemented (insights + governance) |
 | Date | 2026-08-08 |
 | PRD | [docs/PRD.md](../../docs/PRD.md) §7.9–7.11 / M7 / 场景 J–K |
 | Modules | `insights` + `governance` under `packages/core/src/modules/` |
@@ -301,3 +301,5 @@ Same as commercial: client pages for CrudForm/DataTable; pure aggregation in `li
 | Date | Note |
 |------|------|
 | 2026-08-08 | Initial M7 insights + governance spec (draft) |
+| 2026-08-08 | **insights** implemented: `KpiTarget` CRUD, completion API/UI, org rollup, `TC-INS-001`, AI read tools |
+| 2026-08-08 | **governance** implemented: `CustomerIdentityMap` + `GovernanceFinding`, built-in rule pack (milestone delay, cost overrun, revenue-without-cost, overdue AR, over-allocation, deal stale), rules run command/API, admin UI, `TC-GOV-001`, AI read tools + acknowledge mutation tool |

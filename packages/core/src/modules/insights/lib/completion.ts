@@ -166,6 +166,8 @@ export function buildCompletionItem(input: {
     actualSource: input.actualSource,
   }
 }
+
+export function extractMetricComponents(
   facts: DatedCommercialFacts,
   periodType: PeriodType,
   periodKey: string,
