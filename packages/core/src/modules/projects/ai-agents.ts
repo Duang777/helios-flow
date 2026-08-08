@@ -30,6 +30,7 @@ const ALLOWED_TOOLS: readonly string[] = [
   'projects.list_projects',
   'projects.get_project',
   'projects.list_milestones',
+  'projects.get_delay_summary',
   'projects.list_risks',
   'search.hybrid_search',
   'search.get_record_context',
@@ -76,7 +77,7 @@ const PROMPT_SECTIONS: PromptSection[] = [
     content: [
       'TOOLS',
       'Use projects.list_projects / projects.get_project for projects,',
-      'projects.list_milestones for milestones (check isDelayed), and',
+      'projects.list_milestones or projects.get_delay_summary for milestones (check isDelayed), and',
       'projects.list_risks for risks. Call meta.describe_agent if unsure which',
       'tools you have.',
     ].join('\n'),

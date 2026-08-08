@@ -17,16 +17,20 @@ test.describe('TC-AI-001: Operating-loop AI registry', () => {
     expect(ids.has('projects.delivery_assistant')).toBeTruthy()
     expect(ids.has('commercial.settlement_assistant')).toBeTruthy()
     expect(ids.has('insights.kpi_assistant')).toBeTruthy()
+    expect(ids.has('insights.operating_loop_assistant')).toBeTruthy()
     expect(ids.has('governance.assistant')).toBeTruthy()
 
     const commercial = (agentsBody.agents ?? []).find((row) => row.id === 'commercial.settlement_assistant')
     const insights = (agentsBody.agents ?? []).find((row) => row.id === 'insights.kpi_assistant')
+    const operatingLoop = (agentsBody.agents ?? []).find((row) => row.id === 'insights.operating_loop_assistant')
     const governance = (agentsBody.agents ?? []).find((row) => row.id === 'governance.assistant')
     expect(commercial?.allowedTools ?? []).toEqual(
       expect.arrayContaining([
         'commercial.list_contracts',
         'commercial.list_invoices',
+        'commercial.list_overdue_invoices',
         'commercial.list_payments',
+        'commercial.list_payment_allocations',
         'commercial.get_metrics',
       ]),
     )
@@ -38,8 +42,20 @@ test.describe('TC-AI-001: Operating-loop AI registry', () => {
         'governance.list_findings',
         'governance.list_identity_maps',
         'governance.acknowledge_finding',
+        'governance.update_finding_disposition',
+        'governance.acknowledge_findings',
       ]),
     )
+    expect(operatingLoop?.allowedTools ?? []).toEqual(
+      expect.arrayContaining([
+        'projects.get_delay_summary',
+        'commercial.get_project_settlement_summary',
+        'insights.get_kpi_gap',
+        'governance.list_findings',
+        'governance.acknowledge_finding',
+      ]),
+    )
+    expect(operatingLoop?.readOnly).toBe(false)
     expect(governance?.readOnly).toBe(false)
   })
 })

@@ -147,6 +147,12 @@ type ListMilestonesApiResponse = {
   total?: number
 }
 
+function parseAsOfDate(asOf?: string): Date | undefined {
+  if (!asOf) return undefined
+  const date = new Date(`${asOf}T00:00:00.000Z`)
+  return Number.isNaN(date.getTime()) ? undefined : date
+}
+
 const listMilestonesTool = defineApiBackedAiTool<
   ListMilestonesInput,
   ListMilestonesApiResponse,
@@ -203,6 +209,74 @@ const listMilestonesTool = defineApiBackedAiTool<
       total: typeof data.total === 'number' ? data.total : 0,
       limit,
       offset,
+    }
+  },
+}) as unknown as ProjectsAiToolDefinition
+
+const getDelaySummaryInput = z
+  .object({
+    projectId: z.string().uuid().optional().describe('Restrict summary to one project.'),
+    asOf: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    limit: z.number().int().min(1).max(100).optional(),
+  })
+  .passthrough()
+
+type GetDelaySummaryInput = z.infer<typeof getDelaySummaryInput>
+
+const getDelaySummaryTool = defineApiBackedAiTool<
+  GetDelaySummaryInput,
+  ListMilestonesApiResponse,
+  Record<string, unknown>
+>({
+  name: 'projects.get_delay_summary',
+  displayName: 'Get delay summary',
+  description:
+    'Summarize delayed milestones using the project delay rule: plannedDate < asOf and actualDate is null, excluding cancelled milestones.',
+  inputSchema: getDelaySummaryInput,
+  requiredFeatures: ['projects.view'],
+  toOperation: (input, ctx) => {
+    assertTenantScope(ctx as unknown as ProjectsToolContext)
+    const query: Record<string, string | number> = {
+      page: 1,
+      pageSize: input.limit ?? 100,
+    }
+    if (input.projectId) query.projectId = input.projectId
+    return {
+      method: 'GET',
+      path: '/projects/milestones',
+      query,
+    }
+  },
+  mapResponse: (response, input) => {
+    const data = (response.data ?? {}) as ListMilestonesApiResponse
+    const rawItems = Array.isArray(data.items) ? data.items : []
+    const asOf = parseAsOfDate(input.asOf)
+    const delayedMilestones = rawItems
+      .map((row) => {
+        const plannedDate = (row.plannedDate ?? row.planned_date ?? null) as string | null
+        const actualDate = (row.actualDate ?? row.actual_date ?? null) as string | null
+        const status = (row.status ?? null) as string | null
+        return {
+          id: row.id,
+          projectId: row.projectId ?? row.project_id ?? null,
+          name: row.name ?? null,
+          status,
+          plannedDate,
+          actualDate,
+          isDelayed: isMilestoneDelayed({ plannedDate, actualDate, status, asOf }),
+          href: typeof row.id === 'string' ? `/backend/milestones/${row.id}` : null,
+        }
+      })
+      .filter((row) => row.isDelayed)
+    return {
+      projectId: input.projectId ?? null,
+      asOf: input.asOf ?? null,
+      delayedCount: delayedMilestones.length,
+      delayedMilestones,
+      scannedCount: rawItems.length,
+      formulaSource:
+        'projects.lib.milestoneDelay: plannedDate < asOf and actualDate is null, excluding cancelled milestones.',
+      href: input.projectId ? `/backend/projects/${input.projectId}` : '/backend/projects',
     }
   },
 }) as unknown as ProjectsAiToolDefinition
@@ -276,6 +350,7 @@ const projectsAiTools: ProjectsAiToolDefinition[] = [
   listProjectsTool,
   getProjectTool,
   listMilestonesTool,
+  getDelaySummaryTool,
   listRisksTool,
 ]
 

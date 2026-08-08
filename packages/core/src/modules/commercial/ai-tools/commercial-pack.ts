@@ -1,6 +1,11 @@
 import { z } from 'zod'
+import type { EntityManager } from '@mikro-orm/postgresql'
+import type { FilterQuery } from '@mikro-orm/core'
 import { defineApiBackedAiTool } from '@helios/ai-assistant/modules/ai_assistant/lib/api-backed-tool'
+import { defineAiTool } from '@helios/ai-assistant'
 import type { AiApiOperationRequest } from '@helios/ai-assistant/modules/ai_assistant/lib/ai-api-operation-runner'
+import { CommercialInvoice, PaymentAllocation } from '../data/entities'
+import { fromMoneyCents, isOperatingInvoiceStatus, toMoneyCents } from '../lib/metrics'
 import {
   assertTenantScope,
   type CommercialAiToolDefinition,
@@ -23,6 +28,33 @@ type ListContractsInput = z.infer<typeof listContractsInput>
 type ListApiResponse = {
   items?: Array<Record<string, unknown>>
   total?: number
+}
+
+function todayUtcDate(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function requireOrganizationScope(ctx: CommercialToolContext): string {
+  const scope = assertTenantScope(ctx)
+  if (!scope.organizationId) {
+    throw new Error('[internal] Organization context is required for commercial.* operating-loop tools')
+  }
+  return scope.organizationId
+}
+
+function dateToUtcMs(date: string): number | null {
+  const parts = date.split('-').map((part) => Number.parseInt(part, 10))
+  if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) return null
+  const [year, month, day] = parts
+  return Date.UTC(year, month - 1, day)
+}
+
+function overdueDays(dueDate: string | null, asOf: string): number | null {
+  if (!dueDate) return null
+  const dueMs = dateToUtcMs(dueDate)
+  const asOfMs = dateToUtcMs(asOf)
+  if (dueMs === null || asOfMs === null || dueMs >= asOfMs) return 0
+  return Math.floor((asOfMs - dueMs) / 86_400_000)
 }
 
 const listContractsTool = defineApiBackedAiTool<
@@ -148,6 +180,51 @@ const getMetricsTool = defineApiBackedAiTool<GetMetricsInput, Record<string, unk
   mapResponse: (response) => (response.data ?? {}) as Record<string, unknown>,
 }) as unknown as CommercialAiToolDefinition
 
+const getProjectSettlementSummaryInput = z
+  .object({
+    projectId: z.string().uuid(),
+    asOf: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  })
+  .passthrough()
+
+type GetProjectSettlementSummaryInput = z.infer<typeof getProjectSettlementSummaryInput>
+
+const getProjectSettlementSummaryTool = defineApiBackedAiTool<
+  GetProjectSettlementSummaryInput,
+  Record<string, unknown>,
+  Record<string, unknown>
+>({
+  name: 'commercial.get_project_settlement_summary',
+  displayName: 'Get project settlement summary',
+  description:
+    'Return commercial metrics scoped to one project, with formula definitions and deep links for operating-loop answers.',
+  inputSchema: getProjectSettlementSummaryInput,
+  requiredFeatures: ['commercial.view'],
+  toOperation: (input, ctx) => {
+    const organizationId = requireOrganizationScope(ctx as unknown as CommercialToolContext)
+    const query: Record<string, string> = {
+      organizationId,
+      projectId: input.projectId,
+    }
+    if (input.asOf) query.asOf = input.asOf
+    return {
+      method: 'GET',
+      path: '/commercial/metrics',
+      query,
+    }
+  },
+  mapResponse: (response, input) => ({
+    projectId: input.projectId,
+    metrics: response.data ?? {},
+    hrefs: {
+      project: `/backend/projects/${input.projectId}`,
+      commercial: '/backend/commercial',
+    },
+    formulaSource:
+      'commercial.metrics definitions. Collection rate uses Σ allocated_amount ÷ Σ issued invoice_amount; overdue outstanding uses issued invoice remainder where due_date < asOf.',
+  }),
+}) as unknown as CommercialAiToolDefinition
+
 const listInvoicesInput = z
   .object({
     q: z.string().trim().optional(),
@@ -212,6 +289,97 @@ const listInvoicesTool = defineApiBackedAiTool<
   },
 }) as unknown as CommercialAiToolDefinition
 
+const listOverdueInvoicesInput = z
+  .object({
+    asOf: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    limit: z.number().int().min(1).max(100).optional(),
+    projectId: z.string().uuid().optional(),
+    contractId: z.string().uuid().optional(),
+    customerEntityId: z.string().uuid().optional(),
+  })
+  .passthrough()
+
+type ListOverdueInvoicesInput = z.infer<typeof listOverdueInvoicesInput>
+
+const listOverdueInvoicesTool = defineAiTool({
+  name: 'commercial.list_overdue_invoices',
+  displayName: 'List overdue invoices',
+  description:
+    'List issued invoices with overdue outstanding balances. Computes invoice remainder from payment_allocations and returns formula source plus deep links.',
+  inputSchema: listOverdueInvoicesInput,
+  requiredFeatures: ['commercial.view'],
+  async handler(input: ListOverdueInvoicesInput, ctx: CommercialToolContext) {
+    const tenantScope = assertTenantScope(ctx)
+    const organizationId = requireOrganizationScope(ctx)
+    const em = ctx.container.resolve('em') as EntityManager
+    const asOf = input.asOf ?? todayUtcDate()
+    const limit = input.limit ?? 50
+    const filter: FilterQuery<CommercialInvoice> = {
+      tenantId: tenantScope.tenantId,
+      organizationId,
+      deletedAt: null,
+      status: 'issued',
+      dueDate: { $lt: asOf },
+    }
+    if (input.projectId) filter.projectId = input.projectId
+    if (input.contractId) filter.contractId = input.contractId
+    if (input.customerEntityId) filter.customerEntityId = input.customerEntityId
+
+    const invoices = await em.find(CommercialInvoice, filter, {
+      orderBy: { dueDate: 'ASC' },
+      limit: 100,
+    })
+    const invoiceIds = invoices.map((invoice) => invoice.id)
+    const allocations =
+      invoiceIds.length > 0
+        ? await em.find(PaymentAllocation, {
+            tenantId: tenantScope.tenantId,
+            organizationId,
+            deletedAt: null,
+            invoiceId: { $in: invoiceIds },
+          } as FilterQuery<PaymentAllocation>)
+        : []
+
+    const allocatedByInvoice = new Map<string, bigint>()
+    for (const allocation of allocations) {
+      const previous = allocatedByInvoice.get(allocation.invoiceId) ?? 0n
+      allocatedByInvoice.set(allocation.invoiceId, previous + toMoneyCents(allocation.allocatedAmount))
+    }
+
+    const items = invoices
+      .filter((invoice) => isOperatingInvoiceStatus(invoice.status))
+      .map((invoice) => {
+        const allocatedCents = allocatedByInvoice.get(invoice.id) ?? 0n
+        const outstandingCents = toMoneyCents(invoice.amount) - allocatedCents
+        return {
+          id: invoice.id,
+          invoiceNo: invoice.invoiceNo ?? null,
+          projectId: invoice.projectId ?? null,
+          contractId: invoice.contractId ?? null,
+          customerEntityId: invoice.customerEntityId ?? null,
+          amount: invoice.amount,
+          allocatedAmount: fromMoneyCents(allocatedCents),
+          outstandingAmount: fromMoneyCents(outstandingCents > 0n ? outstandingCents : 0n),
+          currencyCode: invoice.currencyCode,
+          dueDate: invoice.dueDate ?? null,
+          overdueDays: overdueDays(invoice.dueDate ?? null, asOf),
+          href: `/backend/commercial/invoices/${invoice.id}`,
+        }
+      })
+      .filter((invoice) => toMoneyCents(invoice.outstandingAmount) > 0n)
+      .slice(0, limit)
+
+    return {
+      items,
+      total: items.length,
+      asOf,
+      formulaSource:
+        'overdueOutstanding = Σ (issued invoice_amount - allocated_amount) where due_date < asOf and remainder > 0. Sources: commercial_invoices, payment_allocations.',
+      href: '/backend/commercial/invoices',
+    }
+  },
+}) as unknown as CommercialAiToolDefinition
+
 const listPaymentsInput = z
   .object({
     q: z.string().trim().optional(),
@@ -270,12 +438,74 @@ const listPaymentsTool = defineApiBackedAiTool<
   },
 }) as unknown as CommercialAiToolDefinition
 
+const listPaymentAllocationsInput = z
+  .object({
+    invoiceId: z.string().uuid().optional(),
+    paymentId: z.string().uuid().optional(),
+    limit: z.number().int().min(1).max(100).optional(),
+    offset: z.number().int().min(0).optional(),
+  })
+  .passthrough()
+
+type ListPaymentAllocationsInput = z.infer<typeof listPaymentAllocationsInput>
+
+const listPaymentAllocationsTool = defineApiBackedAiTool<
+  ListPaymentAllocationsInput,
+  ListApiResponse,
+  { items: Array<Record<string, unknown>>; total: number; limit: number; offset: number }
+>({
+  name: 'commercial.list_payment_allocations',
+  displayName: 'List payment allocations',
+  description:
+    'List invoice-payment allocation details for reconciliation explanations. Use this for 核销明细.',
+  inputSchema: listPaymentAllocationsInput,
+  requiredFeatures: ['commercial.view'],
+  toOperation: (input, ctx) => {
+    assertTenantScope(ctx as unknown as CommercialToolContext)
+    const limit = input.limit ?? 50
+    const offset = input.offset ?? 0
+    const page = Math.floor(offset / limit) + 1
+    const query: Record<string, string | number> = { page, pageSize: limit }
+    if (input.invoiceId) query.invoiceId = input.invoiceId
+    if (input.paymentId) query.paymentId = input.paymentId
+    return {
+      method: 'GET',
+      path: '/commercial/allocations',
+      query,
+    }
+  },
+  mapResponse: (response, input) => {
+    const limit = input.limit ?? 50
+    const offset = input.offset ?? 0
+    const data = (response.data ?? {}) as ListApiResponse
+    const rawItems = Array.isArray(data.items) ? data.items : []
+    return {
+      items: rawItems.map((row) => ({
+        id: row.id,
+        invoiceId: row.invoiceId ?? row.invoice_id ?? null,
+        paymentId: row.paymentId ?? row.payment_id ?? null,
+        allocatedAmount: row.allocatedAmount ?? row.allocated_amount ?? null,
+        allocatedOn: row.allocatedOn ?? row.allocated_on ?? null,
+        href: typeof row.id === 'string' ? `/backend/commercial/allocations/${row.id}` : null,
+      })),
+      total: typeof data.total === 'number' ? data.total : 0,
+      limit,
+      offset,
+      formulaSource:
+        'Allocations are the only payment numerator for collection rate: Σ allocated_amount ÷ Σ issued invoice_amount.',
+    }
+  },
+}) as unknown as CommercialAiToolDefinition
+
 const commercialAiTools: CommercialAiToolDefinition[] = [
   listContractsTool,
   getContractTool,
   listInvoicesTool,
+  listOverdueInvoicesTool,
   listPaymentsTool,
+  listPaymentAllocationsTool,
   getMetricsTool,
+  getProjectSettlementSummaryTool,
 ]
 
 export default commercialAiTools

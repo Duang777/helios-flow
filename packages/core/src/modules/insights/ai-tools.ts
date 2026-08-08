@@ -15,6 +15,22 @@ function assertTenantScope(ctx: InsightsToolContext): void {
   }
 }
 
+function organizationIdFromContext(ctx: InsightsToolContext): string {
+  assertTenantScope(ctx)
+  return String(ctx.organizationId)
+}
+
+function decimalOrNull(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value !== 'string' || value.trim().length === 0) return null
+  const parsed = Number.parseFloat(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function formatDecimal(value: number | null): string | null {
+  return value === null ? null : value.toFixed(6)
+}
+
 const listKpiTargetsInput = z
   .object({
     metricKey: z.string().optional(),
@@ -98,6 +114,109 @@ const getKpiCompletionTool = defineApiBackedAiTool({
   mapResponse: (response) => response.data ?? {},
 }) as unknown as InsightsAiToolDefinition
 
-export const aiTools: InsightsAiToolDefinition[] = [listKpiTargetsTool, getKpiCompletionTool]
+const getKpiGapInput = z
+  .object({
+    organizationId: z.string().uuid().optional(),
+    periodType: z.enum(['year', 'quarter', 'month']),
+    periodKey: z.string().min(1),
+    asOf: z.string().optional(),
+    includeDescendants: z.boolean().optional(),
+    metricKey: z.enum(['revenue', 'gross_profit', 'gross_margin', 'collection']).optional(),
+  })
+  .passthrough()
+
+type CompletionRow = {
+  organizationId?: unknown
+  metricKey?: unknown
+  targetValue?: unknown
+  actualValue?: unknown
+  completionRate?: unknown
+  unit?: unknown
+  currencyCode?: unknown
+  actualSource?: unknown
+  isRollup?: unknown
+}
+
+type CompletionPayload = {
+  items?: CompletionRow[]
+  rollup?: CompletionRow[]
+  asOf?: unknown
+  periodType?: unknown
+  periodKey?: unknown
+}
+
+const getKpiGapTool = defineApiBackedAiTool({
+  name: 'insights.get_kpi_gap',
+  displayName: 'Get KPI target gap',
+  description:
+    'Explain how far KPI actuals are from target and identify child organizations dragging the period result.',
+  inputSchema: getKpiGapInput,
+  requiredFeatures: ['insights.view'],
+  toOperation: (input, ctx) => {
+    const organizationId = input.organizationId ?? organizationIdFromContext(ctx as InsightsToolContext)
+    const query: Record<string, string> = {
+      organizationId,
+      periodType: input.periodType,
+      periodKey: input.periodKey,
+      includeDescendants: input.includeDescendants ? 'true' : 'false',
+    }
+    if (input.asOf) query.asOf = input.asOf
+    return {
+      method: 'GET',
+      path: '/insights/kpi/completion',
+      query,
+    }
+  },
+  mapResponse: (response, input) => {
+    const data = (response.data ?? {}) as CompletionPayload
+    const sourceRows = [
+      ...(Array.isArray(data.items) ? data.items : []),
+      ...(Array.isArray(data.rollup) ? data.rollup : []),
+    ]
+    const filteredRows = input.metricKey
+      ? sourceRows.filter((row) => row.metricKey === input.metricKey)
+      : sourceRows
+    const rows = filteredRows.map((row) => {
+      const target = decimalOrNull(row.targetValue)
+      const actual = decimalOrNull(row.actualValue)
+      const gap = target === null || actual === null ? null : target - actual
+      const status = gap === null ? 'missing_target' : gap > 0 ? 'behind' : 'met_or_ahead'
+      return {
+        organizationId: typeof row.organizationId === 'string' ? row.organizationId : null,
+        metricKey: typeof row.metricKey === 'string' ? row.metricKey : null,
+        targetValue: row.targetValue ?? null,
+        actualValue: row.actualValue ?? null,
+        gapToTarget: formatDecimal(gap),
+        completionRate: row.completionRate ?? null,
+        unit: row.unit ?? null,
+        currencyCode: row.currencyCode ?? null,
+        actualSource: row.actualSource ?? null,
+        isRollup: row.isRollup === true,
+        status,
+      }
+    })
+    const draggedOrganizations = rows
+      .filter((row) => row.status === 'behind' && decimalOrNull(row.gapToTarget) !== null)
+      .sort((left, right) => (decimalOrNull(right.gapToTarget) ?? 0) - (decimalOrNull(left.gapToTarget) ?? 0))
+      .slice(0, 10)
+
+    return {
+      rows,
+      draggedOrganizations,
+      asOf: data.asOf ?? null,
+      periodType: data.periodType ?? input.periodType,
+      periodKey: data.periodKey ?? input.periodKey,
+      formulaSource:
+        'completionRate = actualValue ÷ targetValue. gapToTarget = targetValue − actualValue. Ratio targets are stored as 0–100 percent values; company rollup is derived from child organizations.',
+      href: '/backend/insights',
+    }
+  },
+}) as unknown as InsightsAiToolDefinition
+
+export const aiTools: InsightsAiToolDefinition[] = [
+  listKpiTargetsTool,
+  getKpiCompletionTool,
+  getKpiGapTool,
+]
 
 export default aiTools

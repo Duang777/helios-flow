@@ -30,8 +30,11 @@ const ALLOWED_TOOLS: readonly string[] = [
   'commercial.list_contracts',
   'commercial.get_contract',
   'commercial.list_invoices',
+  'commercial.list_overdue_invoices',
   'commercial.list_payments',
+  'commercial.list_payment_allocations',
   'commercial.get_metrics',
+  'commercial.get_project_settlement_summary',
   'search.hybrid_search',
   'search.get_record_context',
   'meta.describe_agent',
@@ -73,8 +76,10 @@ const PROMPT_SECTIONS: PromptSection[] = [
     content: [
       'TOOLS',
       'Use commercial.list_contracts / commercial.get_contract for contracts,',
-      'commercial.list_invoices / commercial.list_payments for settlement rows,',
-      'and commercial.get_metrics for KPIs. Call meta.describe_agent when unsure.',
+      'commercial.list_invoices / commercial.list_overdue_invoices for AR,',
+      'commercial.list_payments / commercial.list_payment_allocations for cash application,',
+      'commercial.get_project_settlement_summary for project-scoped metrics, and',
+      'commercial.get_metrics for KPIs. Call meta.describe_agent when unsure.',
     ].join('\n'),
   },
   {
@@ -95,7 +100,7 @@ const PROMPT_SECTIONS: PromptSection[] = [
     order: 7,
     content: [
       'RESPONSE STYLE',
-      'Lead with the answer. Cite metric definitions when explaining rates or overdue balances.',
+      'Lead with the answer. Cite metric definitions when explaining rates or overdue balances. Include href links from tool results.',
     ].join('\n'),
   },
 ]
