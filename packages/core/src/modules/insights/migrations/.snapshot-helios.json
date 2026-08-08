@@ -1,0 +1,17 @@
+{
+  "name": "public",
+  "namespaces": ["public"],
+  "tables": [
+    {
+      "name": "kpi_targets",
+      "schema": "public",
+      "indexes": [
+        { "name": "kpi_targets_scope_idx", "properties": ["organization_id", "tenant_id"] },
+        {
+          "name": "kpi_targets_natural_key_uniq",
+          "properties": ["tenant_id", "organization_id", "metric_key", "period_type", "period_key"]
+        }
+      ]
+    }
+  ]
+}

@@ -69,6 +69,7 @@ export const enabledModules: ModuleEntry[] = [
   { id: 'customers', from: '@helios/core' },
   { id: 'projects', from: '@helios/core' },
   { id: 'commercial', from: '@helios/core' },
+  { id: 'insights', from: '@helios/core' },
   { id: 'perspectives', from: '@helios/core' },
   { id: 'entities', from: '@helios/core' },
   { id: 'configs', from: '@helios/core' },
