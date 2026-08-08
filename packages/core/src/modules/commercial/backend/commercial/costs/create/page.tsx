@@ -113,7 +113,8 @@ export default function CreateCostPage() {
           initialValues={initialValues}
           submitLabel={t('commercial.form.action.create')}
           cancelHref="/backend/commercial/costs"
-          onSubmit={async (values) => {
+          onSubmit={async (formValues) => {
+            const values = formValues as Record<string, unknown>
             await createCrud('commercial/costs', {
               organizationId,
               tenantId,

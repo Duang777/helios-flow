@@ -160,7 +160,8 @@ export default function CreateContractPage() {
           initialValues={prefill}
           submitLabel={t('commercial.form.action.create')}
           cancelHref="/backend/commercial/contracts"
-          onSubmit={async (values) => {
+          onSubmit={async (formValues) => {
+            const values = formValues as Record<string, unknown>
             const payload = {
               organizationId,
               tenantId,

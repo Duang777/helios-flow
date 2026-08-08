@@ -79,7 +79,8 @@ export default function CreateAllocationPage() {
           initialValues={initialValues}
           submitLabel={t('commercial.form.action.create')}
           cancelHref="/backend/commercial/allocations"
-          onSubmit={async (values) => {
+          onSubmit={async (formValues) => {
+            const values = formValues as Record<string, unknown>
             await createCrud('commercial/allocations', {
               organizationId,
               tenantId,
