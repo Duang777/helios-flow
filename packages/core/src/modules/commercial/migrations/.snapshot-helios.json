@@ -1,0 +1,59 @@
+{
+  "name": "public",
+  "namespaces": ["public"],
+  "tables": [
+    {
+      "name": "commercial_contracts",
+      "schema": "public",
+      "indexes": [
+        { "name": "commercial_contracts_scope_idx", "properties": ["organization_id", "tenant_id"] },
+        { "name": "commercial_contracts_project_idx", "properties": ["project_id"] },
+        { "name": "commercial_contracts_customer_idx", "properties": ["customer_entity_id"] }
+      ]
+    },
+    {
+      "name": "project_revenues",
+      "schema": "public",
+      "indexes": [
+        { "name": "project_revenues_scope_idx", "properties": ["organization_id", "tenant_id"] },
+        { "name": "project_revenues_project_idx", "properties": ["project_id"] },
+        { "name": "project_revenues_contract_idx", "properties": ["contract_id"] }
+      ]
+    },
+    {
+      "name": "project_costs",
+      "schema": "public",
+      "indexes": [
+        { "name": "project_costs_scope_idx", "properties": ["organization_id", "tenant_id"] },
+        { "name": "project_costs_project_idx", "properties": ["project_id"] },
+        { "name": "project_costs_contract_idx", "properties": ["contract_id"] }
+      ]
+    },
+    {
+      "name": "commercial_invoices",
+      "schema": "public",
+      "indexes": [
+        { "name": "commercial_invoices_scope_idx", "properties": ["organization_id", "tenant_id"] },
+        { "name": "commercial_invoices_contract_idx", "properties": ["contract_id"] },
+        { "name": "commercial_invoices_project_idx", "properties": ["project_id"] }
+      ]
+    },
+    {
+      "name": "commercial_payments",
+      "schema": "public",
+      "indexes": [
+        { "name": "commercial_payments_scope_idx", "properties": ["organization_id", "tenant_id"] },
+        { "name": "commercial_payments_customer_idx", "properties": ["customer_entity_id"] }
+      ]
+    },
+    {
+      "name": "payment_allocations",
+      "schema": "public",
+      "indexes": [
+        { "name": "payment_allocations_scope_idx", "properties": ["organization_id", "tenant_id"] },
+        { "name": "payment_allocations_invoice_idx", "properties": ["invoice_id"] },
+        { "name": "payment_allocations_payment_idx", "properties": ["payment_id"] }
+      ]
+    }
+  ]
+}
