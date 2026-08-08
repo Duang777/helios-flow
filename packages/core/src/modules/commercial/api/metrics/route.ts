@@ -145,7 +145,7 @@ export async function GET(req: Request) {
     const metrics = computeCommercialMetrics({
       revenues: revenues.map((row) => ({ amount: row.amount, dataVersion: row.dataVersion })),
       costs: costs.map((row) => ({ amount: row.amount, dataVersion: row.dataVersion })),
-      contracts: contracts.map((row) => ({ amount: row.amount })),
+      contracts: contracts.map((row) => ({ amount: row.amount, status: row.status })),
       invoices: invoices.map((row) => ({
         id: row.id,
         amount: row.amount,

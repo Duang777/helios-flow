@@ -50,6 +50,9 @@ export async function assertAllocationWithinLimits(params: AllocationGuardParams
   if (invoice.status === 'void') {
     throw new CrudHttpError(400, { error: 'Cannot allocate against a void invoice' })
   }
+  if (invoice.status === 'draft') {
+    throw new CrudHttpError(400, { error: 'Cannot allocate against a draft invoice' })
+  }
 
   const payment = await em.findOne(CommercialPayment, {
     id: paymentId,
@@ -60,6 +63,9 @@ export async function assertAllocationWithinLimits(params: AllocationGuardParams
   if (!payment) throw new CrudHttpError(404, { error: 'Payment not found' })
   if (payment.status === 'void') {
     throw new CrudHttpError(400, { error: 'Cannot allocate against a void payment' })
+  }
+  if (payment.status === 'draft') {
+    throw new CrudHttpError(400, { error: 'Cannot allocate against a draft payment' })
   }
 
   if (invoice.currencyCode !== payment.currencyCode) {

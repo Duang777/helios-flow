@@ -148,9 +148,133 @@ const getMetricsTool = defineApiBackedAiTool<GetMetricsInput, Record<string, unk
   mapResponse: (response) => (response.data ?? {}) as Record<string, unknown>,
 }) as unknown as CommercialAiToolDefinition
 
+const listInvoicesInput = z
+  .object({
+    q: z.string().trim().optional(),
+    limit: z.number().int().min(1).max(100).optional(),
+    offset: z.number().int().min(0).optional(),
+    contractId: z.string().uuid().optional(),
+    projectId: z.string().uuid().optional(),
+    status: z.string().optional(),
+  })
+  .passthrough()
+
+type ListInvoicesInput = z.infer<typeof listInvoicesInput>
+
+const listInvoicesTool = defineApiBackedAiTool<
+  ListInvoicesInput,
+  ListApiResponse,
+  { items: Array<Record<string, unknown>>; total: number; limit: number; offset: number }
+>({
+  name: 'commercial.list_invoices',
+  displayName: 'List invoices',
+  description: 'List commercial invoices for the caller tenant + organization.',
+  inputSchema: listInvoicesInput,
+  requiredFeatures: ['commercial.view'],
+  toOperation: (input, ctx) => {
+    assertTenantScope(ctx as unknown as CommercialToolContext)
+    const limit = input.limit ?? 50
+    const offset = input.offset ?? 0
+    const page = Math.floor(offset / limit) + 1
+    const query: Record<string, string | number | boolean | null | undefined> = {
+      page,
+      pageSize: limit,
+    }
+    if (input.q?.trim()) query.search = input.q.trim()
+    if (input.contractId) query.contractId = input.contractId
+    if (input.projectId) query.projectId = input.projectId
+    if (input.status) query.status = input.status
+    return {
+      method: 'GET',
+      path: '/commercial/invoices',
+      query,
+    }
+  },
+  mapResponse: (response, input) => {
+    const limit = input.limit ?? 50
+    const offset = input.offset ?? 0
+    const data = (response.data ?? {}) as ListApiResponse
+    const rawItems = Array.isArray(data.items) ? data.items : []
+    return {
+      items: rawItems.map((row) => ({
+        id: row.id,
+        invoiceNo: row.invoiceNo ?? row.invoice_no ?? null,
+        status: row.status ?? null,
+        amount: row.amount ?? null,
+        dueDate: row.dueDate ?? row.due_date ?? null,
+        contractId: row.contractId ?? row.contract_id ?? null,
+        href: typeof row.id === 'string' ? `/backend/commercial/invoices/${row.id}` : null,
+      })),
+      total: typeof data.total === 'number' ? data.total : 0,
+      limit,
+      offset,
+    }
+  },
+}) as unknown as CommercialAiToolDefinition
+
+const listPaymentsInput = z
+  .object({
+    q: z.string().trim().optional(),
+    limit: z.number().int().min(1).max(100).optional(),
+    offset: z.number().int().min(0).optional(),
+    status: z.string().optional(),
+  })
+  .passthrough()
+
+type ListPaymentsInput = z.infer<typeof listPaymentsInput>
+
+const listPaymentsTool = defineApiBackedAiTool<
+  ListPaymentsInput,
+  ListApiResponse,
+  { items: Array<Record<string, unknown>>; total: number; limit: number; offset: number }
+>({
+  name: 'commercial.list_payments',
+  displayName: 'List payments',
+  description: 'List commercial payments for the caller tenant + organization.',
+  inputSchema: listPaymentsInput,
+  requiredFeatures: ['commercial.view'],
+  toOperation: (input, ctx) => {
+    assertTenantScope(ctx as unknown as CommercialToolContext)
+    const limit = input.limit ?? 50
+    const offset = input.offset ?? 0
+    const page = Math.floor(offset / limit) + 1
+    const query: Record<string, string | number | boolean | null | undefined> = {
+      page,
+      pageSize: limit,
+    }
+    if (input.q?.trim()) query.search = input.q.trim()
+    if (input.status) query.status = input.status
+    return {
+      method: 'GET',
+      path: '/commercial/payments',
+      query,
+    }
+  },
+  mapResponse: (response, input) => {
+    const limit = input.limit ?? 50
+    const offset = input.offset ?? 0
+    const data = (response.data ?? {}) as ListApiResponse
+    const rawItems = Array.isArray(data.items) ? data.items : []
+    return {
+      items: rawItems.map((row) => ({
+        id: row.id,
+        status: row.status ?? null,
+        amount: row.amount ?? null,
+        paidOn: row.paidOn ?? row.paid_on ?? null,
+        href: typeof row.id === 'string' ? `/backend/commercial/payments/${row.id}` : null,
+      })),
+      total: typeof data.total === 'number' ? data.total : 0,
+      limit,
+      offset,
+    }
+  },
+}) as unknown as CommercialAiToolDefinition
+
 const commercialAiTools: CommercialAiToolDefinition[] = [
   listContractsTool,
   getContractTool,
+  listInvoicesTool,
+  listPaymentsTool,
   getMetricsTool,
 ]
 

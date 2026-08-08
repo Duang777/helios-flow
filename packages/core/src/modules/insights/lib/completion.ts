@@ -16,7 +16,7 @@ export type PeriodType = z.infer<typeof periodTypeSchema>
 export type DatedCommercialFacts = {
   revenues: Array<{ amount: string; dataVersion: string; recognizedOn: string }>
   costs: Array<{ amount: string; dataVersion: string; incurredOn: string }>
-  contracts: Array<{ amount: string }>
+  contracts: Array<{ amount: string; status: string; startDate: string | null }>
   invoices: Array<{ id: string; amount: string; dueDate: string | null; status: string; issuedOn: string }>
   allocations: Array<{ invoiceId: string; allocatedAmount: string; allocatedOn: string | null }>
 }
@@ -77,7 +77,9 @@ export function filterFactsByPeriod(
     costs: facts.costs
       .filter((row) => dateInRange(row.incurredOn, start, end))
       .map((row) => ({ amount: row.amount, dataVersion: row.dataVersion })),
-    contracts: facts.contracts,
+    contracts: facts.contracts
+      .filter((row) => !row.startDate || dateInRange(row.startDate, start, end))
+      .map((row) => ({ amount: row.amount, status: row.status })),
     invoices: facts.invoices
       .filter((row) => dateInRange(row.issuedOn, start, end))
       .map((row) => ({

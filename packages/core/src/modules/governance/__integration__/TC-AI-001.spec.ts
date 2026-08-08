@@ -11,7 +11,7 @@ test.describe('TC-AI-001: Operating-loop AI registry', () => {
     const agentsRes = await apiRequest(request, 'GET', '/api/ai_assistant/ai/agents', { token })
     expect(agentsRes.ok(), await agentsRes.text()).toBeTruthy()
     const agentsBody = (await agentsRes.json()) as {
-      agents?: Array<{ id?: string; moduleId?: string; allowedTools?: string[] }>
+      agents?: Array<{ id?: string; moduleId?: string; allowedTools?: string[]; readOnly?: boolean }>
     }
     const ids = new Set((agentsBody.agents ?? []).map((row) => row.id).filter(Boolean))
     expect(ids.has('projects.delivery_assistant')).toBeTruthy()
@@ -23,13 +23,23 @@ test.describe('TC-AI-001: Operating-loop AI registry', () => {
     const insights = (agentsBody.agents ?? []).find((row) => row.id === 'insights.kpi_assistant')
     const governance = (agentsBody.agents ?? []).find((row) => row.id === 'governance.assistant')
     expect(commercial?.allowedTools ?? []).toEqual(
-      expect.arrayContaining(['commercial.list_contracts', 'commercial.get_metrics']),
+      expect.arrayContaining([
+        'commercial.list_contracts',
+        'commercial.list_invoices',
+        'commercial.list_payments',
+        'commercial.get_metrics',
+      ]),
     )
     expect(insights?.allowedTools ?? []).toEqual(
       expect.arrayContaining(['insights.list_kpi_targets', 'insights.get_kpi_completion']),
     )
     expect(governance?.allowedTools ?? []).toEqual(
-      expect.arrayContaining(['governance.list_findings', 'governance.list_identity_maps']),
+      expect.arrayContaining([
+        'governance.list_findings',
+        'governance.list_identity_maps',
+        'governance.acknowledge_finding',
+      ]),
     )
+    expect(governance?.readOnly).toBe(false)
   })
 })

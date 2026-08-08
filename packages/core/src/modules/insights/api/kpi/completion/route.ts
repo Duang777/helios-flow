@@ -107,7 +107,13 @@ async function loadFactsByOrganization(
   }
   for (const row of contracts) {
     const bucket = map.get(row.organizationId)
-    if (bucket) bucket.contracts.push({ amount: row.amount })
+    if (bucket) {
+      bucket.contracts.push({
+        amount: row.amount,
+        status: row.status,
+        startDate: row.startDate ?? null,
+      })
+    }
   }
   for (const row of invoices) {
     const bucket = map.get(row.organizationId)

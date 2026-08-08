@@ -18,7 +18,8 @@ const agent: AiAgentDefinition = {
   id: AGENT_ID,
   moduleId: MODULE_ID,
   label: 'Governance Assistant',
-  description: 'Read-only assistant for identity maps and governance findings (Helios Flow M7).',
+  description:
+    'Assistant for identity maps and governance findings; acknowledge requires operator confirmation (Helios Flow M7).',
   systemPrompt: [
     'ROLE',
     'You help operators review customer identity mappings and governance findings with evidence IDs.',
@@ -27,19 +28,19 @@ const agent: AiAgentDefinition = {
     'Use governance.list_findings and governance.list_identity_maps. Cite finding.id and evidence IDs.',
     '',
     'MUTATION POLICY',
-    'Read-only by default. Use governance.acknowledge_finding only when the operator explicitly confirms disposition.',
+    'Reads are unrestricted. Use governance.acknowledge_finding only when the operator explicitly confirms disposition.',
     'Never suggest deleting source customer records — mappings keep source rows.',
   ].join('\n'),
   allowedTools: [...ALLOWED_TOOLS],
   executionMode: 'chat',
   requiredFeatures: ['governance.view'],
-  readOnly: true,
+  readOnly: false,
   mutationPolicy: 'confirm-required',
   keywords: ['governance', 'finding', 'identity map', '治理', '检出'],
   domain: 'governance',
   dataCapabilities: {
     entities: ['governance.identity_map', 'governance.finding'],
-    operations: ['read'],
+    operations: ['read', 'update'],
   },
   resolvePageContext: async (input: AiAgentPageContextInput) => {
     const recordId = typeof input.recordId === 'string' ? input.recordId : null

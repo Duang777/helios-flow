@@ -43,16 +43,34 @@ type FindingData = {
 
 function evidenceHref(item: EvidenceItem): string | null {
   if (item.module === 'projects' && item.type === 'project') {
-    return `/backend/projects/projects/${item.id}`
+    return `/backend/projects/${item.id}`
   }
   if (item.module === 'projects' && item.type === 'milestone') {
-    return `/backend/projects/milestones/${item.id}`
+    return `/backend/milestones/${item.id}`
+  }
+  if (item.module === 'commercial' && item.type === 'contract') {
+    return `/backend/commercial/contracts/${item.id}`
   }
   if (item.module === 'commercial' && item.type === 'invoice') {
     return `/backend/commercial/invoices/${item.id}`
   }
+  if (item.module === 'commercial' && item.type === 'payment') {
+    return `/backend/commercial/payments/${item.id}`
+  }
+  if (item.module === 'commercial' && item.type === 'project_revenue') {
+    return `/backend/commercial/revenues/${item.id}`
+  }
+  if (item.module === 'commercial' && item.type === 'project_cost') {
+    return `/backend/commercial/costs/${item.id}`
+  }
+  if (item.module === 'commercial' && item.type === 'payment_allocation') {
+    return `/backend/commercial/allocations/${item.id}`
+  }
   if (item.module === 'customers' && item.type === 'deal') {
     return `/backend/customers/deals/${item.id}`
+  }
+  if (item.module === 'customers' && (item.type === 'company' || item.type === 'customer_entity')) {
+    return `/backend/customers/companies-v2/${item.id}`
   }
   return null
 }

@@ -29,6 +29,8 @@ const MODULE_ID = 'commercial'
 const ALLOWED_TOOLS: readonly string[] = [
   'commercial.list_contracts',
   'commercial.get_contract',
+  'commercial.list_invoices',
+  'commercial.list_payments',
   'commercial.get_metrics',
   'search.hybrid_search',
   'search.get_record_context',
@@ -70,8 +72,9 @@ const PROMPT_SECTIONS: PromptSection[] = [
     order: 4,
     content: [
       'TOOLS',
-      'Use commercial.list_contracts / commercial.get_contract for contracts and',
-      'commercial.get_metrics for KPIs. Call meta.describe_agent when unsure.',
+      'Use commercial.list_contracts / commercial.get_contract for contracts,',
+      'commercial.list_invoices / commercial.list_payments for settlement rows,',
+      'and commercial.get_metrics for KPIs. Call meta.describe_agent when unsure.',
     ].join('\n'),
   },
   {

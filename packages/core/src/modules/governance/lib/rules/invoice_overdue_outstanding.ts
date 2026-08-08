@@ -3,14 +3,10 @@ import {
   CommercialInvoice,
   PaymentAllocation,
 } from '../../../commercial/data/entities'
-import { fromMoneyCents, toMoneyCents } from '../../../commercial/lib/metrics'
+import { fromMoneyCents, isOperatingInvoiceStatus, toMoneyCents } from '../../../commercial/lib/metrics'
 import type { RuleCandidate, RuleRunContext } from './upsert'
 
 export const RULE_INVOICE_OVERDUE_OUTSTANDING = 'gov.invoice_overdue_outstanding'
-
-function isVoidInvoice(status: string): boolean {
-  return status === 'void'
-}
 
 export async function runInvoiceOverdueOutstandingRule(ctx: RuleRunContext): Promise<RuleCandidate[]> {
   const invoices = await ctx.em.find(
@@ -22,7 +18,7 @@ export async function runInvoiceOverdueOutstandingRule(ctx: RuleRunContext): Pro
     } as FilterQuery<CommercialInvoice>,
   )
 
-  const activeInvoices = invoices.filter((row) => !isVoidInvoice(row.status))
+  const activeInvoices = invoices.filter((row) => isOperatingInvoiceStatus(row.status))
   if (activeInvoices.length === 0) return []
 
   const invoiceIds = activeInvoices.map((row) => row.id)

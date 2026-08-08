@@ -188,10 +188,16 @@ test.describe('TC-LOOP-001: Operating loop M5→M6→M7', () => {
       )
       expect(completionRes.ok(), await completionRes.text()).toBeTruthy()
       const completion = (await completionRes.json()) as {
-        items?: Array<{ metricKey?: string; completionRate?: number | null }>
+        items?: Array<{
+          metricKey?: string
+          actualValue?: string | null
+          completionRate?: string | null
+        }>
       }
       const revenueRow = completion.items?.find((row) => row.metricKey === 'revenue')
       expect(revenueRow).toBeTruthy()
+      expect(Number(revenueRow?.actualValue)).toBeGreaterThan(0)
+      expect(Number(revenueRow?.completionRate)).toBeGreaterThan(0)
 
       const rulesRes = await apiRequest(request, 'POST', '/api/governance/rules/run', {
         token,

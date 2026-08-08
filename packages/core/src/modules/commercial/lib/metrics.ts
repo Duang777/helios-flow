@@ -38,6 +38,7 @@ export type CommercialCostFact = {
 
 export type CommercialContractFact = {
   amount: string
+  status?: string
 }
 
 export type CommercialInvoiceFact = {
@@ -102,7 +103,7 @@ const METRIC_DEFINITIONS: Record<string, MetricDefinition> = {
     sources: ['project_revenues', 'project_costs'],
   },
   invoiceRate: {
-    formula: 'Σ invoice_amount ÷ Σ contract_amount',
+    formula: 'Σ issued invoice_amount ÷ Σ active/completed contract_amount',
     sources: ['commercial_invoices', 'commercial_contracts'],
   },
   allocatedPayment: {
@@ -110,21 +111,28 @@ const METRIC_DEFINITIONS: Record<string, MetricDefinition> = {
     sources: ['payment_allocations'],
   },
   collectionRate: {
-    formula: 'Σ allocated_amount ÷ Σ invoice_amount',
+    formula: 'Σ allocated_amount ÷ Σ issued invoice_amount',
     sources: ['payment_allocations', 'commercial_invoices'],
   },
   arOutstanding: {
-    formula: 'Σ invoice_amount − Σ allocated_amount per invoice',
+    formula: 'Σ issued invoice_amount − Σ allocated_amount per invoice',
     sources: ['commercial_invoices', 'payment_allocations'],
   },
   overdueOutstanding: {
-    formula: 'Σ (invoice_amount − allocated) where due_date < asOf and remainder > 0',
+    formula: 'Σ (issued invoice − allocated) where due_date < asOf and remainder > 0',
     sources: ['commercial_invoices', 'payment_allocations'],
   },
 }
 
-function isVoidInvoice(status: string): boolean {
-  return status === 'void'
+/** Operating contracts that count toward invoice-rate denominators. */
+export function isOperatingContractStatus(status: string | undefined): boolean {
+  if (!status) return true
+  return status === 'active' || status === 'completed'
+}
+
+/** Issued invoices only — draft/void are excluded from operating AR and rates. */
+export function isOperatingInvoiceStatus(status: string): boolean {
+  return status === 'issued'
 }
 
 export function computeCommercialMetrics(input: CommercialMetricsInput): CommercialMetricsResult {
@@ -133,11 +141,12 @@ export function computeCommercialMetrics(input: CommercialMetricsInput): Commerc
 
   const actualRevenueRows = input.revenues.filter((row) => row.dataVersion === 'actual')
   const actualCostRows = input.costs.filter((row) => row.dataVersion === 'actual')
-  const activeInvoices = input.invoices.filter((row) => !isVoidInvoice(row.status))
+  const operatingContracts = input.contracts.filter((row) => isOperatingContractStatus(row.status))
+  const activeInvoices = input.invoices.filter((row) => isOperatingInvoiceStatus(row.status))
 
   const actualRevenueCents = sumMoneyCents(actualRevenueRows.map((row) => row.amount))
   const actualCostCents = sumMoneyCents(actualCostRows.map((row) => row.amount))
-  const contractTotalCents = sumMoneyCents(input.contracts.map((row) => row.amount))
+  const contractTotalCents = sumMoneyCents(operatingContracts.map((row) => row.amount))
   const invoiceTotalCents = sumMoneyCents(activeInvoices.map((row) => row.amount))
   const allocatedTotalCents = sumMoneyCents(input.allocations.map((row) => row.allocatedAmount))
 

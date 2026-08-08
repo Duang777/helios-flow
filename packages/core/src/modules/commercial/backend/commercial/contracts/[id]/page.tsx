@@ -1,7 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Page, PageBody } from '@helios/ui/backend/Page'
 import { CrudForm, type CrudFormGroup } from '@helios/ui/backend/CrudForm'
 import { updateCrud, deleteCrud } from '@helios/ui/backend/utils/crud'
@@ -11,6 +12,8 @@ import { surfaceRecordConflict } from '@helios/ui/backend/conflicts'
 import { useT } from '@helios/shared/lib/i18n/context'
 import { useConfirmDialog } from '@helios/ui/backend/confirm-dialog'
 import { RecordNotFoundState, ErrorMessage } from '@helios/ui/backend/detail'
+import { Badge } from '@helios/ui/primitives/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@helios/ui/primitives/tabs'
 
 type ContractData = {
   id: string
@@ -32,14 +35,51 @@ type ContractData = {
   updatedAt?: string | null
 }
 
+type ContractMetrics = {
+  actualRevenue: string
+  actualCost: string
+  projectGrossProfit: string
+  invoiceRate: string | null
+  collectionRate: string | null
+  arOutstanding: string
+  overdueOutstanding: string
+  allocatedPayment: string
+}
+
+type ContractTabId = 'overview' | 'related' | 'metrics'
+
+function resolveTab(raw: string | null): ContractTabId {
+  if (raw === 'related' || raw === 'metrics' || raw === 'overview') return raw
+  return 'overview'
+}
+
+function MetricCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border p-4">
+      <div className="text-sm text-muted-foreground">{label}</div>
+      <div className="mt-1 text-xl font-semibold tabular-nums">{value}</div>
+    </div>
+  )
+}
+
 export default function EditContractPage({ params }: { params?: { id?: string } }) {
   const t = useT()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { confirm: confirmDialog, ConfirmDialogElement } = useConfirmDialog()
   const [record, setRecord] = React.useState<ContractData | null>(null)
+  const [metrics, setMetrics] = React.useState<ContractMetrics | null>(null)
+  const [metricsError, setMetricsError] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
   const [isNotFound, setIsNotFound] = React.useState(false)
+  const [activeTab, setActiveTab] = React.useState<ContractTabId>(() =>
+    resolveTab(searchParams?.get('tab') ?? null),
+  )
+
+  React.useEffect(() => {
+    setActiveTab(resolveTab(searchParams?.get('tab') ?? null))
+  }, [searchParams])
 
   React.useEffect(() => {
     async function load() {
@@ -62,6 +102,38 @@ export default function EditContractPage({ params }: { params?: { id?: string } 
     }
     void load()
   }, [params?.id, t])
+
+  React.useEffect(() => {
+    async function loadMetrics() {
+      if (!record?.organizationId || !record.id) return
+      setMetricsError(null)
+      try {
+        const response = await apiCall<ContractMetrics>(
+          `/api/commercial/metrics?organizationId=${record.organizationId}&contractId=${record.id}`,
+        )
+        if (response.ok && response.result) {
+          setMetrics(response.result)
+        } else {
+          setMetricsError(t('commercial.contracts.metrics.loadFailed'))
+        }
+      } catch {
+        setMetricsError(t('commercial.contracts.metrics.loadFailed'))
+      }
+    }
+    void loadMetrics()
+  }, [record?.id, record?.organizationId, t])
+
+  const handleTabChange = React.useCallback(
+    (next: string) => {
+      const tab = resolveTab(next)
+      setActiveTab(tab)
+      const url = new URL(window.location.href)
+      if (tab === 'overview') url.searchParams.delete('tab')
+      else url.searchParams.set('tab', tab)
+      router.replace(`${url.pathname}${url.search}`, { scroll: false })
+    },
+    [router],
+  )
 
   const groups = React.useMemo<CrudFormGroup[]>(
     () => [
@@ -158,67 +230,170 @@ export default function EditContractPage({ params }: { params?: { id?: string } 
     )
   }
 
+  const relatedLinks = [
+    {
+      href: `/backend/commercial/revenues?contractId=${record.id}`,
+      label: t('commercial.contracts.related.revenues'),
+    },
+    {
+      href: `/backend/commercial/costs?contractId=${record.id}`,
+      label: t('commercial.contracts.related.costs'),
+    },
+    {
+      href: `/backend/commercial/invoices?contractId=${record.id}`,
+      label: t('commercial.contracts.related.invoices'),
+    },
+    {
+      href: `/backend/commercial/allocations?contractId=${record.id}`,
+      label: t('commercial.contracts.related.allocations'),
+    },
+    ...(record.projectId
+      ? [
+          {
+            href: `/backend/projects/${record.projectId}`,
+            label: t('commercial.contracts.related.project'),
+          },
+        ]
+      : []),
+  ]
+
   return (
     <Page>
       <PageBody>
         {ConfirmDialogElement}
-        <CrudForm
-          title={t('commercial.contracts.edit.title')}
-          backHref="/backend/commercial/contracts"
-          fields={[]}
-          groups={groups}
-          initialValues={{ ...record, updatedAt: record.updatedAt }}
-          submitLabel={t('commercial.form.action.save')}
-          cancelHref="/backend/commercial/contracts"
-          onDelete={async () => {
-            const confirmed = await confirmDialog({
-              title: t('commercial.contracts.confirm.deleteTitle'),
-              description: t('commercial.contracts.confirm.deleteBody'),
-              variant: 'destructive',
-            })
-            if (!confirmed) return
-            try {
-              await deleteCrud('commercial/contracts', record.id)
-              flash(t('commercial.contracts.flash.deleted'), 'success')
-              router.push('/backend/commercial/contracts')
-            } catch (err) {
-              if (surfaceRecordConflict(err, t)) return
-              flash(t('commercial.contracts.flash.deleteFailed'), 'error')
-            }
-          }}
-          onSubmit={async (values) => {
-            try {
-              await updateCrud('commercial/contracts', {
-                id: record.id,
-                name: String(values.name || '').trim(),
-                code: values.code ? String(values.code).trim() : null,
-                status: String(values.status || 'draft'),
-                contractType: String(values.contractType || 'sales'),
-                amount: values.amount ? String(values.amount).trim() : null,
-                currencyCode: values.currencyCode ? String(values.currencyCode).trim() : 'CNY',
-                projectId: values.projectId ? String(values.projectId).trim() : null,
-                customerEntityId: values.customerEntityId
-                  ? String(values.customerEntityId).trim()
-                  : null,
-                dealId: values.dealId ? String(values.dealId).trim() : null,
-                startDate: values.startDate ? String(values.startDate).trim() : null,
-                endDate: values.endDate ? String(values.endDate).trim() : null,
-                paymentTerms: values.paymentTerms ? String(values.paymentTerms).trim() : null,
-                isActive: values.isActive !== false,
-              })
-              flash(t('commercial.contracts.flash.updated'), 'success')
-              const response = await apiCall<{ items: ContractData[] }>(
-                `/api/commercial/contracts?id=${record.id}`,
-              )
-              if (response.ok && response.result?.items?.[0]) {
-                setRecord(response.result.items[0])
-              }
-            } catch (err) {
-              if (surfaceRecordConflict(err, t)) return
-              throw err
-            }
-          }}
-        />
+        <div className="mb-6 space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight">{record.name}</h1>
+            <Badge variant="outline">{record.status}</Badge>
+            {record.code ? (
+              <span className="text-sm text-muted-foreground">{record.code}</span>
+            ) : null}
+          </div>
+          <p className="text-sm text-muted-foreground">{t('commercial.boundary.notGl')}</p>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={handleTabChange} variant="underline">
+          <TabsList>
+            <TabsTrigger value="overview">{t('commercial.contracts.tabs.overview')}</TabsTrigger>
+            <TabsTrigger value="related">{t('commercial.contracts.tabs.related')}</TabsTrigger>
+            <TabsTrigger value="metrics">{t('commercial.contracts.tabs.metrics')}</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="mt-6">
+            <CrudForm
+              title={t('commercial.contracts.edit.title')}
+              backHref="/backend/commercial/contracts"
+              fields={[]}
+              groups={groups}
+              initialValues={{ ...record, updatedAt: record.updatedAt }}
+              submitLabel={t('commercial.form.action.save')}
+              cancelHref="/backend/commercial/contracts"
+              onDelete={async () => {
+                const confirmed = await confirmDialog({
+                  title: t('commercial.contracts.confirm.deleteTitle'),
+                  description: t('commercial.contracts.confirm.deleteBody'),
+                  variant: 'destructive',
+                })
+                if (!confirmed) return
+                try {
+                  await deleteCrud('commercial/contracts', record.id)
+                  flash(t('commercial.contracts.flash.deleted'), 'success')
+                  router.push('/backend/commercial/contracts')
+                } catch (err) {
+                  if (surfaceRecordConflict(err, t)) return
+                  flash(t('commercial.contracts.flash.deleteFailed'), 'error')
+                }
+              }}
+              onSubmit={async (values) => {
+                try {
+                  await updateCrud('commercial/contracts', {
+                    id: record.id,
+                    name: String(values.name || '').trim(),
+                    code: values.code ? String(values.code).trim() : null,
+                    status: String(values.status || 'draft'),
+                    contractType: String(values.contractType || 'sales'),
+                    amount: values.amount ? String(values.amount).trim() : null,
+                    currencyCode: values.currencyCode ? String(values.currencyCode).trim() : 'CNY',
+                    projectId: values.projectId ? String(values.projectId).trim() : null,
+                    customerEntityId: values.customerEntityId
+                      ? String(values.customerEntityId).trim()
+                      : null,
+                    dealId: values.dealId ? String(values.dealId).trim() : null,
+                    startDate: values.startDate ? String(values.startDate).trim() : null,
+                    endDate: values.endDate ? String(values.endDate).trim() : null,
+                    paymentTerms: values.paymentTerms ? String(values.paymentTerms).trim() : null,
+                    isActive: values.isActive !== false,
+                  })
+                  flash(t('commercial.contracts.flash.updated'), 'success')
+                  const response = await apiCall<{ items: ContractData[] }>(
+                    `/api/commercial/contracts?id=${record.id}`,
+                  )
+                  if (response.ok && response.result?.items?.[0]) {
+                    setRecord(response.result.items[0])
+                  }
+                } catch (err) {
+                  if (surfaceRecordConflict(err, t)) return
+                  throw err
+                }
+              }}
+            />
+          </TabsContent>
+
+          <TabsContent value="related" className="mt-6">
+            <ul className="space-y-3 rounded-lg border border-border p-4">
+              {relatedLinks.map((item) => (
+                <li key={item.href}>
+                  <Link className="text-primary hover:underline" href={item.href}>
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </TabsContent>
+
+          <TabsContent value="metrics" className="mt-6 space-y-4">
+            {metricsError ? <ErrorMessage label={metricsError} /> : null}
+            {!metrics && !metricsError ? (
+              <div className="text-sm text-muted-foreground">{t('commercial.form.loading')}</div>
+            ) : null}
+            {metrics ? (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <MetricCard
+                  label={t('commercial.contracts.metrics.actualRevenue')}
+                  value={metrics.actualRevenue}
+                />
+                <MetricCard
+                  label={t('commercial.contracts.metrics.actualCost')}
+                  value={metrics.actualCost}
+                />
+                <MetricCard
+                  label={t('commercial.contracts.metrics.grossProfit')}
+                  value={metrics.projectGrossProfit}
+                />
+                <MetricCard
+                  label={t('commercial.contracts.metrics.invoiceRate')}
+                  value={metrics.invoiceRate ?? '—'}
+                />
+                <MetricCard
+                  label={t('commercial.contracts.metrics.collectionRate')}
+                  value={metrics.collectionRate ?? '—'}
+                />
+                <MetricCard
+                  label={t('commercial.contracts.metrics.allocatedPayment')}
+                  value={metrics.allocatedPayment}
+                />
+                <MetricCard
+                  label={t('commercial.contracts.metrics.arOutstanding')}
+                  value={metrics.arOutstanding}
+                />
+                <MetricCard
+                  label={t('commercial.contracts.metrics.overdueOutstanding')}
+                  value={metrics.overdueOutstanding}
+                />
+              </div>
+            ) : null}
+          </TabsContent>
+        </Tabs>
       </PageBody>
     </Page>
   )

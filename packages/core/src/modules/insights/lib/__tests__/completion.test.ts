@@ -22,7 +22,11 @@ describe('computeMetricActuals', () => {
       { amount: '500.00', dataVersion: 'actual', recognizedOn: '2026-07-01' },
     ],
     costs: [{ amount: '400.00', dataVersion: 'actual', incurredOn: '2026-08-05' }],
-    contracts: [{ amount: '2000.00' }],
+    contracts: [
+      { amount: '2000.00', status: 'active', startDate: '2026-08-01' },
+      { amount: '9999.00', status: 'draft', startDate: '2026-08-01' },
+      { amount: '5000.00', status: 'active', startDate: '2026-07-01' },
+    ],
     invoices: [
       { id: 'inv-1', amount: '800.00', dueDate: '2026-08-20', status: 'issued', issuedOn: '2026-08-01' },
     ],
@@ -62,6 +66,7 @@ describe('computeMetricActuals', () => {
     const filtered = filterFactsByPeriod(facts, 'month', '2026-08')
     expect(filtered.revenues).toHaveLength(1)
     expect(filtered.revenues[0]?.amount).toBe('1000.00')
+    expect(filtered.contracts.map((row) => row.amount).sort()).toEqual(['2000.00', '9999.00'])
   })
 })
 

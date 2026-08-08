@@ -14,6 +14,7 @@ import { useConfirmDialog } from '@helios/ui/backend/confirm-dialog'
 import { RecordNotFoundState, ErrorMessage } from '@helios/ui/backend/detail'
 import { Badge } from '@helios/ui/primitives/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@helios/ui/primitives/tabs'
+import { InjectionSpot } from '@helios/ui/backend/injection/InjectionSpot'
 import {
   ProjectMilestonesPanel,
   ProjectRisksPanel,
@@ -192,6 +193,15 @@ export default function ProjectDetailPage({ params }: { params?: { id?: string }
             {project.code ? (
               <span className="text-sm text-muted-foreground">{project.code}</span>
             ) : null}
+            <InjectionSpot
+              spotId="detail:projects.project:header"
+              context={{
+                projectId: project.id,
+                recordId: project.id,
+                data: { project },
+              }}
+              data={{ project }}
+            />
           </div>
           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
             {project.customerEntityId ? (

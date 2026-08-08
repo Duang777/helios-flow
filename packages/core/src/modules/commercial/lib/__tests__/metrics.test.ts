@@ -53,7 +53,7 @@ describe('computeCommercialMetrics', () => {
       asOf,
       revenues: [],
       costs: [],
-      contracts: [{ amount: '100.00' }],
+      contracts: [{ amount: '100.00', status: 'active' }],
       invoices: [
         { id: 'inv-1', amount: '100.00', dueDate: null, status: 'issued' },
         { id: 'inv-2', amount: '999.00', dueDate: null, status: 'void' },
@@ -64,5 +64,27 @@ describe('computeCommercialMetrics', () => {
     expect(result.invoiceRate).toBe('100.00')
     expect(result.collectionRate).toBe('40.00')
     expect(result.arOutstanding).toBe('60.00')
+  })
+
+  it('excludes draft invoices and draft/cancelled contracts from operating rates', () => {
+    const result = computeCommercialMetrics({
+      asOf,
+      revenues: [],
+      costs: [],
+      contracts: [
+        { amount: '1000.00', status: 'active' },
+        { amount: '9000.00', status: 'draft' },
+        { amount: '5000.00', status: 'cancelled' },
+      ],
+      invoices: [
+        { id: 'inv-1', amount: '400.00', dueDate: '2026-08-01', status: 'issued' },
+        { id: 'inv-2', amount: '800.00', dueDate: '2026-07-01', status: 'draft' },
+      ],
+      allocations: [],
+    })
+
+    expect(result.invoiceRate).toBe('40.00')
+    expect(result.arOutstanding).toBe('400.00')
+    expect(result.overdueOutstanding).toBe('400.00')
   })
 })
