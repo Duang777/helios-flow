@@ -35,5 +35,7 @@ yarn workspace @helios/core build
 |------|------|
 | `data/entities.ts` | Project, ProjectMilestone, ProjectRisk |
 | `api/projects|milestones|risks/route.ts` | CRUD APIs |
-| `backend/projects|milestones|risks/` | Admin UI |
+| `backend/projects|milestones|risks/` | Admin UI (project `[id]` = detail tabs) |
+| `widgets/injection/` | Create project from deal/company detail |
+| `ai-tools.ts` / `ai-agents.ts` | Read-only delivery assistant |
 | `lib/milestoneDelay.ts` | Delay rule |

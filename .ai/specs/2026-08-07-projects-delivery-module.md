@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| Status | in-progress |
+| Status | implemented |
 | Date | 2026-08-07 |
 | PRD | [docs/PRD.md](../../docs/PRD.md) §7.7 / M5 |
 | Module | `projects` (`packages/core/src/modules/projects/`) |
@@ -128,10 +128,10 @@ Events: `projects.project.*`, `projects.project_milestone.*`, `projects.project_
 
 ### Phase B (follow-up)
 
-1. Inject “Create project” from deal/customer detail
-2. Project detail tabs embedding milestones/risks
-3. AI tools for projects.view
-4. Integration tests for CRUD + tenant isolation
+1. [x] Inject “Create project” from deal/customer detail
+2. [x] Project detail tabs embedding milestones/risks
+3. [x] AI tools for projects.view
+4. [x] Integration tests for CRUD + tenant isolation
 
 ### Out of scope (M6/M7)
 
@@ -166,3 +166,4 @@ Contracts, revenue/cost, invoices, payments, KPI targets, governance rules.
 |------|------|
 | 2026-08-07 | Initial spec for M5 projects delivery module |
 | 2026-08-07 | Phase A scaffold landed: entities, commands, APIs, backend CRUD, migration, delay unit tests |
+| 2026-08-08 | Phase B: CRM create-project injection, project detail tabs, read-only AI tools/agent, TC-PRJ-001 API CRUD |

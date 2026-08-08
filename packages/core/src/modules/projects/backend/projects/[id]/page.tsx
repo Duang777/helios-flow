@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Page, PageBody } from '@helios/ui/backend/Page'
 import { CrudForm, type CrudFormGroup } from '@helios/ui/backend/CrudForm'
 import { updateCrud, deleteCrud } from '@helios/ui/backend/utils/crud'
@@ -12,7 +12,12 @@ import { surfaceRecordConflict } from '@helios/ui/backend/conflicts'
 import { useT } from '@helios/shared/lib/i18n/context'
 import { useConfirmDialog } from '@helios/ui/backend/confirm-dialog'
 import { RecordNotFoundState, ErrorMessage } from '@helios/ui/backend/detail'
-import { Button } from '@helios/ui/primitives/button'
+import { Badge } from '@helios/ui/primitives/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@helios/ui/primitives/tabs'
+import {
+  ProjectMilestonesPanel,
+  ProjectRisksPanel,
+} from '../../../components/ProjectChildTable'
 
 type ProjectData = {
   id: string
@@ -31,19 +36,42 @@ type ProjectData = {
   updatedAt?: string | null
 }
 
-export default function EditProjectPage({ params }: { params?: { id?: string } }) {
+type ProjectTabId = 'overview' | 'milestones' | 'risks'
+
+function resolveTab(raw: string | null): ProjectTabId {
+  if (raw === 'milestones' || raw === 'risks' || raw === 'overview') return raw
+  return 'overview'
+}
+
+function statusLabel(status: string, t: (key: string) => string): string {
+  const key = `projects.status.${status}`
+  const translated = t(key)
+  return translated === key ? status : translated
+}
+
+export default function ProjectDetailPage({ params }: { params?: { id?: string } }) {
   const t = useT()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { confirm: confirmDialog, ConfirmDialogElement } = useConfirmDialog()
   const [project, setProject] = React.useState<ProjectData | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
   const [isNotFound, setIsNotFound] = React.useState(false)
+  const [activeTab, setActiveTab] = React.useState<ProjectTabId>(() =>
+    resolveTab(searchParams?.get('tab') ?? null),
+  )
+
+  React.useEffect(() => {
+    setActiveTab(resolveTab(searchParams?.get('tab') ?? null))
+  }, [searchParams])
 
   React.useEffect(() => {
     async function load() {
       try {
-        const response = await apiCall<{ items: ProjectData[] }>(`/api/projects/projects?id=${params?.id}`)
+        const response = await apiCall<{ items: ProjectData[] }>(
+          `/api/projects/projects?id=${params?.id}`,
+        )
         if (response.ok && response.result && response.result.items.length > 0) {
           setProject(response.result.items[0])
         } else if (!response.ok) {
@@ -59,6 +87,18 @@ export default function EditProjectPage({ params }: { params?: { id?: string } }
     }
     void load()
   }, [params?.id, t])
+
+  const handleTabChange = React.useCallback(
+    (next: string) => {
+      const tab = resolveTab(next)
+      setActiveTab(tab)
+      const url = new URL(window.location.href)
+      if (tab === 'overview') url.searchParams.delete('tab')
+      else url.searchParams.set('tab', tab)
+      router.replace(`${url.pathname}${url.search}`, { scroll: false })
+    },
+    [router],
+  )
 
   const groups = React.useMemo<CrudFormGroup[]>(
     () => [
@@ -145,64 +185,118 @@ export default function EditProjectPage({ params }: { params?: { id?: string } }
     <Page>
       <PageBody>
         {ConfirmDialogElement}
-        <div className="mb-4 flex flex-wrap gap-2">
-          <Button asChild variant="outline">
-            <Link href={`/backend/milestones?projectId=${project.id}`}>{t('projects.links.milestones')}</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href={`/backend/risks?projectId=${project.id}`}>{t('projects.links.risks')}</Link>
-          </Button>
+        <div className="mb-6 space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight">{project.name}</h1>
+            <Badge variant="outline">{statusLabel(project.status, t)}</Badge>
+            {project.code ? (
+              <span className="text-sm text-muted-foreground">{project.code}</span>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+            {project.customerEntityId ? (
+              <span>
+                {t('projects.detail.summary.customer')}:{' '}
+                <Link
+                  className="text-primary hover:underline"
+                  href={`/backend/customers/companies-v2/${project.customerEntityId}`}
+                >
+                  {project.customerEntityId}
+                </Link>
+              </span>
+            ) : null}
+            {project.dealId ? (
+              <span>
+                {t('projects.detail.summary.deal')}:{' '}
+                <Link
+                  className="text-primary hover:underline"
+                  href={`/backend/customers/deals/${project.dealId}`}
+                >
+                  {project.dealId}
+                </Link>
+              </span>
+            ) : null}
+          </div>
         </div>
-        <CrudForm
-          title={t('projects.edit.title')}
-          backHref="/backend/projects"
-          fields={[]}
-          groups={groups}
-          initialValues={{
-            ...project,
-            updatedAt: project.updatedAt,
-          }}
-          submitLabel={t('projects.form.action.save')}
-          cancelHref="/backend/projects"
-          onDelete={async () => {
-            const confirmed = await confirmDialog({
-              title: t('projects.confirm.deleteTitle'),
-              description: t('projects.confirm.deleteBody'),
-              variant: 'destructive',
-            })
-            if (!confirmed) return
-            try {
-              await deleteCrud('projects/projects', project.id)
-              flash(t('projects.flash.deleted'), 'success')
-              router.push('/backend/projects')
-            } catch (err) {
-              if (surfaceRecordConflict(err, t)) return
-              flash(t('projects.flash.deleteFailed'), 'error')
-            }
-          }}
-          onSubmit={async (values) => {
-            try {
-              await updateCrud('projects/projects', {
-                id: project.id,
-                name: String(values.name || '').trim(),
-                code: values.code ? String(values.code).trim() : null,
-                status: String(values.status || 'draft'),
-                customerEntityId: values.customerEntityId ? String(values.customerEntityId).trim() : null,
-                dealId: values.dealId ? String(values.dealId).trim() : null,
-                budgetRevenue: values.budgetRevenue ? String(values.budgetRevenue).trim() : null,
-                budgetCost: values.budgetCost ? String(values.budgetCost).trim() : null,
-                forecastRevenue: values.forecastRevenue ? String(values.forecastRevenue).trim() : null,
-                forecastCost: values.forecastCost ? String(values.forecastCost).trim() : null,
-                isActive: values.isActive !== false,
-              })
-              flash(t('projects.flash.updated'), 'success')
-              router.push('/backend/projects')
-            } catch (err) {
-              if (surfaceRecordConflict(err, t)) return
-              throw err
-            }
-          }}
-        />
+
+        <Tabs value={activeTab} onValueChange={handleTabChange} variant="underline">
+          <TabsList>
+            <TabsTrigger value="overview">{t('projects.detail.tabs.overview')}</TabsTrigger>
+            <TabsTrigger value="milestones">{t('projects.detail.tabs.milestones')}</TabsTrigger>
+            <TabsTrigger value="risks">{t('projects.detail.tabs.risks')}</TabsTrigger>
+          </TabsList>
+          <TabsContent value="overview" className="mt-6">
+            <CrudForm
+              title={t('projects.edit.title')}
+              backHref="/backend/projects"
+              fields={[]}
+              groups={groups}
+              initialValues={{
+                ...project,
+                updatedAt: project.updatedAt,
+              }}
+              submitLabel={t('projects.form.action.save')}
+              cancelHref="/backend/projects"
+              onDelete={async () => {
+                const confirmed = await confirmDialog({
+                  title: t('projects.confirm.deleteTitle'),
+                  description: t('projects.confirm.deleteBody'),
+                  variant: 'destructive',
+                })
+                if (!confirmed) return
+                try {
+                  await deleteCrud('projects/projects', project.id)
+                  flash(t('projects.flash.deleted'), 'success')
+                  router.push('/backend/projects')
+                } catch (err) {
+                  if (surfaceRecordConflict(err, t)) return
+                  flash(t('projects.flash.deleteFailed'), 'error')
+                }
+              }}
+              onSubmit={async (values) => {
+                try {
+                  await updateCrud('projects/projects', {
+                    id: project.id,
+                    name: String(values.name || '').trim(),
+                    code: values.code ? String(values.code).trim() : null,
+                    status: String(values.status || 'draft'),
+                    customerEntityId: values.customerEntityId
+                      ? String(values.customerEntityId).trim()
+                      : null,
+                    dealId: values.dealId ? String(values.dealId).trim() : null,
+                    budgetRevenue: values.budgetRevenue
+                      ? String(values.budgetRevenue).trim()
+                      : null,
+                    budgetCost: values.budgetCost ? String(values.budgetCost).trim() : null,
+                    forecastRevenue: values.forecastRevenue
+                      ? String(values.forecastRevenue).trim()
+                      : null,
+                    forecastCost: values.forecastCost
+                      ? String(values.forecastCost).trim()
+                      : null,
+                    isActive: values.isActive !== false,
+                  })
+                  flash(t('projects.flash.updated'), 'success')
+                  const response = await apiCall<{ items: ProjectData[] }>(
+                    `/api/projects/projects?id=${project.id}`,
+                  )
+                  if (response.ok && response.result?.items?.[0]) {
+                    setProject(response.result.items[0])
+                  }
+                } catch (err) {
+                  if (surfaceRecordConflict(err, t)) return
+                  throw err
+                }
+              }}
+            />
+          </TabsContent>
+          <TabsContent value="milestones" className="mt-6">
+            <ProjectMilestonesPanel projectId={project.id} />
+          </TabsContent>
+          <TabsContent value="risks" className="mt-6">
+            <ProjectRisksPanel projectId={project.id} />
+          </TabsContent>
+        </Tabs>
       </PageBody>
     </Page>
   )

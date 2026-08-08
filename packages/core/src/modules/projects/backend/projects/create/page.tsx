@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Page, PageBody } from '@helios/ui/backend/Page'
 import { CrudForm, type CrudFormGroup } from '@helios/ui/backend/CrudForm'
 import { createCrud } from '@helios/ui/backend/utils/crud'
@@ -9,10 +9,29 @@ import { flash } from '@helios/ui/backend/FlashMessages'
 import { useT } from '@helios/shared/lib/i18n/context'
 import { useOrganizationScopeDetail } from '@helios/shared/lib/frontend/useOrganizationScope'
 
+function readParam(params: URLSearchParams | null, key: string): string {
+  const value = params?.get(key)
+  return typeof value === 'string' ? value.trim() : ''
+}
+
 export default function CreateProjectPage() {
   const t = useT()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { organizationId, tenantId } = useOrganizationScopeDetail()
+
+  const prefill = React.useMemo(() => {
+    const dealId = readParam(searchParams, 'dealId')
+    const customerEntityId = readParam(searchParams, 'customerEntityId')
+    const name = readParam(searchParams, 'name')
+    return {
+      name: name || undefined,
+      dealId: dealId || undefined,
+      customerEntityId: customerEntityId || undefined,
+      status: 'draft',
+      isActive: true,
+    }
+  }, [searchParams])
 
   const groups = React.useMemo<CrudFormGroup[]>(
     () => [
@@ -50,12 +69,14 @@ export default function CreateProjectPage() {
             type: 'text',
             label: t('projects.form.field.customerEntityId'),
             helpText: t('projects.form.field.customerEntityIdHelp'),
+            readOnly: Boolean(prefill.customerEntityId),
           },
           {
             id: 'dealId',
             type: 'text',
             label: t('projects.form.field.dealId'),
             helpText: t('projects.form.field.dealIdHelp'),
+            readOnly: Boolean(prefill.dealId),
           },
         ],
       },
@@ -93,7 +114,7 @@ export default function CreateProjectPage() {
         ],
       },
     ],
-    [t],
+    [prefill.customerEntityId, prefill.dealId, t],
   )
 
   return (
@@ -104,6 +125,7 @@ export default function CreateProjectPage() {
           backHref="/backend/projects"
           fields={[]}
           groups={groups}
+          initialValues={prefill}
           submitLabel={t('projects.form.action.create')}
           cancelHref="/backend/projects"
           onSubmit={async (values) => {
@@ -113,17 +135,22 @@ export default function CreateProjectPage() {
               name: String(values.name || '').trim(),
               code: values.code ? String(values.code).trim() : null,
               status: String(values.status || 'draft'),
-              customerEntityId: values.customerEntityId ? String(values.customerEntityId).trim() : null,
+              customerEntityId: values.customerEntityId
+                ? String(values.customerEntityId).trim()
+                : null,
               dealId: values.dealId ? String(values.dealId).trim() : null,
               budgetRevenue: values.budgetRevenue ? String(values.budgetRevenue).trim() : null,
               budgetCost: values.budgetCost ? String(values.budgetCost).trim() : null,
-              forecastRevenue: values.forecastRevenue ? String(values.forecastRevenue).trim() : null,
+              forecastRevenue: values.forecastRevenue
+                ? String(values.forecastRevenue).trim()
+                : null,
               forecastCost: values.forecastCost ? String(values.forecastCost).trim() : null,
               isActive: values.isActive !== false,
             }
-            await createCrud('projects/projects', payload)
+            const created = await createCrud<{ id?: string }>('projects/projects', payload)
             flash(t('projects.flash.created'), 'success')
-            router.push('/backend/projects')
+            const id = created.result && typeof created.result.id === 'string' ? created.result.id : null
+            router.push(id ? `/backend/projects/${id}` : '/backend/projects')
           }}
         />
       </PageBody>
