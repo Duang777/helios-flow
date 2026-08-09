@@ -65,6 +65,91 @@ describe('insights.operating_loop_assistant agent definition', () => {
     expect(agent.systemPrompt).toContain('Do not claim you updated data until the approval card is confirmed')
   })
 
+  it('does not contradict the confirm-required project and commercial write tools', () => {
+    expect(agent.allowedTools).toEqual(
+      expect.arrayContaining([
+        'projects.manage_project',
+        'commercial.manage_contract',
+        'commercial.manage_invoice',
+        'commercial.manage_payment',
+        'commercial.manage_allocation',
+        'insights.manage_kpi_target',
+      ]),
+    )
+    expect(agent.systemPrompt).toContain('confirmed mutation tools')
+    expect(agent.systemPrompt).not.toContain('do not create contracts/projects')
+  })
+
+  it('keeps the fixed operating prompt regression set covered by concrete tools', () => {
+    const regressionCases = [
+      {
+        prompt: '这个项目延期了吗？合同回款怎样，KPI 差多少，有哪些检出？',
+        tools: [
+          'projects.get_project',
+          'projects.get_delay_summary',
+          'commercial.get_project_settlement_summary',
+          'insights.get_kpi_gap',
+          'governance.list_findings',
+        ],
+      },
+      {
+        prompt: '列出本月逾期应收，并解释逾期金额口径。',
+        tools: [
+          'commercial.list_overdue_invoices',
+          'commercial.list_payment_allocations',
+          'commercial.get_metrics',
+        ],
+      },
+      {
+        prompt: '收入 KPI 还差目标多少？哪个组织拖后腿？',
+        tools: ['insights.get_kpi_gap', 'insights.get_kpi_completion', 'commercial.get_metrics'],
+      },
+      {
+        prompt: '看看重复客户和数据治理风险，给证据。',
+        tools: ['governance.list_identity_maps', 'governance.list_findings', 'search.get_record_context'],
+      },
+      {
+        prompt: '确认关闭这些治理检出并写处置结论。',
+        tools: [
+          'governance.acknowledge_finding',
+          'governance.update_finding_disposition',
+          'governance.acknowledge_findings',
+        ],
+      },
+    ]
+
+    for (const item of regressionCases) {
+      expect(item.prompt.length).toBeGreaterThan(0)
+      expect(agent.allowedTools).toEqual(expect.arrayContaining(item.tools))
+    }
+  })
+
+  it('keeps every operating-loop write tool behind mutation approval', () => {
+    const toolsByName = new Map(
+      [
+        ...insightsAiTools,
+        ...commercialAiTools,
+        ...projectsAiTools,
+        ...governanceAiTools,
+      ].map((tool) => [tool.name, tool]),
+    )
+    const writeTools = [
+      'projects.manage_project',
+      'commercial.manage_contract',
+      'commercial.manage_invoice',
+      'commercial.manage_payment',
+      'commercial.manage_allocation',
+      'insights.manage_kpi_target',
+      'governance.acknowledge_finding',
+      'governance.update_finding_disposition',
+      'governance.acknowledge_findings',
+    ]
+
+    for (const toolName of writeTools) {
+      expect(toolsByName.get(toolName)?.isMutation).toBe(true)
+    }
+  })
+
   it('resolvePageContext binds the current entity id and organization scope', async () => {
     const result = await agent.resolvePageContext!(
       {

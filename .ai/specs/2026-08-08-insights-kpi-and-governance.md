@@ -235,7 +235,7 @@ Same as commercial: client pages for CrudForm/DataTable; pure aggregation in `li
 
 - `insights`: explain completion + formula definitions (cite commercial metrics definitions).
 - `governance`: list open findings; suggest disposition (`prepareMutation` to acknowledge/assign). Never auto-delete customers.
-- `insights.operating_loop_assistant`: cross-module operating advisor that can chain projects, commercial settlement, KPI gaps, and governance findings. It may only write governance dispositions, and those writes stay behind the AI mutation confirmation gate.
+- `insights.operating_loop_assistant`: cross-module operating advisor that can chain projects, commercial settlement, KPI gaps, and governance findings. Project, contract, invoice, payment, allocation, KPI-target, and governance disposition writes stay behind the AI mutation confirmation gate.
 - Operating-loop responses should include the number, formula/source table, evidence IDs when applicable, and backend `href` links returned by tools.
 
 ## Implementation Plan
@@ -276,7 +276,8 @@ Same as commercial: client pages for CrudForm/DataTable; pure aggregation in `li
 
 - Unit: rollup, margin, each rule predicate
 - Integration: KPI completion matches commercial seed; finding idempotency; identity map keeps source entity
-- Playwright: KPI board + findings list (Phase B/C)
+- Playwright: KPI board + findings list (Phase B/C), operating-loop playground selection, and a fixed closed-loop prompt submission without a live model provider
+- AI QA: fixed prompt regression set for delayed project, overdue AR, KPI gap, duplicate customer findings, and confirmed finding disposition
 
 ## Risks & Impact Review
 
@@ -306,3 +307,4 @@ Same as commercial: client pages for CrudForm/DataTable; pure aggregation in `li
 | 2026-08-08 | **insights** implemented: `KpiTarget` CRUD, completion API/UI, org rollup, `TC-INS-001`, AI read tools |
 | 2026-08-08 | **governance** implemented: `CustomerIdentityMap` + `GovernanceFinding`, built-in rule pack (milestone delay, cost overrun, revenue-without-cost, overdue AR, over-allocation, deal stale), rules run command/API, admin UI, `TC-GOV-001`, AI read tools + acknowledge mutation tool |
 | 2026-08-09 | Operating-loop AI expanded: `insights.operating_loop_assistant`, KPI gap tool, commercial project/overdue/allocation tools, projects delay summary, and governance disposition/bulk acknowledge tools with confirmation-required mutations |
+| 2026-08-09 | Operating-loop AI QA added: fixed prompt regression coverage, mutation-tool approval assertions, and Playwright playground submission for `insights.operating_loop_assistant` |
