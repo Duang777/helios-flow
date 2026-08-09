@@ -70,6 +70,7 @@
     "install-skills": "./scripts/install-skills.sh",
     "mcp:serve": "turbo run mcp:serve --filter=@helios/ai-assistant",
     "mcp:dev": "turbo run mcp:dev --filter=@helios/ai-assistant",
+    "ai:live-eval": "node scripts/ai-live-eval.mjs",
     "helios": "node packages/cli/dist/bin.js",
     "registry:setup-user": "./scripts/registry/setup-user.sh",
     "registry:publish": "./scripts/registry/publish.sh",

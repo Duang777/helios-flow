@@ -276,7 +276,8 @@ Same as commercial: client pages for CrudForm/DataTable; pure aggregation in `li
 
 - Unit: rollup, margin, each rule predicate
 - Integration: KPI completion matches commercial seed; finding idempotency; identity map keeps source entity
-- Playwright: KPI board + findings list (Phase B/C), operating-loop playground selection, and a fixed closed-loop prompt submission without a live model provider
+- Playwright: KPI board + findings list (Phase B/C), operating-loop playground selection, and fixed closed-loop prompt submission through deterministic SSE fixtures
+- Live AI QA: `yarn ai:live-eval` against an explicit provider base URL/key/model; asserts provider model listing, Responses API health, and real model selection of the project delay, settlement, KPI gap, and governance findings tools
 - AI QA: fixed prompt regression set for delayed project, overdue AR, KPI gap, duplicate customer findings, and confirmed finding disposition
 
 ## Risks & Impact Review
