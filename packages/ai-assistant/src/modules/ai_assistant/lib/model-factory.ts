@@ -138,16 +138,17 @@ export interface AiModelFactoryInput {
   providerOverride?: string
   /**
    * Agent-level default base URL, typically `AiAgentDefinition.defaultBaseUrl`.
-   * Sits between the `<MODULE>_AI_BASE_URL` env var and the preset's own
-   * `baseURLEnvKeys` in the resolution chain.
+   * Sits below `HELIOS_AI_<MODULE>_BASE_URL` / `HELIOS_AI_BASE_URL` env
+   * overrides and above the provider preset's own `baseURLEnvKeys` in the
+   * resolution chain.
    *
    * Phase 2 of spec `2026-04-27-ai-agents-provider-model-baseurl-overrides`.
    */
   agentDefaultBaseUrl?: string
   /**
-   * Per-call base URL override that wins over every other source. Intended
-   * for programmatic callers only — the HTTP query-param baseUrl and the
-   * AI_RUNTIME_BASEURL_ALLOWLIST arrive in Phase 4a.
+   * Per-call base URL override that wins over env and agent defaults.
+   * Intended for programmatic callers only — the HTTP query-param baseUrl and
+   * the AI_RUNTIME_BASEURL_ALLOWLIST arrive in Phase 4a.
    *
    * Phase 2 of spec `2026-04-27-ai-agents-provider-model-baseurl-overrides`.
    */
@@ -453,8 +454,28 @@ function requiredProviderMessage(providerId: string, registry: AiModelFactoryReg
   return `The resolved model is pinned to provider "${providerId}", but that provider is not configured.${credentialHint} The runtime refuses to send provider-specific model ids to a different provider.`
 }
 
+function readGlobalBaseUrlFromEnv(env: EnvLookup): string | null {
+  return normalizeOverride(env.HELIOS_AI_BASE_URL)
+}
+
+/** Canonical per-module base URL env. Example: `HELIOS_AI_INBOX_OPS_BASE_URL`. */
 function moduleBaseUrlEnvVarName(moduleId: string): string {
+  return `HELIOS_AI_${moduleId.toUpperCase()}_BASE_URL`
+}
+
+/**
+ * Legacy per-module base URL env (pre-HELIOS_AI_* rename). Example:
+ * `INBOX_OPS_AI_BASE_URL`. Read as a backward-compatibility fallback only.
+ */
+function legacyModuleBaseUrlEnvVarName(moduleId: string): string {
   return `${moduleId.toUpperCase()}_AI_BASE_URL`
+}
+
+function readModuleBaseUrlEnvOverride(env: EnvLookup, moduleId: string): string | null {
+  return (
+    normalizeOverride(env[moduleBaseUrlEnvVarName(moduleId)]) ??
+    normalizeOverride(env[legacyModuleBaseUrlEnvVarName(moduleId)])
+  )
 }
 
 /**
@@ -723,14 +744,16 @@ export function createModelFactory(
       // 1. requestOverride.baseURL (HTTP dispatcher) — gated by allowRuntimeOverride
       // 2. baseUrlOverride (programmatic caller)
       // 3. tenantOverride.baseURL (DB row) — gated by allowRuntimeOverride
-      // 4. <MODULE>_AI_BASE_URL env
-      // 5. agentDefaultBaseUrl
-      // Steps 6-7 (preset env + preset default) are handled inside the adapter's
+      // 4. HELIOS_AI_<MODULE>_BASE_URL env (legacy <MODULE>_AI_BASE_URL fallback)
+      // 5. HELIOS_AI_BASE_URL env
+      // 6. agentDefaultBaseUrl
+      // Steps 7-8 (provider-specific env + preset default) are handled inside the adapter's
       // createModel when no explicit baseURL is passed.
       const resolvedBaseURL = requestBaseUrlRaw
         ?? normalizeOverride(input.baseUrlOverride)
         ?? tenantBaseUrlRaw
-        ?? (hasModule ? normalizeOverride(env[moduleBaseUrlEnvVarName(input.moduleId!)]) : null)
+        ?? (hasModule ? readModuleBaseUrlEnvOverride(env, input.moduleId!) : null)
+        ?? readGlobalBaseUrlFromEnv(env)
         ?? normalizeOverride(input.agentDefaultBaseUrl)
         ?? undefined
 

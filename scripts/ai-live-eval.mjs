@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 
+import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { config as loadDotenv } from 'dotenv'
+
 const REQUIRED_OPERATING_LOOP_TOOLS = [
   'projects__get_delay_summary',
   'commercial__get_project_settlement_summary',
@@ -9,6 +13,15 @@ const REQUIRED_OPERATING_LOOP_TOOLS = [
 
 const DEFAULT_PROMPT =
   '项目 project-live-qa 是否延期？合同回款怎样？KPI 差多少？有哪些治理检出？'
+
+function loadLocalEnvFiles() {
+  for (const envPath of ['.env', 'apps/helios/.env']) {
+    const absolutePath = resolve(process.cwd(), envPath)
+    if (existsSync(absolutePath)) {
+      loadDotenv({ path: absolutePath, override: false, quiet: true })
+    }
+  }
+}
 
 function readEnv(name, aliases = []) {
   const names = [name, ...aliases]
@@ -275,8 +288,12 @@ async function runAppChatSmoke({ appUrl, email, password, provider, model, upstr
 }
 
 async function main() {
+  loadLocalEnvFiles()
+
   const apiKey = requireEnv('LIVE_AI_API_KEY', ['OPENAI_API_KEY'])
-  const baseUrl = normalizeBaseUrl(requireEnv('LIVE_AI_BASE_URL', ['OPENAI_BASE_URL']))
+  const baseUrl = normalizeBaseUrl(
+    requireEnv('LIVE_AI_BASE_URL', ['HELIOS_AI_BASE_URL', 'OPENAI_BASE_URL']),
+  )
   const apiBaseUrl = toResponsesApiBaseUrl(baseUrl)
   const upstreamBaseUrl = toProviderRootUrl(baseUrl)
   const model = requireEnv('LIVE_AI_MODEL', ['HELIOS_AI_MODEL'])
