@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test'
 import { getAuthToken, apiRequest } from '@helios/core/helpers/integration/api'
 import { getTokenContext, expectId } from '@helios/core/helpers/integration/generalFixtures'
+import {
+  dismissNotificationsByType,
+  listNotifications,
+} from '@helios/core/helpers/integration/notificationsFixtures'
 
 /**
  * TC-LOOP-001: Full operating loop M5 → M6 → M7
@@ -169,11 +173,11 @@ test.describe('TC-LOOP-001: Operating loop M5→M6→M7', () => {
         data: {
           organizationId,
           tenantId,
-          metricKey: 'revenue',
+          metricKey: 'gross_profit',
           unit: 'amount',
-          periodType: 'year',
-          periodKey: '2026',
-          targetValue: '1000.00',
+          periodType: 'month',
+          periodKey: '2026-08',
+          targetValue: '300.00',
           currencyCode: 'CNY',
         },
       })
@@ -183,7 +187,7 @@ test.describe('TC-LOOP-001: Operating loop M5→M6→M7', () => {
       const completionRes = await apiRequest(
         request,
         'GET',
-        `/api/insights/kpi/completion?organizationId=${organizationId}&periodType=year&periodKey=2026&asOf=${asOf}`,
+        `/api/insights/kpi/completion?organizationId=${organizationId}&periodType=month&periodKey=2026-08&asOf=${asOf}`,
         { token },
       )
       expect(completionRes.ok(), await completionRes.text()).toBeTruthy()
@@ -194,10 +198,10 @@ test.describe('TC-LOOP-001: Operating loop M5→M6→M7', () => {
           completionRate?: string | null
         }>
       }
-      const revenueRow = completion.items?.find((row) => row.metricKey === 'revenue')
-      expect(revenueRow).toBeTruthy()
-      expect(Number(revenueRow?.actualValue)).toBeGreaterThan(0)
-      expect(Number(revenueRow?.completionRate)).toBeGreaterThan(0)
+      const grossProfitRow = completion.items?.find((row) => row.metricKey === 'gross_profit')
+      expect(grossProfitRow).toBeTruthy()
+      expect(Number(grossProfitRow?.actualValue)).toBeGreaterThan(0)
+      expect(Number(grossProfitRow?.completionRate)).toBeGreaterThan(0)
 
       const rulesRes = await apiRequest(request, 'POST', '/api/governance/rules/run', {
         token,
@@ -206,6 +210,19 @@ test.describe('TC-LOOP-001: Operating loop M5→M6→M7', () => {
       expect(rulesRes.ok(), await rulesRes.text()).toBeTruthy()
       const rulesBody = (await rulesRes.json()) as { created?: number; updated?: number }
       expect((rulesBody.created ?? 0) + (rulesBody.updated ?? 0)).toBeGreaterThan(0)
+
+      const digestNotifications = await listNotifications(request, token, {
+        type: 'governance.rules.digest',
+        status: 'unread',
+        pageSize: 20,
+      })
+      const digest = digestNotifications.items.find((item) => item.type === 'governance.rules.digest')
+      expect(digest, 'expected governance rules digest notification').toBeTruthy()
+      expect(digest).toMatchObject({
+        sourceEntityType: 'governance.rules',
+        sourceEntityId: organizationId,
+        linkHref: '/backend/governance/findings?status=open&severity=critical',
+      })
 
       const findingsRes = await apiRequest(
         request,
@@ -243,6 +260,7 @@ test.describe('TC-LOOP-001: Operating loop M5→M6→M7', () => {
       await softDelete('/api/insights/kpi-targets', created.kpiTargetId)
       await softDelete('/api/projects/milestones', created.milestoneId)
       await softDelete('/api/projects/projects', created.projectId)
+      await dismissNotificationsByType(request, token, 'governance.rules.digest')
     }
   })
 })

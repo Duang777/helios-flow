@@ -71,5 +71,7 @@
   "governance.audit.findingCreate": "创建检出",
   "governance.audit.findingUpdate": "更新检出",
   "governance.audit.findingDelete": "删除检出",
-  "governance.audit.rulesRun": "运行治理规则"
+  "governance.audit.rulesRun": "运行治理规则",
+  "governance.notifications.rules.digest.title": "关键治理检出",
+  "governance.notifications.rules.digest.body": "截至 {asOf} 共有 {criticalCount} 条关键检出仍处于打开状态"
 }

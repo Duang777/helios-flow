@@ -49,8 +49,14 @@ test.describe('TC-AI-001: Operating-loop AI registry', () => {
     expect(operatingLoop?.allowedTools ?? []).toEqual(
       expect.arrayContaining([
         'projects.get_delay_summary',
+        'projects.manage_project',
+        'commercial.manage_contract',
+        'commercial.manage_invoice',
+        'commercial.manage_payment',
+        'commercial.manage_allocation',
         'commercial.get_project_settlement_summary',
         'insights.get_kpi_gap',
+        'insights.manage_kpi_target',
         'governance.list_findings',
         'governance.acknowledge_finding',
       ]),

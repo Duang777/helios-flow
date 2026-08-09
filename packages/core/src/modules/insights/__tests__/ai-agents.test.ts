@@ -64,4 +64,33 @@ describe('insights.operating_loop_assistant agent definition', () => {
     expect(agent.systemPrompt).toContain('evidence IDs')
     expect(agent.systemPrompt).toContain('Do not claim you updated data until the approval card is confirmed')
   })
+
+  it('resolvePageContext binds the current entity id and organization scope', async () => {
+    const result = await agent.resolvePageContext!(
+      {
+        entityType: 'projects.project',
+        recordId: '33333333-3333-4333-8333-333333333333',
+        tenantId: 'tenant-1',
+        organizationId: 'org-1',
+        container: { resolve: jest.fn() } as never,
+      } as Parameters<NonNullable<typeof agent.resolvePageContext>>[0],
+    )
+
+    expect(result).toContain('organizationId: org-1')
+    expect(result).toContain('projectId: 33333333-3333-4333-8333-333333333333')
+  })
+
+  it('maps customer pages to customerEntityId in the page context', async () => {
+    const result = await agent.resolvePageContext!(
+      {
+        entityType: 'customers.company',
+        recordId: '44444444-4444-4444-8444-444444444444',
+        tenantId: 'tenant-1',
+        organizationId: 'org-1',
+        container: { resolve: jest.fn() } as never,
+      } as Parameters<NonNullable<typeof agent.resolvePageContext>>[0],
+    )
+
+    expect(result).toContain('customerEntityId: 44444444-4444-4444-8444-444444444444')
+  })
 })

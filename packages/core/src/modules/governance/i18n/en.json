@@ -71,5 +71,7 @@
   "governance.audit.findingCreate": "Create finding",
   "governance.audit.findingUpdate": "Update finding",
   "governance.audit.findingDelete": "Delete finding",
-  "governance.audit.rulesRun": "Run governance rules"
+  "governance.audit.rulesRun": "Run governance rules",
+  "governance.notifications.rules.digest.title": "Critical governance findings",
+  "governance.notifications.rules.digest.body": "{criticalCount} critical findings are open as of {asOf}"
 }

@@ -14,21 +14,39 @@ function readParam(params: URLSearchParams | null, key: string): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+type ProjectCreateInitialValues = {
+  name?: string
+  code?: string
+  dealId?: string
+  customerEntityId?: string
+  status: string
+  budgetRevenue?: string
+  budgetCost?: string
+  forecastRevenue?: string
+  forecastCost?: string
+  isActive: boolean
+}
+
 export default function CreateProjectPage() {
   const t = useT()
   const router = useRouter()
   const searchParams = useSearchParams()
   const { organizationId, tenantId } = useOrganizationScopeDetail()
 
-  const prefill = React.useMemo(() => {
+  const prefill = React.useMemo<ProjectCreateInitialValues>(() => {
     const dealId = readParam(searchParams, 'dealId')
     const customerEntityId = readParam(searchParams, 'customerEntityId')
     const name = readParam(searchParams, 'name')
     return {
       name: name || undefined,
+      code: undefined,
       dealId: dealId || undefined,
       customerEntityId: customerEntityId || undefined,
       status: 'draft',
+      budgetRevenue: undefined,
+      budgetCost: undefined,
+      forecastRevenue: undefined,
+      forecastCost: undefined,
       isActive: true,
     }
   }, [searchParams])

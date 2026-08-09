@@ -42,7 +42,7 @@ const agent: AiAgentDefinition = {
   domain: 'governance',
   dataCapabilities: {
     entities: ['governance.identity_map', 'governance.finding'],
-    operations: ['read', 'update'],
+    operations: ['read', 'search'],
   },
   resolvePageContext: async (input: AiAgentPageContextInput) => {
     const recordId = typeof input.recordId === 'string' ? input.recordId : null

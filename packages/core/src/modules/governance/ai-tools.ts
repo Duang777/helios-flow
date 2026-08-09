@@ -1,22 +1,20 @@
 import { z } from 'zod'
 import type { EntityManager } from '@mikro-orm/postgresql'
 import type { FilterQuery } from '@mikro-orm/core'
-import {
-  defineAiTool,
-  type AiToolDefinition,
-} from '@helios/ai-assistant'
+import { defineAiTool } from '@helios/ai-assistant'
 import { defineApiBackedAiTool } from '@helios/ai-assistant/modules/ai_assistant/lib/api-backed-tool'
 import {
   createAiApiOperationRunner,
   type AiApiOperationRequest,
   type AiToolExecutionContext,
 } from '@helios/ai-assistant/modules/ai_assistant/lib/ai-api-operation-runner'
+import type {
+  AiToolDefinition,
+  McpToolContext,
+} from '@helios/ai-assistant/modules/ai_assistant/lib/types'
 import { GovernanceFinding } from './data/entities'
 
-export type GovernanceToolContext = {
-  tenantId?: string
-  organizationId?: string
-}
+export type GovernanceToolContext = Pick<McpToolContext, 'tenantId' | 'organizationId' | 'container'>
 
 export type GovernanceAiToolDefinition = ReturnType<typeof defineApiBackedAiTool>
 
@@ -234,6 +232,8 @@ const updateFindingDispositionInput = z
     }
   })
 
+type UpdateFindingDispositionInput = z.infer<typeof updateFindingDispositionInput>
+
 const updateFindingDispositionTool = defineApiBackedAiTool({
   name: 'governance.update_finding_disposition',
   displayName: 'Update finding disposition',
@@ -242,7 +242,7 @@ const updateFindingDispositionTool = defineApiBackedAiTool({
   inputSchema: updateFindingDispositionInput,
   requiredFeatures: ['governance.manage'],
   isMutation: true,
-  loadBeforeRecord: async (input, ctx) =>
+  loadBeforeRecord: async (input: UpdateFindingDispositionInput, ctx: McpToolContext) =>
     loadFindingPreview(input, ctx as GovernanceToolContext),
   toOperation: (input, ctx) => ({
     method: 'PUT',
@@ -272,7 +272,7 @@ acknowledgeFindingsTool = defineAiTool({
   inputSchema: acknowledgeFindingsInput,
   requiredFeatures: ['governance.manage'],
   isMutation: true,
-  loadBeforeRecord: async (input, ctx) => ({
+  loadBeforeRecord: async (input: AcknowledgeFindingsInput, _ctx: McpToolContext) => ({
     recordId: input.findingIds[0] ?? 'governance-findings-batch',
     entityType: 'governance.finding.batch',
     recordVersion: null,
@@ -286,7 +286,7 @@ acknowledgeFindingsTool = defineAiTool({
       count: input.findingIds.length,
     },
   }),
-  async handler(input, ctx) {
+  async handler(input: AcknowledgeFindingsInput, ctx: McpToolContext) {
     assertTenantScope(ctx as GovernanceToolContext)
     const toolCtx: AiToolExecutionContext = {
       ...ctx,

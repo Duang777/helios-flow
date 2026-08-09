@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { defineApiBackedAiTool } from '@helios/ai-assistant/modules/ai_assistant/lib/api-backed-tool'
 import type { AiApiOperationRequest } from '@helios/ai-assistant/modules/ai_assistant/lib/ai-api-operation-runner'
+import writeAiTools from './ai-tools/write-pack'
 
 export type InsightsToolContext = {
   tenantId?: string
@@ -217,6 +218,7 @@ export const aiTools: InsightsAiToolDefinition[] = [
   listKpiTargetsTool,
   getKpiCompletionTool,
   getKpiGapTool,
+  ...writeAiTools,
 ]
 
 export default aiTools
