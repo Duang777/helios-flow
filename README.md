@@ -184,6 +184,8 @@ yarn workspace helios-docs dev
 ## Docs and contribution
 
 - Product requirements (PRD): [docs/PRD.md](./docs/PRD.md)
+- Module walkthroughs (8 core modules, with screenshots): [docs/module-walkthroughs/index.html](./docs/module-walkthroughs/index.html)（浏览器打开看图）
+- Operating loop walkthrough (M5–M7): [docs/operating-loop-walkthrough.html](./docs/operating-loop-walkthrough.html) · [Markdown](./docs/operating-loop-walkthrough.md)
 - Agent notes for this monorepo: [AGENTS.md](./AGENTS.md)
 - Specs and ADRs: [`.ai/specs/`](./.ai/specs/)
 - Security: [SECURITY.md](./SECURITY.md)

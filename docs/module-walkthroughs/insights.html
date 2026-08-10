@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>经营分析 KPI 模块走查</title>
+  <style>
+    :root { --bg:#f7f4ef; --card:#fff; --text:#1f1a17; --muted:#5c534c; --border:#e4ddd4; --accent:#3d2b1f; }
+    body { margin:0; font-family:"PingFang SC","Hiragino Sans GB","Noto Sans SC",system-ui,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+    main { max-width:960px; margin:0 auto; padding:32px 20px 64px; }
+    h1 { font-size:1.7rem; margin:0 0 8px; }
+    h2 { font-size:1.2rem; margin:36px 0 10px; }
+    .muted { color:var(--muted); }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin:12px 0 24px; }
+    .card img { display:block; width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+    .card figcaption { margin-top:10px; color:var(--muted); font-size:.95rem; }
+    table { width:100%; border-collapse:collapse; background:var(--card); margin:12px 0 20px; }
+    th,td { border:1px solid var(--border); padding:8px 10px; text-align:left; }
+    th { background:#efe8df; }
+    a { color:var(--accent); }
+    code { font-family:ui-monospace,Menlo,monospace; font-size:.9rem; }
+    nav a { margin-right:12px; }
+  </style>
+</head>
+<body>
+  <main>
+    <nav>
+      <a href="./index.html">模块索引</a>
+      <a href="../operating-loop-walkthrough.html">经营闭环总览</a>
+      <a href="./insights.md">Markdown</a>
+    </nav>
+    <h1>经营分析 KPI（<code>insights</code>）</h1>
+    <p>KPI 目标与完成率（M7）。实际值来自 commercial.metrics。</p>
+    <p class="muted">演示环境 http://localhost:3000 · admin@acme.com · 2026-08-08</p>
+    <h2>后台入口</h2>
+    <table>
+      <thead><tr><th>页面</th><th>路径</th></tr></thead>
+      <tbody>
+<tr><td>完成率看板</td><td><code>/backend/insights/kpi</code></td></tr>
+<tr><td>KPI 目标</td><td><code>/backend/insights/kpi-targets</code></td></tr>
+      </tbody>
+    </table>
+    <h2>要点</h2>
+    <ul>
+<li>先建目标，再在看板按期间查看完成率。</li>
+<li>公司汇总为派生加总，不是手工改实际值。</li>
+    </ul>
+    <h2>界面截图</h2>
+
+    <h2>KPI 完成率看板</h2>
+    <p>入口：<code>/backend/insights/kpi</code></p>
+    <figure class="card">
+      <img src="../assets/module-walkthroughs/insights/kpi.png" alt="KPI 完成率看板" />
+      <figcaption>KPI 完成率看板</figcaption>
+    </figure>
+
+    <h2>KPI 目标列表</h2>
+    <p>入口：<code>/backend/insights/kpi-targets</code></p>
+    <figure class="card">
+      <img src="../assets/module-walkthroughs/insights/targets.png" alt="KPI 目标列表" />
+      <figcaption>KPI 目标列表</figcaption>
+    </figure>
+  </main>
+</body>
+</html>

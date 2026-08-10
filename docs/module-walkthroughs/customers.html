@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>客户 CRM 模块走查</title>
+  <style>
+    :root { --bg:#f7f4ef; --card:#fff; --text:#1f1a17; --muted:#5c534c; --border:#e4ddd4; --accent:#3d2b1f; }
+    body { margin:0; font-family:"PingFang SC","Hiragino Sans GB","Noto Sans SC",system-ui,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+    main { max-width:960px; margin:0 auto; padding:32px 20px 64px; }
+    h1 { font-size:1.7rem; margin:0 0 8px; }
+    h2 { font-size:1.2rem; margin:36px 0 10px; }
+    .muted { color:var(--muted); }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin:12px 0 24px; }
+    .card img { display:block; width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+    .card figcaption { margin-top:10px; color:var(--muted); font-size:.95rem; }
+    table { width:100%; border-collapse:collapse; background:var(--card); margin:12px 0 20px; }
+    th,td { border:1px solid var(--border); padding:8px 10px; text-align:left; }
+    th { background:#efe8df; }
+    a { color:var(--accent); }
+    code { font-family:ui-monospace,Menlo,monospace; font-size:.9rem; }
+    nav a { margin-right:12px; }
+  </style>
+</head>
+<body>
+  <main>
+    <nav>
+      <a href="./index.html">模块索引</a>
+      <a href="../operating-loop-walkthrough.html">经营闭环总览</a>
+      <a href="./customers.md">Markdown</a>
+    </nav>
+    <h1>客户 CRM（<code>customers</code>）</h1>
+    <p>经营闭环起点。维护公司、联系人与商机，再立项或签合同。</p>
+    <p class="muted">演示环境 http://localhost:3000 · admin@acme.com · 2026-08-08</p>
+    <h2>后台入口</h2>
+    <table>
+      <thead><tr><th>页面</th><th>路径</th></tr></thead>
+      <tbody>
+<tr><td>公司</td><td><code>/backend/customers/companies</code></td></tr>
+<tr><td>商机</td><td><code>/backend/customers/deals</code></td></tr>
+<tr><td>商机看板</td><td><code>/backend/customers/deals/pipeline</code></td></tr>
+<tr><td>日历</td><td><code>/backend/calendar</code></td></tr>
+      </tbody>
+    </table>
+    <h2>要点</h2>
+    <ul>
+<li>公司详情页可注入「创建项目」「创建合同」等跨模块按钮。</li>
+<li>商机详情可创建项目（projects 注入）。</li>
+    </ul>
+    <h2>界面截图</h2>
+
+    <h2>公司列表</h2>
+    <p>入口：<code>/backend/customers/companies</code></p>
+    <figure class="card">
+      <img src="../assets/module-walkthroughs/customers/companies.png" alt="公司列表" />
+      <figcaption>公司列表</figcaption>
+    </figure>
+
+    <h2>商机列表</h2>
+    <p>入口：<code>/backend/customers/deals</code></p>
+    <figure class="card">
+      <img src="../assets/module-walkthroughs/customers/deals.png" alt="商机列表" />
+      <figcaption>商机列表</figcaption>
+    </figure>
+
+    <h2>商机看板</h2>
+    <p>入口：<code>/backend/customers/deals/pipeline</code></p>
+    <figure class="card">
+      <img src="../assets/module-walkthroughs/customers/pipeline.png" alt="商机看板" />
+      <figcaption>商机看板</figcaption>
+    </figure>
+
+    <h2>客户日历</h2>
+    <p>入口：<code>/backend/calendar</code></p>
+    <figure class="card">
+      <img src="../assets/module-walkthroughs/customers/calendar.png" alt="客户日历" />
+      <figcaption>客户日历</figcaption>
+    </figure>
+  </main>
+</body>
+</html>

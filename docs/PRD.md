@@ -619,6 +619,8 @@ Helios Flow 管理后台仪表盘
 3. 可维护区域 KPI 并展示完成率；公司汇总为派生加总。
 4. 可演示客户去重映射，以及至少一类跨表风险检出 + 带证据的 AI / 规则建议。
 
+带界面截图的走查说明见 [operating-loop-walkthrough.html](./operating-loop-walkthrough.html)（浏览器打开）。核心业务 8 模块分册见 [module-walkthroughs/index.html](./module-walkthroughs/index.html)。
+
 ---
 
 
