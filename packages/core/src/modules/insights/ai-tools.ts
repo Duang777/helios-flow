@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { defineAiTool, defineApiBackedAiTool } from '@helios/ai-assistant'
+import { defineAiTool } from '@helios/ai-assistant'
+import { defineApiBackedAiTool } from '@helios/ai-assistant/modules/ai_assistant/lib/api-backed-tool'
 import {
   createAiApiOperationRunner,
   type AiApiOperationRequest,
