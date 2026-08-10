@@ -5,9 +5,15 @@ import { defineApiBackedAiTool } from '@helios/ai-assistant/modules/ai_assistant
 import { defineAiTool } from '@helios/ai-assistant'
 import type { AiApiOperationRequest } from '@helios/ai-assistant/modules/ai_assistant/lib/ai-api-operation-runner'
 import { CommercialInvoice, PaymentAllocation } from '../data/entities'
-import { fromMoneyCents, isOperatingInvoiceStatus, toMoneyCents } from '../lib/metrics'
+import { fromMoneyCents, isOperatingInvoiceStatus, METRIC_DEFINITIONS, toMoneyCents } from '../lib/metrics'
+import {
+  createAiApiOperationRunner,
+  type AiToolExecutionContext,
+} from '@helios/ai-assistant/modules/ai_assistant/lib/ai-api-operation-runner'
+import type { McpToolContext } from '@helios/ai-assistant/modules/ai_assistant/lib/types'
 import {
   assertTenantScope,
+  type AiToolDefinition,
   type CommercialAiToolDefinition,
   type CommercialToolContext,
 } from './types'
@@ -497,6 +503,134 @@ const listPaymentAllocationsTool = defineApiBackedAiTool<
   },
 }) as unknown as CommercialAiToolDefinition
 
+const METRIC_KEY_LIST = Object.keys(METRIC_DEFINITIONS) as [string, ...string[]]
+
+const explainMetricInput = z
+  .object({
+    metricKey: z
+      .enum(METRIC_KEY_LIST)
+      .optional()
+      .describe(
+        'Commercial metric key (e.g. collectionRate, arOutstanding). Omit to list all metric definitions.',
+      ),
+  })
+  .passthrough()
+
+type ExplainMetricInput = z.infer<typeof explainMetricInput>
+
+const explainMetricTool = defineAiTool({
+  name: 'commercial.explain_metric',
+  displayName: 'Explain commercial metric',
+  description:
+    'Explain how a commercial operating metric (collection rate, AR, gross profit, etc.) is calculated ' +
+    'and which source tables feed it. Use this to cite the formula source in settlement answers without pulling live numbers.',
+  inputSchema: explainMetricInput,
+  requiredFeatures: ['commercial.view'],
+  tags: ['read', 'explain', 'operating-loop', 'commercial'],
+  isMutation: false,
+  async handler(rawInput: unknown, ctx: McpToolContext) {
+    assertTenantScope(ctx as unknown as CommercialToolContext)
+    const input = explainMetricInput.parse(rawInput)
+    if (input.metricKey) {
+      const definition = METRIC_DEFINITIONS[input.metricKey]
+      if (!definition) {
+        return { found: false, metricKey: input.metricKey }
+      }
+      return {
+        found: true,
+        metricKey: input.metricKey,
+        formula: definition.formula,
+        sources: definition.sources,
+        href: '/backend/commercial/contracts',
+      }
+    }
+    return {
+      found: true,
+      metrics: METRIC_KEY_LIST.map((key) => ({
+        metricKey: key,
+        formula: METRIC_DEFINITIONS[key].formula,
+        sources: METRIC_DEFINITIONS[key].sources,
+      })),
+    }
+  },
+}) as unknown as CommercialAiToolDefinition
+
+const suggestCollectionActionsInput = z
+  .object({
+    asOf: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Evaluation date (YYYY-MM-DD). Defaults to today.'),
+    limit: z.number().int().min(1).max(100).optional().describe('Maximum invoices to evaluate (default 50).'),
+  })
+  .passthrough()
+
+type SuggestCollectionActionsInput = z.infer<typeof suggestCollectionActionsInput>
+
+const collectionActionSuggestion = z.object({
+  invoiceId: z.string().describe('Invoice the action applies to.'),
+  action: z.enum(['send_reminder', 'escalate', 'schedule_call', 'write_off_review']).describe('Recommended collection action.'),
+  priority: z.enum(['high', 'medium', 'low']).describe('Action priority.'),
+  ownerRole: z.string().describe('Recommended owner role for the action.'),
+})
+
+const SUGGEST_COLLECTION_ACTIONS_SCHEMA = 'CommercialCollectionActionSuggestion'
+
+const suggestCollectionActionsTool = defineAiTool({
+  name: 'commercial.suggest_collection_actions',
+  displayName: 'Suggest collection actions',
+  description:
+    'Build structured collection-action suggestions for overdue issued invoices. Read-only: the agent fills the ' +
+    'proposal, then persists reminders or escalations through the appropriate commercial write tools.',
+  inputSchema: suggestCollectionActionsInput,
+  requiredFeatures: ['commercial.view'],
+  tags: ['read', 'suggest', 'operating-loop', 'commercial'],
+  isMutation: false,
+  async handler(rawInput: unknown, ctx: McpToolContext) {
+    const input = suggestCollectionActionsInput.parse(rawInput)
+    const scope = assertTenantScope(ctx as unknown as CommercialToolContext)
+    const organizationId = requireOrganizationScope(ctx as unknown as CommercialToolContext)
+    const asOf = input.asOf ?? todayUtcDate()
+    const toolCtx: AiToolExecutionContext = { ...ctx, tool: suggestCollectionActionsTool as unknown as AiToolDefinition }
+    const runner = createAiApiOperationRunner(toolCtx)
+    const response = await runner.run({
+      method: 'GET',
+      path: '/commercial/invoices',
+      query: { organizationId, status: 'issued', page: 1, pageSize: input.limit ?? 50 },
+    })
+    if (!response.success) {
+      throw new Error(response.error ?? 'Failed to load invoices for collection suggestions.')
+    }
+    const data = (response.data ?? {}) as { items?: Array<Record<string, unknown>> }
+    const items = Array.isArray(data.items) ? data.items : []
+    const overdueInvoices = items
+      .map((row) => {
+        const dueDate = (row.dueDate ?? row.due_date ?? null) as string | null
+        const days = overdueDays(dueDate, asOf) ?? 0
+        return {
+          invoiceId: row.id,
+          invoiceNo: (row.invoiceNo ?? row.invoice_no ?? null) as string | null,
+          dueDate,
+          overdueDays: days,
+          amount: (row.amount ?? row.outstandingAmount ?? null) as string | null,
+          href: typeof row.id === 'string' ? `/backend/commercial/invoices/${row.id}` : null,
+        }
+      })
+      .filter((invoice) => invoice.overdueDays > 0)
+      .sort((left, right) => right.overdueDays - left.overdueDays)
+    return {
+      found: true,
+      organizationId: scope.organizationId,
+      asOf,
+      overdueInvoiceCount: overdueInvoices.length,
+      context: { overdueInvoices },
+      proposal: { actions: [] as Array<z.infer<typeof collectionActionSuggestion>> },
+      outputSchemaDescriptor: {
+        schemaName: SUGGEST_COLLECTION_ACTIONS_SCHEMA,
+        jsonSchema: z.toJSONSchema(collectionActionSuggestion) as Record<string, unknown>,
+      },
+      href: '/backend/commercial/invoices',
+    }
+  },
+}) as unknown as CommercialAiToolDefinition
+
 const commercialAiTools: CommercialAiToolDefinition[] = [
   listContractsTool,
   getContractTool,
@@ -506,6 +640,8 @@ const commercialAiTools: CommercialAiToolDefinition[] = [
   listPaymentAllocationsTool,
   getMetricsTool,
   getProjectSettlementSummaryTool,
+  explainMetricTool,
+  suggestCollectionActionsTool,
 ]
 
 export default commercialAiTools

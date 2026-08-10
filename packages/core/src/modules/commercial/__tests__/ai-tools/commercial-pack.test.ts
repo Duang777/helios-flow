@@ -202,4 +202,42 @@ describe('commercial AI tools', () => {
     })
     expect(result.formulaSource).toContain('commercial_invoices')
   })
+
+  it('commercial.explain_metric lists all definitions and explains one', async () => {
+    const tool = findTool('commercial.explain_metric')
+    const listed = (await tool.handler({}, makeCtx() as never)) as Record<string, unknown>
+    expect(listed.found).toBe(true)
+    expect(Array.isArray(listed.metrics)).toBe(true)
+    expect((listed.metrics as Array<unknown>).length).toBeGreaterThan(0)
+    const one = (await tool.handler({ metricKey: 'collectionRate' }, makeCtx() as never)) as Record<string, unknown>
+    expect(one.found).toBe(true)
+    expect(one.formula).toContain('allocated_amount')
+    expect(one.sources).toEqual(expect.arrayContaining(['payment_allocations', 'commercial_invoices']))
+    expect(one.href).toContain('/backend/commercial')
+  })
+
+  it('commercial.suggest_collection_actions enumerates overdue issued invoices', async () => {
+    const tool = findTool('commercial.suggest_collection_actions')
+    runMock.mockResolvedValue({
+      success: true,
+      statusCode: 200,
+      data: {
+        items: [
+          { id: 'inv-1', invoiceNo: 'INV-1', dueDate: '2026-08-01', amount: '100.00', status: 'issued' },
+          { id: 'inv-2', invoiceNo: 'INV-2', dueDate: '2026-09-30', amount: '50.00', status: 'issued' },
+        ],
+      },
+    })
+    const result = (await tool.handler({ asOf: '2026-08-31' }, makeCtx() as never)) as Record<string, unknown>
+    expect(result.found).toBe(true)
+    const ctx = result.context as Record<string, unknown>
+    const overdue = ctx.overdueInvoices as Array<Record<string, unknown>>
+    expect(overdue).toHaveLength(1)
+    expect(overdue[0].invoiceId).toBe('inv-1')
+    expect(overdue[0].overdueDays).toBe(30)
+    expect(result.outputSchemaDescriptor).toBeDefined()
+    expect((result.outputSchemaDescriptor as Record<string, unknown>).schemaName).toBe(
+      'CommercialCollectionActionSuggestion',
+    )
+  })
 })

@@ -85,7 +85,7 @@ export type CommercialMetricsResult = {
   definitions: Record<string, MetricDefinition>
 }
 
-const METRIC_DEFINITIONS: Record<string, MetricDefinition> = {
+export const METRIC_DEFINITIONS: Record<string, MetricDefinition> = {
   actualRevenue: {
     formula: 'Σ recognized_revenue where data_version = actual',
     sources: ['project_revenues'],

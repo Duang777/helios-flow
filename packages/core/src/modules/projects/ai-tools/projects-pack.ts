@@ -1,6 +1,11 @@
 import { z } from 'zod'
-import { defineApiBackedAiTool } from '@helios/ai-assistant/modules/ai_assistant/lib/api-backed-tool'
-import type { AiApiOperationRequest } from '@helios/ai-assistant/modules/ai_assistant/lib/ai-api-operation-runner'
+import { defineAiTool, defineApiBackedAiTool } from '@helios/ai-assistant'
+import {
+  createAiApiOperationRunner,
+  type AiApiOperationRequest,
+  type AiToolExecutionContext,
+} from '@helios/ai-assistant/modules/ai_assistant/lib/ai-api-operation-runner'
+import type { AiToolDefinition, McpToolContext } from '@helios/ai-assistant/modules/ai_assistant/lib/types'
 import { isMilestoneDelayed } from '../lib/milestoneDelay'
 import {
   assertTenantScope,
@@ -346,11 +351,132 @@ const listRisksTool = defineApiBackedAiTool<
   },
 }) as unknown as ProjectsAiToolDefinition
 
+const explainDelayRuleInput = z
+  .object({})
+  .passthrough()
+
+const explainDelayRuleTool = defineAiTool({
+  name: 'projects.explain_delay_rule',
+  displayName: 'Explain project delay rule',
+  description:
+    'Explain how a project milestone is classified as delayed (the same logic used by projects.get_delay_summary). ' +
+    'Use this to cite the delay rule before answering "why is this milestone delayed".',
+  inputSchema: explainDelayRuleInput,
+  requiredFeatures: ['projects.view'],
+  tags: ['read', 'explain', 'operating-loop', 'projects'],
+  isMutation: false,
+  async handler(_rawInput: unknown, ctx: McpToolContext) {
+    assertTenantScope(ctx as unknown as ProjectsToolContext)
+    return {
+      ruleId: 'projects.lib.milestoneDelay',
+      formula:
+        'A milestone is delayed when plannedDate is set, plannedDate < asOf (date-only UTC compare), ' +
+        'actualDate is null, and status is not cancelled.',
+      edgeCases: [
+        'asOf is truncated to the UTC day, so a milestone planned on the evaluation day is not delayed.',
+        'Cancelled milestones are excluded even if past their planned date.',
+        'A milestone with an actual completion date is never delayed regardless of planned date.',
+      ],
+      href: '/backend/projects',
+    }
+  },
+}) as unknown as ProjectsAiToolDefinition
+
+const suggestDelayMitigationInput = z
+  .object({
+    projectId: z.string().uuid().optional().describe('Scope to one project. Omit for org-wide delay context.'),
+    asOf: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Evaluation date (YYYY-MM-DD). Defaults to today.'),
+    limit: z.number().int().min(1).max(100).optional().describe('Maximum rows per list (default 50).'),
+  })
+  .passthrough()
+
+type SuggestDelayMitigationInput = z.infer<typeof suggestDelayMitigationInput>
+
+const delayMitigationSuggestion = z.object({
+  milestoneId: z.string().nullable().describe('Milestone the mitigation targets, if any.'),
+  riskId: z.string().nullable().describe('Risk the mitigation addresses, if any.'),
+  action: z.enum(['replan_date', 'add_resource', 'escalate_owner', 'mitigate_risk']).describe('Recommended action.'),
+  ownerRole: z.string().describe('Recommended owner role.'),
+})
+
+const SUGGEST_DELAY_MITIGATION_SCHEMA = 'ProjectsDelayMitigationSuggestion'
+
+const suggestDelayMitigationTool = defineAiTool({
+  name: 'projects.suggest_delay_mitigation',
+  displayName: 'Suggest delay mitigation',
+  description:
+    'Build structured delay-mitigation suggestions from delayed milestones and open risks. Read-only: the agent fills ' +
+    'the proposal, then persists changes through projects.manage_project or risk updates.',
+  inputSchema: suggestDelayMitigationInput,
+  requiredFeatures: ['projects.view'],
+  tags: ['read', 'suggest', 'operating-loop', 'projects'],
+  isMutation: false,
+  async handler(rawInput: unknown, ctx: McpToolContext) {
+    const input = suggestDelayMitigationInput.parse(rawInput)
+    assertTenantScope(ctx as unknown as ProjectsToolContext)
+    const asOf = input.asOf ?? new Date().toISOString().slice(0, 10)
+    const limit = input.limit ?? 50
+    const toolCtx: AiToolExecutionContext = { ...ctx, tool: suggestDelayMitigationTool as unknown as AiToolDefinition }
+    const runner = createAiApiOperationRunner(toolCtx)
+    const milestonesResponse = await runner.run({
+      method: 'GET',
+      path: '/projects/milestones',
+      query: { page: 1, pageSize: limit, ...(input.projectId ? { projectId: input.projectId } : {}) },
+    })
+    if (!milestonesResponse.success) {
+      throw new Error(milestonesResponse.error ?? 'Failed to load milestones for delay suggestions.')
+    }
+    const milestoneData = (milestonesResponse.data ?? {}) as ListMilestonesApiResponse
+    const delayedMilestones = (Array.isArray(milestoneData.items) ? milestoneData.items : [])
+      .map((row) => {
+        const plannedDate = (row.plannedDate ?? row.planned_date ?? null) as string | null
+        const actualDate = (row.actualDate ?? row.actual_date ?? null) as string | null
+        const status = (row.status ?? null) as string | null
+        return {
+          id: row.id,
+          name: (row.name ?? null) as string | null,
+          plannedDate,
+          actualDate,
+          isDelayed: isMilestoneDelayed({ plannedDate, actualDate, status, asOf: new Date(`${asOf}T00:00:00.000Z`) }),
+          href: typeof row.id === 'string' ? `/backend/milestones/${row.id}` : null,
+        }
+      })
+      .filter((row) => row.isDelayed)
+    const risksResponse = await runner.run({
+      method: 'GET',
+      path: '/projects/risks',
+      query: { page: 1, pageSize: limit, ...(input.projectId ? { projectId: input.projectId } : {}) },
+    })
+    const riskData = (risksResponse.success ? (risksResponse.data ?? {}) : {}) as ListRisksApiResponse
+    const risks = (Array.isArray(riskData.items) ? riskData.items : []).map((row) => ({
+      id: row.id,
+      title: (row.title ?? null) as string | null,
+      riskType: (row.riskType ?? row.risk_type ?? null) as string | null,
+      status: (row.status ?? null) as string | null,
+      href: typeof row.id === 'string' ? `/backend/risks/${row.id}` : null,
+    }))
+    return {
+      found: true,
+      projectId: input.projectId ?? null,
+      asOf,
+      context: { delayedMilestones, risks },
+      proposal: { mitigations: [] as Array<z.infer<typeof delayMitigationSuggestion>> },
+      outputSchemaDescriptor: {
+        schemaName: SUGGEST_DELAY_MITIGATION_SCHEMA,
+        jsonSchema: z.toJSONSchema(delayMitigationSuggestion) as Record<string, unknown>,
+      },
+      href: input.projectId ? `/backend/projects/${input.projectId}` : '/backend/projects',
+    }
+  },
+}) as unknown as ProjectsAiToolDefinition
+
 const projectsAiTools: ProjectsAiToolDefinition[] = [
   listProjectsTool,
   getProjectTool,
   listMilestonesTool,
   getDelaySummaryTool,
+  explainDelayRuleTool,
+  suggestDelayMitigationTool,
   listRisksTool,
 ]
 

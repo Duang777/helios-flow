@@ -13,6 +13,7 @@ import type {
   McpToolContext,
 } from '@helios/ai-assistant/modules/ai_assistant/lib/types'
 import { GovernanceFinding } from './data/entities'
+import { RULE_EXPLANATIONS, RULE_ID_LIST } from './lib/rules/metadata'
 
 export type GovernanceToolContext = Pick<McpToolContext, 'tenantId' | 'organizationId' | 'container'>
 
@@ -331,9 +332,127 @@ acknowledgeFindingsTool = defineAiTool({
   },
 }) as AiToolDefinition<AcknowledgeFindingsInput, Record<string, unknown>>
 
+const explainRuleInput = z
+  .object({
+    ruleId: z
+      .enum(RULE_ID_LIST as [string, ...string[]])
+      .optional()
+      .describe('Governance rule id (e.g. gov.project_milestone_delayed). Omit to list all rule explanations.'),
+  })
+  .passthrough()
+
+type ExplainRuleInput = z.infer<typeof explainRuleInput>
+
+const explainRuleTool = defineAiTool({
+  name: 'governance.explain_rule',
+  displayName: 'Explain governance rule',
+  description:
+    'Explain how a governance rule is triggered, its severity, owner role, impact, and evidence types. ' +
+    'Use this before interpreting findings or suggesting dispositions so the answer cites the right threshold.',
+  inputSchema: explainRuleInput,
+  requiredFeatures: ['governance.view'],
+  tags: ['read', 'explain', 'operating-loop', 'governance'],
+  isMutation: false,
+  async handler(rawInput: unknown, ctx: McpToolContext) {
+    assertTenantScope(ctx as GovernanceToolContext)
+    const input = explainRuleInput.parse(rawInput)
+    if (input.ruleId) {
+      const rule = RULE_EXPLANATIONS[input.ruleId]
+      if (!rule) {
+        return { found: false, ruleId: input.ruleId }
+      }
+      return { found: true, rule }
+    }
+    return {
+      found: true,
+      rules: RULE_ID_LIST.map((id) => {
+        const rule = RULE_EXPLANATIONS[id]
+        return {
+          ruleId: rule.ruleId,
+          title: rule.title,
+          severity: rule.severity,
+          ownerRole: rule.ownerRole,
+          trigger: rule.trigger,
+          href: rule.href,
+        }
+      }),
+    }
+  },
+}) as unknown as GovernanceAiToolDefinition
+
+const suggestDispositionInput = z.object({
+  findingId: z.string().uuid().describe('Governance finding id to build a disposition suggestion for.'),
+})
+
+type SuggestDispositionInput = z.infer<typeof suggestDispositionInput>
+
+const governanceDispositionSuggestion = z.object({
+  suggestedStatus: z.enum(['open', 'acknowledged', 'resolved', 'dismissed']).describe('Recommended disposition status.'),
+  ownerRole: z.string().nullable().describe('Recommended owner role to drive the remediation.'),
+  suggestedDueOn: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .describe('Recommended due date (YYYY-MM-DD) or null.'),
+  impactSummary: z.string().nullable().describe('Recommended impact summary text.'),
+  rationale: z.string().describe('Why this disposition is recommended for this finding.'),
+})
+
+const SUGGEST_DISPOSITION_SCHEMA = 'GovernanceDispositionSuggestion'
+
+const suggestDispositionTool = defineAiTool({
+  name: 'governance.suggest_disposition',
+  displayName: 'Suggest finding disposition',
+  description:
+    'Build a structured disposition suggestion for one governance finding (status, owner, due date, rationale). ' +
+    'Read-only: the surrounding agent fills the proposal, then persists it through governance.update_finding_disposition.',
+  inputSchema: suggestDispositionInput,
+  requiredFeatures: ['governance.view'],
+  tags: ['read', 'suggest', 'operating-loop', 'governance'],
+  isMutation: false,
+  async handler(rawInput: unknown, ctx: McpToolContext) {
+    const input = suggestDispositionInput.parse(rawInput)
+    assertTenantScope(ctx as GovernanceToolContext)
+    const em = (ctx as GovernanceToolContext).container.resolve('em') as EntityManager
+    const finding = await em.findOne(GovernanceFinding, scopedFindingFilter(input.findingId, ctx as GovernanceToolContext))
+    if (!finding) {
+      return { found: false, findingId: input.findingId }
+    }
+    const rule = RULE_EXPLANATIONS[finding.ruleId]
+    return {
+      found: true,
+      findingId: finding.id,
+      context: {
+        ruleId: finding.ruleId,
+        severity: finding.severity,
+        ownerRole: finding.ownerRole ?? (rule ? rule.ownerRole : null),
+        impactSummary: finding.impactSummary ?? (rule ? rule.impactSummary : null),
+        evidenceIds: finding.evidenceIds ?? [],
+        ruleExplanation: rule
+          ? { trigger: rule.trigger, ownerRole: rule.ownerRole, impactSummary: rule.impactSummary }
+          : null,
+      },
+      proposal: {
+        suggestedStatus: 'resolved' as const,
+        ownerRole: (rule ? rule.ownerRole : null) as string | null,
+        suggestedDueOn: null,
+        impactSummary: null,
+        rationale: '',
+      },
+      outputSchemaDescriptor: {
+        schemaName: SUGGEST_DISPOSITION_SCHEMA,
+        jsonSchema: z.toJSONSchema(governanceDispositionSuggestion) as Record<string, unknown>,
+      },
+      href: `/backend/governance/findings/${finding.id}`,
+    }
+  },
+}) as unknown as GovernanceAiToolDefinition
+
 export const aiTools: GovernanceAiToolDefinition[] = [
   listIdentityMapsTool,
   listFindingsTool,
+  explainRuleTool,
+  suggestDispositionTool,
   acknowledgeFindingTool,
   updateFindingDispositionTool,
   acknowledgeFindingsTool as unknown as GovernanceAiToolDefinition,
