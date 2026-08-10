@@ -10,10 +10,9 @@ import {
   createAiApiOperationRunner,
   type AiToolExecutionContext,
 } from '@helios/ai-assistant/modules/ai_assistant/lib/ai-api-operation-runner'
-import type { McpToolContext } from '@helios/ai-assistant/modules/ai_assistant/lib/types'
+import type { AiToolDefinition, McpToolContext } from '@helios/ai-assistant/modules/ai_assistant/lib/types'
 import {
   assertTenantScope,
-  type AiToolDefinition,
   type CommercialAiToolDefinition,
   type CommercialToolContext,
 } from './types'

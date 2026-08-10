@@ -50,6 +50,16 @@ describe('governance explain + suggest tools', () => {
     expect((one.rule as Record<string, unknown>).trigger).toContain('cancelled')
   })
 
+  it('governance.explain_rule enforces tenant + organization scope (privilege boundary)', async () => {
+    const tool = findTool('governance.explain_rule')
+    await expect(tool.handler({}, makeCtx({ tenantId: null }) as never)).rejects.toThrow(
+      /require tenant and organization scope/,
+    )
+    await expect(tool.handler({}, makeCtx({ organizationId: null }) as never)).rejects.toThrow(
+      /require tenant and organization scope/,
+    )
+  })
+
   it('governance.suggest_disposition returns context and schema for a finding', async () => {
     emFindMock.mockResolvedValueOnce({
       id: '11111111-1111-4111-8111-111111111111',
