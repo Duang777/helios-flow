@@ -15,6 +15,7 @@ import {
   type AiAgentLoopBudgetPreset,
 } from '../../../lib/agent-runtime'
 import { AgentPolicyError } from '../../../lib/agent-tools'
+import { ensureAllModuleToolsLoaded } from '../../../lib/tool-loader'
 import { readBaseurlAllowlist, isBaseurlAllowlisted } from '../../../lib/baseurl-allowlist'
 import {
   canonicalProviderId,
@@ -642,6 +643,8 @@ export async function POST(req: NextRequest): Promise<Response> {
       rawLoopBudget !== undefined && rawLoopBudget !== 'default'
         ? resolveLoopBudgetPreset(rawLoopBudget)
         : undefined
+
+    await ensureAllModuleToolsLoaded()
 
     const effectiveConversationId = bodyResult.data.sessionId ?? bodyResult.data.conversationId ?? null
     let persistedTurn:

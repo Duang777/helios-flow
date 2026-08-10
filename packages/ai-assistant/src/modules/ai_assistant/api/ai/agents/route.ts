@@ -8,6 +8,7 @@ import { llmProviderRegistry } from '@helios/shared/lib/ai/llm-provider-registry
 import { isAgentTaskPlanEnabled, listAgents, loadAgentRegistry } from '../../../lib/agent-registry'
 import { hasRequiredFeatures } from '../../../lib/auth'
 import { toolRegistry } from '../../../lib/tool-registry'
+import { ensureAllModuleToolsLoaded } from '../../../lib/tool-loader'
 import type { AiToolDefinition } from '../../../lib/types'
 
 const logger = createLogger('ai_assistant')
@@ -64,6 +65,7 @@ export async function GET(req: NextRequest) {
     const aiConfigured = llmProviderRegistry.resolveFirstConfigured() != null
 
     await loadAgentRegistry()
+    await ensureAllModuleToolsLoaded()
     const all = listAgents()
     const accessible = all.filter((agent) =>
       hasRequiredFeatures(agent.requiredFeatures, acl.features, acl.isSuperAdmin, rbacService),
