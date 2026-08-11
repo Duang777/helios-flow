@@ -91,6 +91,7 @@ type ToolsResponse = {
 }
 
 type ToolFocus = 'all' | 'allowed' | 'write' | 'bulk' | 'destructive'
+type ToolDemoPreset = 'overview' | 'bulk' | 'write' | 'allowed' | 'risk' | 'custom'
 
 type ToolGroup = {
   moduleId: string
@@ -138,6 +139,33 @@ function matchesToolFocus(tool: ToolSummary, focus: ToolFocus, isAllowed: boolea
       return Boolean(tool.isDestructive)
     default:
       return true
+  }
+}
+
+function deriveToolDemoPreset(search: string, focus: ToolFocus): ToolDemoPreset {
+  const normalizedSearch = search.trim().toLowerCase()
+  if (!normalizedSearch && focus === 'all') return 'overview'
+  if (!normalizedSearch && focus === 'write') return 'write'
+  if (!normalizedSearch && focus === 'allowed') return 'allowed'
+  if (!normalizedSearch && focus === 'destructive') return 'risk'
+  if (normalizedSearch === 'bulk' && focus === 'all') return 'bulk'
+  return 'custom'
+}
+
+function applyToolDemoPreset(preset: ToolDemoPreset): { search: string; focus: ToolFocus } {
+  switch (preset) {
+    case 'bulk':
+      return { search: 'bulk', focus: 'all' }
+    case 'write':
+      return { search: '', focus: 'write' }
+    case 'allowed':
+      return { search: '', focus: 'allowed' }
+    case 'risk':
+      return { search: '', focus: 'destructive' }
+    case 'overview':
+    case 'custom':
+    default:
+      return { search: '', focus: 'all' }
   }
 }
 
@@ -272,6 +300,7 @@ function ToolInventory({ allowedToolNames }: { allowedToolNames: string[] }) {
   const visibleMutationCount = filteredTools.filter((tool) => tool.isMutation).length
   const visibleBulkCount = filteredTools.filter((tool) => tool.isBulk).length
   const visibleDestructiveCount = filteredTools.filter((tool) => Boolean(tool.isDestructive)).length
+  const demoPreset = React.useMemo(() => deriveToolDemoPreset(search, focus), [focus, search])
 
   React.useEffect(() => {
     setSearch('')
@@ -349,6 +378,40 @@ function ToolInventory({ allowedToolNames }: { allowedToolNames: string[] }) {
             {t('ai_assistant.playground.tools.summary.destructive', 'Destructive: ')}
             <span className="ml-1 font-mono text-foreground">{visibleDestructiveCount}</span>
           </Badge>
+        </div>
+
+        <div className="overflow-x-auto">
+          <SegmentedControl
+            value={demoPreset}
+            onValueChange={(next) => {
+              const nextPreset = next as ToolDemoPreset
+              const { search: nextSearch, focus: nextFocus } = applyToolDemoPreset(nextPreset)
+              setSearch(nextSearch)
+              setFocus(nextFocus)
+            }}
+            aria-label={t('ai_assistant.playground.tools.demoPreset', 'Demo preset')}
+            size="sm"
+            className="min-w-fit"
+          >
+            <SegmentedControlItem value="overview">
+              {t('ai_assistant.playground.tools.demo.overview', 'Overview')}
+            </SegmentedControlItem>
+            <SegmentedControlItem value="bulk">
+              {t('ai_assistant.playground.tools.demo.bulk', 'Bulk review')}
+            </SegmentedControlItem>
+            <SegmentedControlItem value="write">
+              {t('ai_assistant.playground.tools.demo.write', 'Write ops')}
+            </SegmentedControlItem>
+            <SegmentedControlItem value="allowed">
+              {t('ai_assistant.playground.tools.demo.allowed', 'Whitelist')}
+            </SegmentedControlItem>
+            <SegmentedControlItem value="risk">
+              {t('ai_assistant.playground.tools.demo.risk', 'Risk check')}
+            </SegmentedControlItem>
+            <SegmentedControlItem value="custom">
+              {t('ai_assistant.playground.tools.demo.custom', 'Custom')}
+            </SegmentedControlItem>
+          </SegmentedControl>
         </div>
 
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">

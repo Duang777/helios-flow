@@ -22,9 +22,15 @@ Add a first-class tools inventory surface to the AI playground so admins can ins
 - [x] Extend the playground Playwright smoke test to cover the new tools tab.
 - [x] Update the playground docs with the new admin demo flow.
 
+### Phase 4: Demo Readiness
+- [x] Add one-click demo presets for the common tool review cuts: overview, bulk review, write ops, whitelist, and risk check.
+- [x] Cover preset behavior in Playwright so the demo path is reproducible.
+- [x] Update the docs and manual QA route with the preset-driven review flow.
+
 ## Risks and Mitigations
 | Risk | Impact | Mitigation |
 |------|--------|------------|
 | Tool inventory gets out of sync with registry loading | Medium | Reuse the same loader path as the agent list route |
 | UI styling drifts from DS norms | Medium | Use status badge/badge primitives only |
 | Demo flow becomes hard to explain | Low | Document the tab in the playground guide |
+| Presets hide important tools during review | Low | Keep presets as search/focus state only and leave manual filters available |

@@ -90,6 +90,7 @@ test.describe('TC-AI-PLAYGROUND-004: AI Playground', () => {
           tools: [
             {
               name: 'catalog.bulk_delete_products',
+              moduleId: 'catalog',
               displayName: 'Bulk delete products',
               description: 'Delete many products at once.',
               tags: ['write', 'catalog', 'bulk'],
@@ -100,6 +101,7 @@ test.describe('TC-AI-PLAYGROUND-004: AI Playground', () => {
             },
             {
               name: 'customers.search',
+              moduleId: 'customers',
               displayName: 'Search customers',
               description: 'Search the customer directory.',
               tags: ['read', 'customers'],
@@ -162,13 +164,23 @@ test.describe('TC-AI-PLAYGROUND-004: AI Playground', () => {
       await expect(page.locator('[data-ai-playground-tools-groups] > section')).toHaveCount(2);
       const searchBox = page.getByRole('searchbox', { name: /search tools/i });
       await expect(searchBox).toBeVisible();
-      await searchBox.fill('bulk');
+      await page.getByRole('radio', { name: /bulk review/i }).click();
+      await expect(searchBox).toHaveValue('bulk');
       await expect(page.locator('[data-ai-playground-tools-groups] > section')).toHaveCount(1);
       await expect(page.locator('[data-ai-tool-name="catalog.bulk_delete_products"]')).toBeVisible();
       await expect(page.locator('[data-ai-tool-name="customers.search"]')).toHaveCount(0);
-      await searchBox.fill('');
+      await page.getByRole('radio', { name: /write ops/i }).click();
+      await expect(searchBox).toHaveValue('');
+      await expect(page.locator('[data-ai-tool-name="catalog.bulk_delete_products"]')).toBeVisible();
+      await expect(page.locator('[data-ai-tool-name="customers.search"]')).toHaveCount(0);
+      await expect(page.getByRole('radio', { name: /^write$/i })).toBeChecked();
       await page.getByRole('radio', { name: /allowed/i }).click();
       await expect(page.locator('[data-ai-playground-tools-groups] > section')).toHaveCount(1);
+      await expect(page.locator('[data-ai-tool-name="customers.search"]')).toBeVisible();
+      await expect(page.locator('[data-ai-tool-name="catalog.bulk_delete_products"]')).toHaveCount(0);
+      await page.getByRole('radio', { name: /overview/i }).click();
+      await page.getByRole('radio', { name: /whitelist/i }).click();
+      await expect(searchBox).toHaveValue('');
       await expect(page.locator('[data-ai-tool-name="customers.search"]')).toBeVisible();
       await expect(page.locator('[data-ai-tool-name="catalog.bulk_delete_products"]')).toHaveCount(0);
     } else if (await empty.isVisible().catch(() => false)) {
