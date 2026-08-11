@@ -51,6 +51,7 @@ const OPERATING_LOOP_ALLOWED_TOOLS: readonly string[] = [
   'governance.acknowledge_finding',
   'governance.update_finding_disposition',
   'governance.acknowledge_findings',
+  'projects.manage_milestone',
   'search.hybrid_search',
   'search.get_record_context',
   'meta.describe_agent',

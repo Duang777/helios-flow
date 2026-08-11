@@ -421,6 +421,30 @@ const suggestKpiActionsTool = defineAiTool({
       periodKey: input.periodKey,
       context: { rows, draggedOrganizations },
       proposal: { actions: [] as Array<z.infer<typeof kpiActionSuggestion>> },
+      // `linkedMutations` closes the two-stage loop: after the agent fills
+      // `proposal.actions[]` with {organizationId, metricKey, action, ownerRole},
+      // it should pick insights.manage_kpi_target (set/revise the target) and
+      // copy `argsTemplate` substituting placeholders. Under `confirm-required`,
+      // those calls produce an AiPendingAction and route through the confirm gate.
+      linkedMutations: [
+        {
+          toolName: 'insights.manage_kpi_target',
+          purpose:
+            'Persist a KPI target. For `review_target` actions, create/update the target for the metric+period. ' +
+            'For `investigate_actuals` / `assign_owner` / `escalate`, the agent may include a `note` capturing context.',
+          argsTemplate: {
+            operation: 'create',
+            organizationId: '${organizationId}',
+            metricKey: '${metricKey}',
+            unit: 'amount',
+            periodType: '${periodType}',
+            periodKey: '${periodKey}',
+            targetValue: '<decimal>',
+            currencyCode: 'CNY',
+            note: '${action}: ${ownerRole}',
+          },
+        },
+      ],
       outputSchemaDescriptor: {
         schemaName: SUGGEST_KPI_ACTIONS,
         jsonSchema: z.toJSONSchema(kpiActionSuggestion) as Record<string, unknown>,

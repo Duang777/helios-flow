@@ -357,6 +357,7 @@ function persistAssistantOnStreamCompletion(input: {
   const tenantId = input.tenantId
   const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>()
   const writer = writable.getWriter()
+  const encoder = new TextEncoder()
   const decoder = new TextDecoder()
   const contentType = input.response.headers.get('content-type')
 
@@ -364,16 +365,32 @@ function persistAssistantOnStreamCompletion(input: {
     const reader = input.response.body!.getReader()
     let raw = ''
     try {
+      let buffered = ''
       for (;;) {
         const { value, done } = await reader.read()
         if (done) break
         if (!value) continue
         raw += decoder.decode(value, { stream: true })
+        // Forward chunk unchanged to the client.
         await writer.write(value)
       }
       raw += decoder.decode()
       const assistant = extractAssistantSnapshot(raw, contentType)
       if (assistant.content.trim() || assistant.uiParts.length > 0) {
+        // Forward any UI parts (e.g. mutation-preview-card) into the SSE
+        // stream so chat clients (and smoke tests) can react in real time
+        // instead of waiting for the assistant message to be persisted.
+        // Each uiPart is emitted as a `data:` event with a stable shape:
+        //   { type: 'ui-part', componentId, ...payload }
+        for (const part of assistant.uiParts) {
+          try {
+            const json = JSON.stringify({ type: 'ui-part', ...part })
+            await writer.write(encoder.encode(`data: ${json}\n\n`))
+          } catch (err) {
+            logger.warn('Failed to forward uiPart to stream', { err })
+          }
+        }
+
         const repo = createConversationStorage(input.container)
         await repo.appendMessage(
           input.conversationId,

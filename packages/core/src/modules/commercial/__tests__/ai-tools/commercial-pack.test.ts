@@ -15,7 +15,14 @@ jest.mock(
 )
 
 import commercialAiTools from '../../ai-tools/commercial-pack'
+import commercialWriteAiTools from '../../ai-tools/write-pack'
 import features from '../../acl'
+// Aggregate module-level so linked-write assertions can find real mutation tools
+// registered by the write pack (the modules' `aiTools` array merges both packs).
+const allCommercialAiTools = [...commercialAiTools, ...commercialWriteAiTools] as Array<{
+  name: string
+  isMutation?: boolean
+}>
 
 const knownFeatureIds = new Set(features.map((entry) => entry.id))
 
@@ -239,5 +246,51 @@ describe('commercial AI tools', () => {
     expect((result.outputSchemaDescriptor as Record<string, unknown>).schemaName).toBe(
       'CommercialCollectionActionSuggestion',
     )
+  })
+
+  it('commercial.suggest_collection_actions advertises linkedMutations pointing at real write tools', async () => {
+    const tool = findTool('commercial.suggest_collection_actions')
+    runMock.mockResolvedValueOnce({
+      success: true,
+      statusCode: 200,
+      data: {
+        items: [
+          { id: 'inv-1', invoiceNo: 'INV-1', dueDate: '2026-08-01', amount: '500.00', status: 'issued' },
+        ],
+      },
+    })
+    const result = (await tool.handler(
+      { asOf: '2026-08-31', limit: 10 },
+      makeCtx() as never,
+    )) as Record<string, unknown>
+
+    // Two-stage loop contract: every linkedMutation.toolName must point at a
+    // registered commercial write tool AND carry an argsTemplate with at
+    // least one ${...} placeholder the LLM can substitute.
+    const linked = result.linkedMutations as Array<Record<string, unknown>>
+    expect(Array.isArray(linked)).toBe(true)
+    expect(linked.length).toBeGreaterThan(0)
+    const toolNames = linked.map((entry) => entry.toolName)
+    const writeToolNames = new Set(
+      allCommercialAiTools
+        .filter((entry) => entry.isMutation === true)
+        .map((entry) => entry.name),
+    )
+    for (const name of toolNames) {
+      expect(writeToolNames.has(name as string)).toBe(true)
+    }
+    expect(toolNames).toEqual(
+      expect.arrayContaining([
+        'commercial.manage_payment',
+        'commercial.manage_allocation',
+        'commercial.manage_invoice',
+      ]),
+    )
+    for (const entry of linked) {
+      expect(typeof entry.purpose).toBe('string')
+      expect((entry.purpose as string).length).toBeGreaterThan(0)
+      const template = entry.argsTemplate as Record<string, unknown>
+      expect(JSON.stringify(template)).toMatch(/\$\{/)
+    }
   })
 })

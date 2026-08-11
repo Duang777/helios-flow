@@ -7,7 +7,9 @@ import {
   type AiToolExecutionContext,
 } from '@helios/ai-assistant/modules/ai_assistant/lib/ai-api-operation-runner'
 import type { AiToolDefinition, McpToolContext } from '@helios/ai-assistant/modules/ai_assistant/lib/types'
+import type { EntityManager } from '@mikro-orm/postgresql'
 import { isMilestoneDelayed } from '../lib/milestoneDelay'
+import { ProjectMilestone } from '../data/entities'
 import {
   assertTenantScope,
   type ProjectsAiToolDefinition,
@@ -462,6 +464,24 @@ const suggestDelayMitigationTool = defineAiTool({
       asOf,
       context: { delayedMilestones, risks },
       proposal: { mitigations: [] as Array<z.infer<typeof delayMitigationSuggestion>> },
+      // `linkedMutations` closes the two-stage loop: once the agent fills
+      // `proposal.mitigations[]` with {milestoneId, riskId, action, ownerRole},
+      // it should pick projects.manage_milestone and copy argsTemplate
+      // substituting placeholders. Under `confirm-required`, those calls
+      // produce an AiPendingAction and route through the confirm gate.
+      linkedMutations: [
+        {
+          toolName: 'projects.manage_milestone',
+          purpose:
+            'Persist the mitigation: replan plannedDate for replan_date, flip status to in_progress when escalating, or cancel when postponed.',
+          argsTemplate: {
+            operation: 'update',
+            milestoneId: '${milestoneId}',
+            status: '${action === \'escalate_owner\' ? \'in_progress\' : (action === \'mitigate_risk\' ? \'in_progress\' : \'planned\')}',
+            plannedDate: '\'${action === \'replan_date\' ? <YYYY-MM-DD> : null}\'',
+          },
+        },
+      ],
       outputSchemaDescriptor: {
         schemaName: SUGGEST_DELAY_MITIGATION_SCHEMA,
         jsonSchema: z.toJSONSchema(delayMitigationSuggestion) as Record<string, unknown>,
@@ -480,5 +500,140 @@ const projectsAiTools: ProjectsAiToolDefinition[] = [
   suggestDelayMitigationTool,
   listRisksTool,
 ]
+
+// ---------------------------------------------------------------------------
+// Mutation: `projects.manage_milestone`
+//
+// Closes the two-stage loop for `projects.suggest_delay_mitigation`. Under
+// `confirm-required` policy, the agent runtime intercepts the tool call via
+// prepareMutation and surfaces a mutation-preview-card before any DB change
+// is committed.
+// ---------------------------------------------------------------------------
+const manageMilestoneInput = z
+  .object({
+    operation: z.enum(['create', 'update', 'delete']),
+    milestoneId: z.string().uuid().optional(),
+    organizationId: z.string().uuid().optional(),
+    projectId: z.string().uuid().optional(),
+    name: z.string().trim().min(1).max(200).optional(),
+    status: z.enum(['planned', 'in_progress', 'done', 'cancelled']).optional(),
+    plannedDate: z.string().nullable().optional(),
+    actualDate: z.string().nullable().optional(),
+    sortOrder: z.number().int().optional(),
+    isActive: z.boolean().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.operation === 'create') {
+      if (!value.projectId)
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'projectId is required for create.', path: ['projectId'] })
+      if (!value.name)
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'name is required for create.', path: ['name'] })
+    }
+    if (value.operation === 'update' && !value.milestoneId) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'milestoneId is required for update.', path: ['milestoneId'] })
+    }
+    if (value.operation === 'delete' && !value.milestoneId) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'milestoneId is required for delete.', path: ['milestoneId'] })
+    }
+  })
+
+type ManageMilestoneInput = z.infer<typeof manageMilestoneInput>
+
+function milestoneEm(ctx: ProjectsToolContext): EntityManager {
+  return ctx.container.resolve<EntityManager>('em')
+}
+
+async function loadMilestoneForScope(
+  em: EntityManager,
+  ctx: ProjectsToolContext,
+  tenantId: string,
+  milestoneId: string,
+): Promise<ProjectMilestone | null> {
+  const row = await em.findOne(ProjectMilestone, {
+    id: milestoneId,
+    tenantId,
+    organizationId: ctx.organizationId ?? undefined,
+    deletedAt: null,
+  })
+  if (!row) return null
+  if (ctx.organizationId && row.organizationId !== ctx.organizationId) return null
+  return row
+}
+
+function milestoneSnapshot(row: ProjectMilestone): Record<string, unknown> {
+  return {
+    projectId: row.projectId,
+    name: row.name,
+    status: row.status,
+    plannedDate: row.plannedDate ?? null,
+    actualDate: row.actualDate ?? null,
+    sortOrder: row.sortOrder,
+    isActive: !!row.isActive,
+  }
+}
+
+const manageMilestoneTool = defineAiTool({
+  name: 'projects.manage_milestone',
+  displayName: 'Manage milestone',
+  description:
+    'Create, update, or delete a project milestone with confirm-required approval. The canonical write target ' +
+    'of `projects.suggest_delay_mitigation` — replan a plannedDate, change status, or set actualDate.',
+  inputSchema: manageMilestoneInput,
+  requiredFeatures: ['projects.manage'],
+  tags: ['write', 'mutation', 'operating-loop', 'projects'],
+  isMutation: true,
+  async handler(rawInput: ManageMilestoneInput, ctx: McpToolContext) {
+    const { tenantId, organizationId } = assertTenantScope(ctx as unknown as ProjectsToolContext)
+    const input = manageMilestoneInput.parse(rawInput)
+    const runner = createAiApiOperationRunner(ctx as unknown as AiToolExecutionContext)
+    if (input.operation === 'delete') {
+      const response = await runner.run({
+        method: 'DELETE',
+        path: '/projects/milestones',
+        query: { id: input.milestoneId, organizationId, tenantId },
+      })
+      if (!response.success)
+        throw new Error(response.error ?? `Failed to delete milestone "${input.milestoneId}"`)
+      return { milestoneId: input.milestoneId, commandName: 'projects.milestones.delete' }
+    }
+    if (input.operation === 'create') {
+      if (!organizationId)
+        throw new Error('[internal] Organization scope is required to create a milestone.')
+      if (!input.projectId)
+        throw new Error('[internal] projectId is required for create.')
+      const response = await runner.run<{ id?: string }>({
+        method: 'POST',
+        path: '/projects/milestones',
+        body: {
+          organizationId,
+          tenantId,
+          projectId: input.projectId,
+          name: input.name!,
+          status: input.status,
+          plannedDate: input.plannedDate ?? null,
+          actualDate: input.actualDate ?? null,
+          sortOrder: input.sortOrder,
+          isActive: input.isActive,
+        },
+      })
+      if (!response.success) throw new Error(response.error ?? 'Failed to create milestone')
+      return { milestoneId: response.data?.id ?? null, commandName: 'projects.milestones.create' }
+    }
+    // update
+    const body: Record<string, unknown> = { id: input.milestoneId, tenantId, organizationId }
+    if (input.name !== undefined) body.name = input.name
+    if (input.status !== undefined) body.status = input.status
+    if (input.plannedDate !== undefined) body.plannedDate = input.plannedDate
+    if (input.actualDate !== undefined) body.actualDate = input.actualDate
+    if (input.sortOrder !== undefined) body.sortOrder = input.sortOrder
+    if (input.isActive !== undefined) body.isActive = input.isActive
+    const response = await runner.run({ method: 'PUT', path: '/projects/milestones', body })
+    if (!response.success)
+      throw new Error(response.error ?? `Failed to update milestone "${input.milestoneId}"`)
+    return { milestoneId: input.milestoneId, commandName: 'projects.milestones.update' }
+  },
+}) as unknown as ProjectsAiToolDefinition
+
+projectsAiTools.push(manageMilestoneTool)
 
 export default projectsAiTools

@@ -621,6 +621,49 @@ const suggestCollectionActionsTool = defineAiTool({
       overdueInvoiceCount: overdueInvoices.length,
       context: { overdueInvoices },
       proposal: { actions: [] as Array<z.infer<typeof collectionActionSuggestion>> },
+      // `linkedMutations` closes the two-stage loop: after the agent fills
+      // `proposal.actions[]` with `{invoiceId, action, priority, ownerRole}`,
+      // it can pick a write tool below and copy `argsTemplate` with
+      // placeholder substitution. Under `confirm-required`, those calls
+      // produce an AiPendingAction and route through the confirm gate.
+      linkedMutations: [
+        {
+          toolName: 'commercial.manage_payment',
+          purpose:
+            'Record a payment that closes / offsets the overdue invoice; pairs with `manage_allocation` to attach it.',
+          argsTemplate: {
+            operation: 'create',
+            customerEntityId: null,
+            paymentNo: '${action}-${invoiceNo ?? invoiceId}',
+            status: 'posted',
+            amount: '${amount}',
+            currencyCode: 'USD',
+            paidOn: '${asOf}',
+          },
+        },
+        {
+          toolName: 'commercial.manage_allocation',
+          purpose:
+            'Pair the recorded payment with the overdue invoice (must satisfy allocation within-limits guard).',
+          argsTemplate: {
+            operation: 'create',
+            invoiceId: '${invoiceId}',
+            paymentId: '${paymentId}',
+            allocatedAmount: '${amount}',
+            allocatedOn: '${asOf}',
+          },
+        },
+        {
+          toolName: 'commercial.manage_invoice',
+          purpose:
+            'Void the invoice when the recommended action is write_off_review (status changes to "void").',
+          argsTemplate: {
+            operation: 'update',
+            invoiceId: '${invoiceId}',
+            status: 'void',
+          },
+        },
+      ],
       outputSchemaDescriptor: {
         schemaName: SUGGEST_COLLECTION_ACTIONS_SCHEMA,
         jsonSchema: z.toJSONSchema(collectionActionSuggestion) as Record<string, unknown>,

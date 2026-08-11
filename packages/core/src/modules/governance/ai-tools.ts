@@ -439,6 +439,36 @@ const suggestDispositionTool = defineAiTool({
         impactSummary: null,
         rationale: '',
       },
+      // `linkedMutations` closes the two-stage loop: after the agent fills
+      // `proposal`, it can pick one of these write tools (in the agent's
+      // `allowedTools`) and copy the argsTemplate substituting placeholders.
+      // Under `confirm-required`, those write tool calls go through
+      // `prepareMutation` → AiPendingAction → mutation-preview-card → the
+      // /api/ai/actions/:id/confirm gate, so user approval is mandatory.
+      linkedMutations: [
+        {
+          toolName: 'governance.update_finding_disposition',
+          purpose:
+            'Persist the structured disposition (status + owner role + suggested due date + impact summary).',
+          argsTemplate: {
+            findingId: '${findingId}',
+            status: '${proposal.suggestedStatus}',
+            ownerRole: '${proposal.ownerRole}',
+            suggestedDueOn: '${proposal.suggestedDueOn}',
+            impactSummary: '${proposal.impactSummary}',
+          },
+        },
+        {
+          toolName: 'governance.acknowledge_finding',
+          purpose: 'Mark the finding as acknowledged (status only, no other fields).',
+          argsTemplate: { findingId: '${findingId}' },
+        },
+        {
+          toolName: 'governance.acknowledge_findings',
+          purpose: 'Batch-acknowledge up to 20 findings in one confirmed action.',
+          argsTemplate: { findingIds: ['${findingId}'] },
+        },
+      ],
       outputSchemaDescriptor: {
         schemaName: SUGGEST_DISPOSITION_SCHEMA,
         jsonSchema: z.toJSONSchema(governanceDispositionSuggestion) as Record<string, unknown>,

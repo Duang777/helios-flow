@@ -82,4 +82,50 @@ describe('governance explain + suggest tools', () => {
       'GovernanceDispositionSuggestion',
     )
   })
+
+  it('governance.suggest_disposition advertises linkedMutations pointing at real write tools', async () => {
+    emFindMock.mockResolvedValueOnce({
+      id: '11111111-1111-4111-8111-111111111111',
+      ruleId: 'gov.project_milestone_delayed',
+      severity: 'warning',
+      ownerRole: 'project_manager',
+      impactSummary: 'Delivery milestone is overdue.',
+      evidenceIds: [],
+      status: 'open',
+    })
+    const tool = findTool('governance.suggest_disposition')
+    const result = (await tool.handler(
+      { findingId: '11111111-1111-4111-8111-111111111111' },
+      makeCtx() as never,
+    )) as Record<string, unknown>
+    const linked = result.linkedMutations as Array<Record<string, unknown>>
+    expect(Array.isArray(linked)).toBe(true)
+    const toolNames = linked.map((entry) => entry.toolName)
+    const writeToolNames = new Set(
+      governanceAiTools
+        .filter((entry) => entry.isMutation === true)
+        .map((entry) => entry.name),
+    )
+    // Every advertised write tool must exist + be a real mutation tool.
+    for (const name of toolNames) {
+      expect(writeToolNames.has(name as string)).toBe(true)
+    }
+    expect(toolNames).toEqual(
+      expect.arrayContaining([
+        'governance.update_finding_disposition',
+        'governance.acknowledge_finding',
+      ]),
+    )
+    // The disposition tool must carry a placeholder-bearing argsTemplate that
+    // maps every proposal field back through the gate.
+    const dispositionLink = linked.find(
+      (entry) => entry.toolName === 'governance.update_finding_disposition',
+    )
+    expect(dispositionLink).toBeDefined()
+    const template = dispositionLink!.argsTemplate as Record<string, unknown>
+    expect(template.findingId).toBe('${findingId}')
+    expect(template.status).toBe('${proposal.suggestedStatus}')
+    expect(template.ownerRole).toBe('${proposal.ownerRole}')
+    expect(template.suggestedDueOn).toBe('${proposal.suggestedDueOn}')
+  })
 })
