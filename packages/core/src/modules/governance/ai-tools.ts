@@ -405,7 +405,11 @@ const suggestDispositionTool = defineAiTool({
   displayName: 'Suggest finding disposition',
   description:
     'Build a structured disposition suggestion for one governance finding (status, owner, due date, rationale). ' +
-    'Read-only: the surrounding agent fills the proposal, then persists it through governance.update_finding_disposition.',
+    'Read-only — the tool returns a proposal (initially empty) plus a `linkedMutations` array describing the ' +
+    'governance write tools that can persist the disposition (typically `governance.update_finding_disposition` ' +
+    'or `governance.acknowledge_findings`). After this tool returns, ALWAYS follow up by calling one of those ' +
+    'linked write tools with the `argsTemplate` substituted from the proposal. The mutation itself is gated ' +
+    'by `ai_assistant.actions.manage`, so chain through the standard pending-actions confirm.',
   inputSchema: suggestDispositionInput,
   requiredFeatures: ['governance.view'],
   tags: ['read', 'suggest', 'operating-loop', 'governance'],

@@ -408,8 +408,11 @@ const suggestDelayMitigationTool = defineAiTool({
   name: 'projects.suggest_delay_mitigation',
   displayName: 'Suggest delay mitigation',
   description:
-    'Build structured delay-mitigation suggestions from delayed milestones and open risks. Read-only: the agent fills ' +
-    'the proposal, then persists changes through projects.manage_project or risk updates.',
+    'Build structured delay-mitigation suggestions from delayed milestones and open risks. Read-only — the tool ' +
+    'returns a proposal (initially empty) plus a `linkedMutations` array describing the projects write tools that ' +
+    'can persist each mitigation (typically `projects.manage_milestone`). After this tool returns, ALWAYS follow ' +
+    'up by calling the linked write tool with the `argsTemplate` substituted from each proposal item. The mutation ' +
+    'itself is gated by `ai_assistant.actions.manage`, so chain through the standard pending-actions confirm.',
   inputSchema: suggestDelayMitigationInput,
   requiredFeatures: ['projects.view'],
   tags: ['read', 'suggest', 'operating-loop', 'projects'],

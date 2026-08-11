@@ -576,8 +576,12 @@ const suggestCollectionActionsTool = defineAiTool({
   name: 'commercial.suggest_collection_actions',
   displayName: 'Suggest collection actions',
   description:
-    'Build structured collection-action suggestions for overdue issued invoices. Read-only: the agent fills the ' +
-    'proposal, then persists reminders or escalations through the appropriate commercial write tools.',
+    'Build structured collection-action suggestions for overdue issued invoices. Read-only — the tool returns ' +
+    'a proposal (initially empty) plus a `linkedMutations` array describing the commercial write tools that ' +
+    'can persist each suggestion (e.g. `commercial.manage_payment`, `commercial.manage_allocation`, ' +
+    '`commercial.manage_invoice`). After this tool returns, ALWAYS follow up by calling one of those linked ' +
+    'write tools with the corresponding `argsTemplate` substituted from each proposal item. The mutation ' +
+    'itself is gated by `ai_assistant.actions.manage`, so chain through the standard pending-actions confirm.',
   inputSchema: suggestCollectionActionsInput,
   requiredFeatures: ['commercial.view'],
   tags: ['read', 'suggest', 'operating-loop', 'commercial'],

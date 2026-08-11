@@ -364,8 +364,11 @@ const suggestKpiActionsTool = defineAiTool({
   name: 'insights.suggest_kpi_actions',
   displayName: 'Suggest KPI actions',
   description:
-    'Build structured KPI remediation suggestions for organizations behind target. Read-only: the agent fills the ' +
-    'proposal, then persists target changes through insights.manage_kpi_target.',
+    'Build structured KPI remediation suggestions for organizations behind target. Read-only — the tool returns ' +
+    'a proposal (initially empty) plus a `linkedMutations` array describing the insights write tools that can ' +
+    'persist each action (typically `insights.manage_kpi_target`). After this tool returns, ALWAYS follow up by ' +
+    'calling the linked write tool with the `argsTemplate` substituted from each proposal item. The mutation ' +
+    'itself is gated by `ai_assistant.actions.manage`, so chain through the standard pending-actions confirm.',
   inputSchema: suggestKpiActionsInput,
   requiredFeatures: ['insights.view'],
   tags: ['read', 'suggest', 'operating-loop', 'insights'],
