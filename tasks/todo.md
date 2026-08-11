@@ -23,3 +23,4 @@
 - [x] Run focused i18n/UI/notification tests and affected package builds.
 - [x] Promote `yarn i18n:check-sync` to green by preserving used extra keys, sorting stale locale files, and creating missing module locale files.
 - [x] Fix release-build type errors in AI pending-action confirm, AI chat UI-part streaming, and Operating Loop page-context injection props.
+- [x] Clear blocking `yarn i18n:check` missing-key failures for UI phone fields, commercial audit labels, and AI playground tools.

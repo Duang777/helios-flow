@@ -122,12 +122,15 @@ Close the remaining translation-sync debt so the Chinese-first presentation base
 - [x] Run `yarn i18n:check-sync --fix` to sort stale files and create missing module locale files.
 - [x] Re-run `yarn i18n:check-sync` and require it to pass.
 - [x] Fix release-build type errors exposed by the green-gate pass in AI pending-action confirm, AI chat UI-part streaming, and Operating Loop page-context widgets.
+- [x] Promote the broader `yarn i18n:check` gate past blocking usage failures by adding missing UI phone-field, commercial audit, and AI playground tool keys.
 
 ### Verification Notes
 - `yarn i18n:check-sync` passed with all 53 translation modules in sync.
+- `yarn i18n:check` passed with zero missing keys. Remaining hardcoded-string and value-coverage findings are advisory under the current Phase 1 i18n remediation policy.
 - `yarn workspace @helios/ai-assistant build` passed after tightening pending-action and UI-part stream types.
 - `yarn workspace @helios/core build` passed after aligning the Operating Loop injection widget props with the framework contract.
 - `yarn build:app` passed; existing Turbopack NFT trace warnings remain warnings only.
 - `yarn jest --config packages/ai-assistant/jest.config.cjs pending-action-contract --runInBand --forceExit` passed.
 - `yarn jest --config packages/ai-assistant/jest.config.cjs AiChatConversationRepository --runInBand --forceExit` passed.
 - `yarn workspace @helios/core test -- operating-loop-page-context --runInBand` passed.
+- `yarn generate` and `yarn build:packages` passed after the missing-key closure.
