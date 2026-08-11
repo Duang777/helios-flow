@@ -42,6 +42,33 @@ Turn the current M5-M7 read/write tool chain into a reproducible operating-advis
 - The real-model path is intentionally strict: failures include the prompt id, missing tools/markers, partial tool calls, and partial text length.
 - `npx playwright test --config .ai/qa/tests/playwright.config.ts packages/core/src/modules/insights/__integration__/TC-INS-OPERATING-WIDGET-001.spec.ts packages/core/src/modules/governance/__integration__/TC-AI-OPERATING-QUALITY-002.spec.ts` passed the page-context widget and playground operating-loop UI checks.
 
+## Phase 5: Active Operating Digest
+
+### Goal
+Make the operating assistant proactive: after governance rules run, Helios should publish a real, scoped operating-loop digest notification that summarizes critical findings, delayed projects, overdue invoices, overdue AR, and current-month KPI gaps.
+
+### Architecture Decisions
+- Keep governance focused on rule detection; put the cross-module operating summary in `insights`.
+- Use `governance.rules.run` as the first trigger because it already marks the point where project/commercial/governance signals are fresh.
+- Reuse commercial and KPI formula helpers instead of computing AR or completion rates in the subscriber.
+- Fail visibly through structured logs if source reads fail; do not silently downgrade to empty metrics.
+- Send a feature-scoped notification with `insights.view`, a stable daily group key, i18n title/body keys, and an assistant backend link.
+
+### Task List
+- [x] Add commercial overdue-invoice summary helper and tests.
+- [x] Add insights operating-loop digest collector and notification payload tests.
+- [x] Register `insights.operating_loop.digest` notification type with en/zh i18n.
+- [x] Subscribe to `governance.rules.run` and create the proactive digest from real data.
+- [x] Extend the full operating-loop integration spec to verify the new notification.
+- [x] Run generation, focused tests, affected builds, and budget checks.
+
+### Verification Notes
+- `yarn workspace @helios/core test -- metrics operatingLoopDigest --runInBand` passed commercial overdue summary and operating digest payload tests.
+- `yarn generate` passed after adding the insights notification type and subscriber.
+- `yarn workspace @helios/core build` passed after the proactive digest implementation.
+- `npx playwright test --config .ai/qa/tests/playwright.config.ts packages/core/src/modules/governance/__integration__/TC-LOOP-001.spec.ts` passed the full API operating loop and proactive digest notification check.
+- `yarn agents:check-budget` passed with the root chain under budget.
+
 ## Risks and Mitigations
 | Risk | Impact | Mitigation |
 |------|--------|------------|
@@ -49,3 +76,4 @@ Turn the current M5-M7 read/write tool chain into a reproducible operating-advis
 | Seed pollutes normal environments | Medium | Keep it explicit and idempotent; do not hook into `seed:defaults` |
 | Page-context widget overexposes data | High | Pass only scoped IDs already visible on the page; runtime/tool ACL still gates reads |
 | Injection registry gets stale | Medium | Run `yarn generate` and add tests around context derivation |
+| Active digest double-counts or masks source failures | High | Group by organization/asOf; reuse source metric helpers; log failures instead of falling back |

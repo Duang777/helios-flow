@@ -1,4 +1,4 @@
-import { computeCommercialMetrics } from '../metrics'
+import { computeCommercialMetrics, summarizeOverdueInvoices } from '../metrics'
 
 describe('computeCommercialMetrics', () => {
   const asOf = '2026-08-31'
@@ -86,5 +86,26 @@ describe('computeCommercialMetrics', () => {
     expect(result.invoiceRate).toBe('40.00')
     expect(result.arOutstanding).toBe('400.00')
     expect(result.overdueOutstanding).toBe('400.00')
+  })
+
+  it('summarizes overdue issued invoices with outstanding balances', () => {
+    const summary = summarizeOverdueInvoices({
+      asOf,
+      invoices: [
+        { id: 'inv-1', amount: '800.00', dueDate: '2026-08-01', status: 'issued' },
+        { id: 'inv-2', amount: '200.00', dueDate: '2026-08-01', status: 'issued' },
+        { id: 'inv-3', amount: '999.00', dueDate: '2026-08-01', status: 'void' },
+        { id: 'inv-4', amount: '100.00', dueDate: '2026-09-01', status: 'issued' },
+      ],
+      allocations: [
+        { invoiceId: 'inv-1', allocatedAmount: '300.00' },
+        { invoiceId: 'inv-2', allocatedAmount: '200.00' },
+      ],
+    })
+
+    expect(summary).toEqual({
+      overdueInvoiceCount: 1,
+      overdueOutstanding: '500.00',
+    })
   })
 })

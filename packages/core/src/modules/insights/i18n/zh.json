@@ -60,6 +60,8 @@
   "insights.audit.kpiTargetCreate": "创建 KPI 目标",
   "insights.audit.kpiTargetUpdate": "更新 KPI 目标",
   "insights.audit.kpiTargetDelete": "删除 KPI 目标",
+  "insights.notifications.operatingLoop.digest.title": "今日经营闭环摘要",
+  "insights.notifications.operatingLoop.digest.body": "截至 {asOf}：critical 检出 {criticalFindingCount} 条、延期项目 {delayedProjectCount} 个、逾期发票 {overdueInvoiceCount} 张（{overdueOutstanding}）、KPI 缺口 {kpiGapCount} 个。公式来源：{formulaSources}。",
   "insights.operatingLoop.trigger.ariaLabel": "打开经营闭环助手",
   "insights.operatingLoop.trigger.label": "问经营 AI",
   "insights.operatingLoop.sheet.title": "经营闭环助手",

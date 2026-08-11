@@ -64,6 +64,13 @@ export type CommercialMetricsInput = {
   filters?: Record<string, string | undefined>
 }
 
+export type OverdueInvoiceSummaryInput = Pick<CommercialMetricsInput, 'invoices' | 'allocations' | 'asOf'>
+
+export type OverdueInvoiceSummary = {
+  overdueInvoiceCount: number
+  overdueOutstanding: string
+}
+
 export type MetricDefinition = {
   formula: string
   sources: string[]
@@ -135,6 +142,31 @@ export function isOperatingInvoiceStatus(status: string): boolean {
   return status === 'issued'
 }
 
+export function summarizeOverdueInvoices(input: OverdueInvoiceSummaryInput): OverdueInvoiceSummary {
+  const allocByInvoice = new Map<string, bigint>()
+  for (const allocation of input.allocations) {
+    const previous = allocByInvoice.get(allocation.invoiceId) ?? 0n
+    allocByInvoice.set(allocation.invoiceId, previous + toMoneyCents(allocation.allocatedAmount))
+  }
+
+  let overdueInvoiceCount = 0
+  let overdueOutstandingCents = 0n
+  for (const invoice of input.invoices.filter((row) => isOperatingInvoiceStatus(row.status))) {
+    const invoiceCents = toMoneyCents(invoice.amount)
+    const allocatedCents = allocByInvoice.get(invoice.id) ?? 0n
+    const remainder = invoiceCents - allocatedCents
+    if (remainder > 0n && invoice.dueDate && invoice.dueDate < input.asOf) {
+      overdueInvoiceCount += 1
+      overdueOutstandingCents += remainder
+    }
+  }
+
+  return {
+    overdueInvoiceCount,
+    overdueOutstanding: fromMoneyCents(overdueOutstandingCents),
+  }
+}
+
 export function computeCommercialMetrics(input: CommercialMetricsInput): CommercialMetricsResult {
   const currencyCode = input.currencyCode ?? 'CNY'
   const filters = input.filters ?? {}
@@ -157,16 +189,17 @@ export function computeCommercialMetrics(input: CommercialMetricsInput): Commerc
   }
 
   let arOutstandingCents = 0n
-  let overdueOutstandingCents = 0n
+  const overdueSummary = summarizeOverdueInvoices({
+    invoices: input.invoices,
+    allocations: input.allocations,
+    asOf: input.asOf,
+  })
   for (const invoice of activeInvoices) {
     const invoiceCents = toMoneyCents(invoice.amount)
     const allocatedCents = allocByInvoice.get(invoice.id) ?? 0n
     const remainder = invoiceCents - allocatedCents
     if (remainder > 0n) {
       arOutstandingCents += remainder
-      if (invoice.dueDate && invoice.dueDate < input.asOf) {
-        overdueOutstandingCents += remainder
-      }
     }
   }
 
@@ -181,7 +214,7 @@ export function computeCommercialMetrics(input: CommercialMetricsInput): Commerc
     allocatedPayment: fromMoneyCents(allocatedTotalCents),
     collectionRate: ratioOrNull(allocatedTotalCents, invoiceTotalCents),
     arOutstanding: fromMoneyCents(arOutstandingCents),
-    overdueOutstanding: fromMoneyCents(overdueOutstandingCents),
+    overdueOutstanding: overdueSummary.overdueOutstanding,
     asOf: input.asOf,
     currencyCode,
     filters,

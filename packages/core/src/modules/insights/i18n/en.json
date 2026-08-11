@@ -60,6 +60,8 @@
   "insights.audit.kpiTargetCreate": "Create KPI target",
   "insights.audit.kpiTargetUpdate": "Update KPI target",
   "insights.audit.kpiTargetDelete": "Delete KPI target",
+  "insights.notifications.operatingLoop.digest.title": "Today's operating loop summary",
+  "insights.notifications.operatingLoop.digest.body": "{criticalFindingCount} critical findings, {delayedProjectCount} delayed projects, {overdueInvoiceCount} overdue invoices ({overdueOutstanding}), and {kpiGapCount} KPI gaps as of {asOf}. Formula sources: {formulaSources}.",
   "insights.operatingLoop.trigger.ariaLabel": "Open Operating Loop Assistant",
   "insights.operatingLoop.trigger.label": "Ask Operating AI",
   "insights.operatingLoop.sheet.title": "Operating Loop Assistant",

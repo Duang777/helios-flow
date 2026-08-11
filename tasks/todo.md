@@ -10,3 +10,9 @@
 - [x] Run focused unit/script tests and affected builds.
 - [x] Run real seed and live-model app acceptance.
 - [x] Run focused Playwright checks for the page-context widget and playground path.
+- [x] Add commercial overdue-invoice summary helper and tests.
+- [x] Add insights operating-loop digest collector and notification payload tests.
+- [x] Register proactive operating-loop notification type and i18n keys.
+- [x] Subscribe to governance rule runs and create the insights digest from real data.
+- [x] Extend full operating-loop integration coverage for the proactive digest.
+- [x] Run generation, focused tests, affected builds, and budget checks for proactive digest.

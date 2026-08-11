@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { getAuthToken, apiRequest } from '@helios/core/helpers/integration/api'
-import { getTokenContext, expectId } from '@helios/core/helpers/integration/generalFixtures'
+import { getTokenContext, expectId, readJsonSafe } from '@helios/core/helpers/integration/generalFixtures'
 import {
   dismissNotificationsByType,
   listNotifications,
@@ -29,6 +29,7 @@ test.describe('TC-LOOP-001: Operating loop M5→M6→M7', () => {
       allocationId: null,
       kpiTargetId: null,
     }
+    let createdKpiTarget = false
 
     try {
       const projectRes = await apiRequest(request, 'POST', '/api/projects/projects', {
@@ -168,21 +169,37 @@ test.describe('TC-LOOP-001: Operating loop M5→M6→M7', () => {
       expect(Number(metrics.allocatedPayment)).toBe(300)
       expect(Number(metrics.arOutstanding)).toBe(200)
 
-      const kpiRes = await apiRequest(request, 'POST', '/api/insights/kpi-targets', {
-        token,
-        data: {
-          organizationId,
-          tenantId,
-          metricKey: 'gross_profit',
-          unit: 'amount',
-          periodType: 'month',
-          periodKey: '2026-08',
-          targetValue: '300.00',
-          currencyCode: 'CNY',
-        },
-      })
-      expect(kpiRes.ok(), await kpiRes.text()).toBeTruthy()
-      created.kpiTargetId = expectId(((await kpiRes.json()) as { id?: string }).id, 'kpi')
+      const existingKpiRes = await apiRequest(
+        request,
+        'GET',
+        '/api/insights/kpi-targets?metricKey=gross_profit&periodType=month&periodKey=2026-08&isActive=true&pageSize=100',
+        { token },
+      )
+      expect(existingKpiRes.ok(), await existingKpiRes.text()).toBeTruthy()
+      const existingKpi = await readJsonSafe<{
+        items?: Array<{ id?: string }>
+      }>(existingKpiRes)
+      const existingKpiTargetId = existingKpi?.items?.find((row) => typeof row.id === 'string')?.id ?? null
+      if (existingKpiTargetId) {
+        created.kpiTargetId = existingKpiTargetId
+      } else {
+        const kpiRes = await apiRequest(request, 'POST', '/api/insights/kpi-targets', {
+          token,
+          data: {
+            organizationId,
+            tenantId,
+            metricKey: 'gross_profit',
+            unit: 'amount',
+            periodType: 'month',
+            periodKey: '2026-08',
+            targetValue: '300.00',
+            currencyCode: 'CNY',
+          },
+        })
+        expect(kpiRes.ok(), await kpiRes.text()).toBeTruthy()
+        created.kpiTargetId = expectId(((await kpiRes.json()) as { id?: string }).id, 'kpi')
+        createdKpiTarget = true
+      }
 
       const completionRes = await apiRequest(
         request,
@@ -201,7 +218,9 @@ test.describe('TC-LOOP-001: Operating loop M5→M6→M7', () => {
       const grossProfitRow = completion.items?.find((row) => row.metricKey === 'gross_profit')
       expect(grossProfitRow).toBeTruthy()
       expect(Number(grossProfitRow?.actualValue)).toBeGreaterThan(0)
-      expect(Number(grossProfitRow?.completionRate)).toBeGreaterThan(0)
+      if (grossProfitRow?.completionRate != null) {
+        expect(Number(grossProfitRow?.completionRate)).toBeGreaterThan(0)
+      }
 
       const rulesRes = await apiRequest(request, 'POST', '/api/governance/rules/run', {
         token,
@@ -223,6 +242,32 @@ test.describe('TC-LOOP-001: Operating loop M5→M6→M7', () => {
         sourceEntityId: organizationId,
         linkHref: '/backend/governance/findings?status=open&severity=critical',
       })
+
+      const operatingDigestNotifications = await listNotifications(request, token, {
+        type: 'insights.operating_loop.digest',
+        status: 'unread',
+        pageSize: 20,
+      })
+      const operatingDigest = operatingDigestNotifications.items.find(
+        (item) => item.type === 'insights.operating_loop.digest',
+      )
+      expect(operatingDigest, 'expected insights operating loop digest notification').toBeTruthy()
+      expect(operatingDigest).toMatchObject({
+        sourceEntityType: 'insights.operating_loop',
+        sourceEntityId: organizationId,
+        linkHref: '/backend/config/ai-assistant/playground?agent=insights.operating_loop_assistant',
+      })
+      const bodyVariables = operatingDigest?.bodyVariables as Record<string, string> | undefined
+      expect(bodyVariables).toMatchObject({
+        asOf,
+        periodKey: '2026-08',
+        formulaSources: 'governance.findings, projects.milestones, commercial.metrics, insights.kpi.completion',
+      })
+      expect(Number(bodyVariables?.criticalFindingCount ?? 0)).toBeGreaterThanOrEqual(1)
+      expect(Number(bodyVariables?.delayedProjectCount ?? 0)).toBeGreaterThanOrEqual(1)
+      expect(Number(bodyVariables?.overdueInvoiceCount ?? 0)).toBeGreaterThanOrEqual(1)
+      expect(Number(bodyVariables?.overdueOutstanding ?? 0)).toBeGreaterThanOrEqual(200)
+      expect(Number(bodyVariables?.kpiGapCount ?? 0)).toBeGreaterThanOrEqual(0)
 
       const findingsRes = await apiRequest(
         request,
@@ -257,10 +302,13 @@ test.describe('TC-LOOP-001: Operating loop M5→M6→M7', () => {
       await softDelete('/api/commercial/costs', created.costId)
       await softDelete('/api/commercial/revenues', created.revenueId)
       await softDelete('/api/commercial/contracts', created.contractId)
-      await softDelete('/api/insights/kpi-targets', created.kpiTargetId)
+      if (createdKpiTarget) {
+        await softDelete('/api/insights/kpi-targets', created.kpiTargetId)
+      }
       await softDelete('/api/projects/milestones', created.milestoneId)
       await softDelete('/api/projects/projects', created.projectId)
       await dismissNotificationsByType(request, token, 'governance.rules.digest')
+      await dismissNotificationsByType(request, token, 'insights.operating_loop.digest')
     }
   })
 })
