@@ -4,6 +4,8 @@
   "governance.actions.delete": "删除",
   "governance.actions.edit": "编辑",
   "governance.actions.runRules": "运行规则",
+  "governance.ai_agents.assistant.description": "查看客户身份映射和治理检出；确认、处置和批量确认都必须经过人工确认（Helios Flow M7）。",
+  "governance.ai_agents.assistant.label": "治理助手",
   "governance.audit.findingCreate": "创建检出",
   "governance.audit.findingDelete": "删除检出",
   "governance.audit.findingUpdate": "更新检出",

@@ -4,6 +4,8 @@
   "projects.actions.create": "新建项目",
   "projects.actions.delete": "删除",
   "projects.actions.edit": "编辑",
+  "projects.ai_agents.delivery_assistant.description": "只读查看交付项目、里程碑延期和项目风险（Helios Flow M5）。",
+  "projects.ai_agents.delivery_assistant.label": "项目交付助手",
   "projects.audit.create": "创建项目",
   "projects.audit.delete": "删除项目",
   "projects.audit.milestoneCreate": "创建里程碑",

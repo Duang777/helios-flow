@@ -35,3 +35,8 @@
 - [x] Re-run catalog example seeding for the local Acme Corp demo organization.
 - [x] Browser-verify `/backend/catalog/products` against the reported English strings.
 - [x] Run generation, i18n sync/check, package build, app build, and final browser verification for the catalog Chinese closure.
+- [x] Add translation-key metadata to AI Agent definitions and the list API.
+- [x] Localize Agent labels/descriptions in the global launcher, AI Agents settings page, and AI Playground.
+- [x] Add Chinese metadata translations for catalog, commercial, customers, governance, insights, and projects Agents.
+- [x] Add a localized launcher regression that verifies Chinese Agent display and search.
+- [x] Run generation, i18n sync/check, package/app builds, and browser verification for the Agent metadata closure.

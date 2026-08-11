@@ -190,3 +190,30 @@ Remove the visible English leaks reported on the products and services list by f
 - `yarn build:packages` passed and refreshed workspace package dist outputs before the app build.
 - `yarn build:app` passed after the full package build; existing Turbopack NFT trace warnings remain warnings only.
 - Browser verification on `/backend/catalog/products` found no remaining target English terms for the reported product rows, SEO report, channel labels, legacy handles, or `sale` price-kind text; the SEO widget rendered the real `健康` state after the Chinese product descriptions were extended past the existing quality threshold.
+
+## Phase 10: AI Agent Metadata Chinese Closure
+
+### Goal
+Remove the visible English Agent names and descriptions from the global AI assistant picker, AI Agents settings page, and AI Playground while keeping English available through the existing language switcher.
+
+### Architecture Decisions
+- Preserve `label` and `description` as English API fallbacks for backward compatibility.
+- Add optional `labelKey` and `descriptionKey` to `AiAgentDefinition` and the agents API response.
+- Resolve Agent metadata in UI surfaces through the active `useT()` dictionary, falling back to the shipped English fields when a key is absent.
+- Search the global launcher against localized labels and descriptions as well as the stable English fallback and agent id.
+- Keep Agent ids, allowed tools, system prompts, mutation policies, and RBAC unchanged.
+
+### Task List
+- [x] Add translation-key metadata to the AI Agent contract and list API.
+- [x] Localize global launcher, AI Agents settings, and Playground Agent display surfaces.
+- [x] Add Chinese/English metadata keys for all registered core Agents.
+- [x] Add a focused launcher regression covering localized Agent label display and Chinese search.
+- [x] Run generation, i18n, package/app builds, and browser verification.
+
+### Verification Notes
+- `yarn workspace @helios/ui test -- AiAssistantLauncher --runInBand` passed after adding a localized Agent metadata regression.
+- `yarn generate` passed after adding Agent metadata keys to registered core Agent definitions.
+- `yarn i18n:check-sync --fix` normalized the updated locale files, and `yarn i18n:check-sync` passed with all translation modules in sync.
+- `yarn i18n:check` passed with zero missing keys. Existing hardcoded-string and value-coverage findings remain advisory under the active i18n remediation policy.
+- `yarn workspace @helios/ui build`, `yarn workspace @helios/ai-assistant build`, `yarn workspace @helios/core build`, `yarn build:packages`, and `yarn build:app` passed after the Agent metadata localization changes.
+- In-app browser verification on `/backend/catalog/categories` confirmed the page shell is Chinese. The plugin could not trigger the hidden global launcher button in its current viewport sandbox, so the Agent picker text is covered by the focused React regression instead of a pixel-click assertion.

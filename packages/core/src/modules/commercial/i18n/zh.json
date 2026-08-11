@@ -4,6 +4,8 @@
   "commercial.actions.create": "新建",
   "commercial.actions.delete": "删除",
   "commercial.actions.edit": "编辑",
+  "commercial.ai_agents.settlement_assistant.description": "只读查看合同、开票、回款、核销和经营指标（Helios Flow M6）。",
+  "commercial.ai_agents.settlement_assistant.label": "经营结算助手",
   "commercial.allocations.actions.create": "新建核销",
   "commercial.allocations.confirm.deleteBody": "该核销记录将软删除。",
   "commercial.allocations.confirm.deleteTitle": "删除核销？",

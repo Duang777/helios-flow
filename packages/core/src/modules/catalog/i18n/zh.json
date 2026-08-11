@@ -1,6 +1,10 @@
 {
   "audit_logs.resource_kind.catalog.price": "价格",
   "audit_logs.resource_kind.catalog.variant": "变体",
+  "catalog.ai_agents.catalog_assistant.description": "只读查看商品目录数据：商品、分类、变体、价格、报价、商品媒体、标签、选项 schema 和单位换算。",
+  "catalog.ai_agents.catalog_assistant.label": "商品目录助手",
+  "catalog.ai_agents.merchandising_assistant.description": "面向商品列表当前选择，生成商品描述、属性抽取、标题变体和价格调整建议；可写入，但每次写入都必须经过确认卡。",
+  "catalog.ai_agents.merchandising_assistant.label": "商品运营助手",
   "catalog.audit.categories.create": "创建分类",
   "catalog.audit.categories.delete": "删除分类",
   "catalog.audit.categories.update": "更新分类",

@@ -292,6 +292,12 @@ export interface AiAgentDefinition {
   moduleId: string
   label: string
   description: string
+  /**
+   * Optional i18n keys for user-facing metadata. `label` and `description`
+   * remain the stable English fallback for API compatibility and docs.
+   */
+  labelKey?: string
+  descriptionKey?: string
   systemPrompt: string
   allowedTools: string[]
   suggestions?: AiAgentSuggestion[]

@@ -4,6 +4,8 @@
   "projects.actions.create": "New project",
   "projects.actions.delete": "Delete",
   "projects.actions.edit": "Edit",
+  "projects.ai_agents.delivery_assistant.description": "Read-only assistant for delivery projects, milestones, and project risks (Helios Flow M5).",
+  "projects.ai_agents.delivery_assistant.label": "Projects Delivery Assistant",
   "projects.audit.create": "Create project",
   "projects.audit.delete": "Delete project",
   "projects.audit.milestoneCreate": "Create milestone",

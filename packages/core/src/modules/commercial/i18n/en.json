@@ -4,6 +4,8 @@
   "commercial.actions.create": "New",
   "commercial.actions.delete": "Delete",
   "commercial.actions.edit": "Edit",
+  "commercial.ai_agents.settlement_assistant.description": "Read-only assistant for contracts and operating metrics (Helios Flow M6).",
+  "commercial.ai_agents.settlement_assistant.label": "Commercial Settlement Assistant",
   "commercial.allocations.actions.create": "New allocation",
   "commercial.allocations.confirm.deleteBody": "The allocation will be soft-deleted.",
   "commercial.allocations.confirm.deleteTitle": "Delete allocation?",

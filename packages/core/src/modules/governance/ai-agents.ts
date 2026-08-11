@@ -20,8 +20,10 @@ const agent: AiAgentDefinition = {
   id: AGENT_ID,
   moduleId: MODULE_ID,
   label: 'Governance Assistant',
+  labelKey: 'governance.ai_agents.assistant.label',
   description:
     'Assistant for identity maps and governance findings; acknowledge requires operator confirmation (Helios Flow M7).',
+  descriptionKey: 'governance.ai_agents.assistant.description',
   systemPrompt: [
     'ROLE',
     'You help operators review customer identity mappings and governance findings with evidence IDs.',

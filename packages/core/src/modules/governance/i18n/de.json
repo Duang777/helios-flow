@@ -4,6 +4,8 @@
   "governance.actions.delete": "Delete",
   "governance.actions.edit": "Edit",
   "governance.actions.runRules": "Run rules",
+  "governance.ai_agents.assistant.description": "Assistant for identity maps and governance findings; acknowledge requires operator confirmation (Helios Flow M7).",
+  "governance.ai_agents.assistant.label": "Governance Assistant",
   "governance.audit.findingCreate": "Create finding",
   "governance.audit.findingDelete": "Delete finding",
   "governance.audit.findingUpdate": "Update finding",

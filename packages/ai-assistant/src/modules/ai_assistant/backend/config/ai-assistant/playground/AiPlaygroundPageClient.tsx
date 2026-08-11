@@ -17,7 +17,14 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@helios/ui/primitives/
 import { Textarea } from '@helios/ui/primitives/textarea'
 import { EmptyState } from '@helios/ui/backend/EmptyState'
 import { apiCall, apiCallOrThrow } from '@helios/ui/backend/utils/apiCall'
-import { AiChat, createAiUiPartRegistry, LoopDisabledBanner, useAiShortcuts } from '@helios/ui/ai'
+import {
+  AiChat,
+  createAiUiPartRegistry,
+  LoopDisabledBanner,
+  resolveAiAgentDescription,
+  resolveAiAgentLabel,
+  useAiShortcuts,
+} from '@helios/ui/ai'
 import type { AiChatDebugPromptSection, AiChatDebugTool } from '@helios/ui/ai'
 import { ConversationShareButton } from '../../../../components/ConversationShareButton'
 
@@ -33,7 +40,9 @@ type PlaygroundAgent = {
   id: string
   moduleId: string
   label: string
+  labelKey?: string | null
   description: string
+  descriptionKey?: string | null
   executionMode: 'chat' | 'object'
   mutationPolicy: string
   allowedTools: string[]
@@ -238,10 +247,12 @@ function PlaygroundNoAgents() {
 
 function AgentDetails({ agent }: { agent: PlaygroundAgent }) {
   const t = useT()
+  const label = resolveAiAgentLabel(agent, t)
+  const description = resolveAiAgentDescription(agent, t)
   return (
     <div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
-      <div className="font-semibold">{agent.label}</div>
-      <p className="mt-1 text-xs text-muted-foreground">{agent.description}</p>
+      <div className="font-semibold">{label}</div>
+      {description ? <p className="mt-1 text-xs text-muted-foreground">{description}</p> : null}
       <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
         <div>
           <dt className="font-medium text-muted-foreground">
@@ -1058,7 +1069,7 @@ export function AiPlaygroundPageClient() {
             >
               {agents.map((agent) => (
                 <option key={agent.id} value={agent.id}>
-                  {agent.label} ({agent.id})
+                  {resolveAiAgentLabel(agent, t)} ({agent.id})
                 </option>
               ))}
             </select>

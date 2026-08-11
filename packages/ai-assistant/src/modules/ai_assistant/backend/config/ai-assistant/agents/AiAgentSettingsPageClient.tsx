@@ -48,7 +48,7 @@ import { EmptyState } from '@helios/ui/backend/EmptyState'
 import { apiCall, apiCallOrThrow } from '@helios/ui/backend/utils/apiCall'
 import { flash } from '@helios/ui/backend/FlashMessages'
 import { useGuardedMutation } from '@helios/ui/backend/injection/useGuardedMutation'
-import { useAiShortcuts } from '@helios/ui/ai'
+import { resolveAiAgentDescription, resolveAiAgentLabel, useAiShortcuts } from '@helios/ui/ai'
 
 // The agent picker is deliberately duplicated between the playground and this
 // settings page. Duplicated markup is under the 50-line threshold, so extraction
@@ -65,7 +65,9 @@ type AgentSettings = {
   id: string
   moduleId: string
   label: string
+  labelKey?: string | null
   description: string
+  descriptionKey?: string | null
   systemPrompt: string
   executionMode: 'chat' | 'object'
   defaultProvider: string | null
@@ -1806,6 +1808,8 @@ function LoopPolicySection({ agent }: { agent: AgentSettings }) {
 
 function AgentDetailPanel({ agent }: { agent: AgentSettings }) {
   const t = useT()
+  const label = resolveAiAgentLabel(agent, t)
+  const description = resolveAiAgentDescription(agent, t)
   const queryClient = useQueryClient()
   const [overrideFlags, setOverrideFlags] = React.useState<Record<PromptSectionId, boolean>>(() => ({
     role: false,
@@ -2001,8 +2005,8 @@ function AgentDetailPanel({ agent }: { agent: AgentSettings }) {
   return (
     <div className="flex flex-col gap-4" data-ai-agent-detail={agent.id}>
       <section className="rounded-lg border border-border bg-background p-4">
-        <h2 className="text-xl font-semibold">{agent.label}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{agent.description}</p>
+        <h2 className="text-xl font-semibold">{label}</h2>
+        {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
         <dl className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(min(100%,9rem),1fr))] gap-3 text-sm">
           <div className="min-w-0">
             <dt className="text-overline font-semibold uppercase tracking-wider text-muted-foreground">
@@ -2425,7 +2429,7 @@ export function AiAgentSettingsPageClient() {
                 <SelectContent>
                   {agents.map((agent) => (
                     <SelectItem key={agent.id} value={agent.id}>
-                      {agent.label} ({agent.id})
+                      {resolveAiAgentLabel(agent, t)} ({agent.id})
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -19,6 +19,11 @@ export {
 } from './AiChatSessions'
 export { ChatPaneTabs } from './ChatPaneTabs'
 export {
+  resolveAiAgentDescription,
+  resolveAiAgentLabel,
+  type AiAgentDisplayMetadata,
+} from './agent-display'
+export {
   useAiChat,
   type AiChatMessage,
   type AiChatToolCallSnapshot,

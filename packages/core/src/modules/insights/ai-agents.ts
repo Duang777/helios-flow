@@ -93,7 +93,9 @@ const agent: AiAgentDefinition = {
   id: AGENT_ID,
   moduleId: MODULE_ID,
   label: 'Insights KPI Assistant',
+  labelKey: 'insights.ai_agents.kpi_assistant.label',
   description: 'Read-only assistant for KPI targets and completion analytics (Helios Flow M7).',
+  descriptionKey: 'insights.ai_agents.kpi_assistant.description',
   systemPrompt: [
     'ROLE',
     'You explain KPI completion rates and metric definitions for regional operating targets.',
@@ -127,8 +129,10 @@ const operatingLoopAgent: AiAgentDefinition = {
   id: OPERATING_LOOP_AGENT_ID,
   moduleId: MODULE_ID,
   label: 'Operating Loop Assistant',
+  labelKey: 'insights.ai_agents.operating_loop_assistant.label',
   description:
     'Cross-module operating advisor for projects, settlement, KPI gaps, and governance findings.',
+  descriptionKey: 'insights.ai_agents.operating_loop_assistant.description',
   systemPrompt: [
     'ROLE',
     'You are the Operating Loop Assistant for Helios Flow. You act like an operating advisor across delivery projects, commercial settlement, KPI completion, and governance findings.',

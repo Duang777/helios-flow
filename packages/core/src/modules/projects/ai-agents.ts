@@ -138,8 +138,10 @@ const agent: AiAgentDefinition = {
   id: AGENT_ID,
   moduleId: MODULE_ID,
   label: 'Projects Delivery Assistant',
+  labelKey: 'projects.ai_agents.delivery_assistant.label',
   description:
     'Read-only assistant for delivery projects, milestones, and project risks (Helios Flow M5).',
+  descriptionKey: 'projects.ai_agents.delivery_assistant.description',
   systemPrompt: compilePromptTemplate(promptTemplate),
   allowedTools: [...ALLOWED_TOOLS],
   executionMode: 'chat',

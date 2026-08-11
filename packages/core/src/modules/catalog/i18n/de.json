@@ -1,6 +1,10 @@
 {
   "audit_logs.resource_kind.catalog.price": "Preis",
   "audit_logs.resource_kind.catalog.variant": "Variante",
+  "catalog.ai_agents.catalog_assistant.description": "Read-only assistant for exploring catalog data: products, categories, variants, prices, offers, product media, tags, option schemas, and unit conversions.",
+  "catalog.ai_agents.catalog_assistant.label": "Catalog Assistant",
+  "catalog.ai_agents.merchandising_assistant.description": "Merchandising assistant: proposes product descriptions, attribute extractions, title variants, and price adjustments for the current selection on the products list page. Can apply changes — every write goes through the approval card.",
+  "catalog.ai_agents.merchandising_assistant.label": "Catalog Merchandising Assistant",
   "catalog.audit.categories.create": "Kategorie erstellen",
   "catalog.audit.categories.delete": "Kategorie löschen",
   "catalog.audit.categories.update": "Kategorie aktualisieren",
