@@ -1,6 +1,6 @@
-import { defaultLocale, locales, type Locale } from './config'
+import type { Locale } from './config'
 import type { Dict } from './context'
-import { resolveForcedLocale, resolveLocaleFromAcceptLanguage } from './locale'
+import { resolveRequestLocale } from './locale'
 import { createFallbackTranslator, createTranslator } from './translate'
 import { getModules } from '../modules/registry'
 import { loadAppDictionary } from './app-dictionaries'
@@ -27,29 +27,27 @@ function flattenDictionary(source: unknown, prefix = ''): Dict {
 }
 
 export async function detectLocale(): Promise<Locale> {
-  // Ops-level override: pin the whole app to one locale (default: unset).
-  const forced = resolveForcedLocale(process.env)
-  if (forced) return forced
+  // Ops-level override and user cookie are explicit preferences. Browser
+  // detection stays opt-in so the product default remains Chinese.
+  let cookieLocale: string | null = null
+  let acceptLanguage: string | null = null
   // Dynamic import to avoid requiring Next.js in non-Next.js contexts (CLI, tests)
   try {
     const { cookies, headers } = await import('next/headers')
     try {
-      const c = (await cookies()).get('locale')?.value
-      if (c && locales.includes(c as Locale)) return c as Locale
+      cookieLocale = (await cookies()).get('locale')?.value ?? null
     } catch {
       // cookies() may not be available outside request context (e.g., in tests)
     }
     try {
-      const accept = (await headers()).get('accept-language') || ''
-      const match = resolveLocaleFromAcceptLanguage(accept)
-      if (match) return match
+      acceptLanguage = (await headers()).get('accept-language') ?? null
     } catch {
       // headers() may not be available outside request context (e.g., in tests)
     }
   } catch {
     // next/headers not available (CLI context)
   }
-  return defaultLocale
+  return resolveRequestLocale({ env: process.env, cookieLocale, acceptLanguage })
 }
 
 export async function loadDictionary(locale: Locale): Promise<Dict> {

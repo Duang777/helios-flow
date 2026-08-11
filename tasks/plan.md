@@ -77,3 +77,30 @@ Make the operating assistant proactive: after governance rules run, Helios shoul
 | Page-context widget overexposes data | High | Pass only scoped IDs already visible on the page; runtime/tool ACL still gates reads |
 | Injection registry gets stale | Medium | Run `yarn generate` and add tests around context derivation |
 | Active digest double-counts or masks source failures | High | Group by organization/asOf; reuse source metric helpers; log failures instead of falling back |
+
+## Phase 6: Chinese-First Presentation Baseline
+
+### Goal
+Make the competition/demo app open in Chinese by default while preserving explicit English switching. Remove the most visible English leaks from notification toasts, language menus, and the left navigation surface.
+
+### Architecture Decisions
+- Keep `defaultLocale = zh`.
+- Treat cookie locale and `HELIOS_FORCE_LOCALE` as explicit preferences.
+- Make browser `Accept-Language` detection opt-in via `HELIOS_DETECT_BROWSER_LOCALE=true` so English browsers no longer override the Chinese product default.
+- Keep the language switcher working through `/api/auth/locale` and the `locale` cookie.
+- Fix visible navigation/i18n keys in the app example module without attempting a risky whole-module translation sweep.
+
+### Task List
+- [x] Add request-locale resolver tests for Chinese default, cookie override, forced locale, and opt-in browser detection.
+- [x] Update server locale detection to ignore browser language unless explicitly enabled.
+- [x] Localize ProfileDropdown language labels through the active dictionary.
+- [x] Fix governance rules digest toast translation so raw keys do not render.
+- [x] Translate visible Chinese language names and example left-nav/page-title keys.
+- [x] Run focused i18n/UI/notification tests and affected package builds.
+
+### Verification Notes
+- `yarn workspace @helios/shared test -- forced-locale --runInBand` passed.
+- `yarn workspace @helios/ui test -- ProfileDropdown --runInBand` passed.
+- `yarn workspace @helios/core test -- notifications.handlers --runInBand` passed.
+- `yarn workspace @helios/shared build`, `yarn workspace @helios/ui build`, and `yarn workspace @helios/core build` passed.
+- `yarn i18n:check-sync` still reports existing unrelated repository i18n debt, but the `app/example` issues introduced by this slice are cleared.

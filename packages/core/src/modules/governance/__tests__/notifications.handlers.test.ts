@@ -1,4 +1,5 @@
 import { notificationHandlers } from '../notifications.handlers'
+import { createTranslator } from '@helios/shared/lib/i18n/translate'
 
 describe('governance notifications handlers', () => {
   it('translates the rules digest toast copy before showing the toast', () => {
@@ -6,7 +7,12 @@ describe('governance notifications handlers', () => {
     const navigate = jest.fn()
     const emitEvent = jest.fn()
     const refreshNotifications = jest.fn()
-    const t = jest.fn((key: string, fallback?: string) => `${key}::${fallback ?? ''}`)
+    const translator = createTranslator({
+      'common.view': '查看',
+      'governance.notifications.rules.digest.title': '关键治理检出',
+      'governance.notifications.rules.digest.body': '截至 {asOf} 共有 {criticalCount} 条关键检出仍处于打开状态',
+    })
+    const t = jest.fn(translator)
 
     const handler = notificationHandlers.find((entry) => entry.id === 'governance.rules.digest-toast')
     expect(handler).toBeTruthy()
@@ -47,8 +53,8 @@ describe('governance notifications handlers', () => {
     )
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: 'governance.notifications.rules.digest.title::governance.notifications.rules.digest.title',
-        body: 'governance.notifications.rules.digest.body::governance.notifications.rules.digest.body',
+        title: '关键治理检出',
+        body: '截至 2026-08-31 共有 3 条关键检出仍处于打开状态',
         severity: 'warning',
       }),
     )

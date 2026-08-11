@@ -1,4 +1,4 @@
-import { locales, type Locale } from './config'
+import { defaultLocale, locales, type Locale } from './config'
 
 function normalizeLocaleToken(value: string): string {
   return value.trim().toLowerCase().replace(/_/g, '-')
@@ -42,6 +42,32 @@ export function resolveForcedLocale(
   env: Record<string, string | undefined>,
 ): Locale | null {
   return resolveSupportedLocale(env.HELIOS_FORCE_LOCALE)
+}
+
+export function shouldDetectBrowserLocale(
+  env: Record<string, string | undefined>,
+): boolean {
+  const raw = env.HELIOS_DETECT_BROWSER_LOCALE?.trim().toLowerCase()
+  return raw === '1' || raw === 'true' || raw === 'yes'
+}
+
+export function resolveRequestLocale(input: {
+  env: Record<string, string | undefined>
+  cookieLocale?: string | null
+  acceptLanguage?: string | null
+}): Locale {
+  const forced = resolveForcedLocale(input.env)
+  if (forced) return forced
+
+  const cookieLocale = resolveSupportedLocale(input.cookieLocale)
+  if (cookieLocale) return cookieLocale
+
+  if (shouldDetectBrowserLocale(input.env)) {
+    const browserLocale = resolveLocaleFromAcceptLanguage(input.acceptLanguage)
+    if (browserLocale) return browserLocale
+  }
+
+  return defaultLocale
 }
 
 export function resolveLocaleFromAcceptLanguage(

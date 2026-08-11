@@ -11,6 +11,7 @@ import type {
 } from '@helios/shared/modules/notifications/handler'
 import type { NotificationDto } from '@helios/shared/modules/notifications/types'
 import { createLogger } from '@helios/shared/lib/logger'
+import type { TranslateFn } from '@helios/shared/lib/i18n/context'
 
 const logger = createLogger('ui').child({ component: 'notifications' })
 
@@ -18,7 +19,7 @@ type RuntimeContext = {
   userId?: string
   features: string[]
   currentPath: string
-  t?: (key: string, fallback?: string) => string
+  t?: TranslateFn
   refreshNotifications: () => void
   navigate: (href: string) => void
   markAsRead: (notificationId: string) => Promise<void>

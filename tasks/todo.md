@@ -16,3 +16,8 @@
 - [x] Subscribe to governance rule runs and create the insights digest from real data.
 - [x] Extend full operating-loop integration coverage for the proactive digest.
 - [x] Run generation, focused tests, affected builds, and budget checks for proactive digest.
+- [x] Default the app to Chinese unless a locale cookie or forced locale is set.
+- [x] Keep browser locale detection opt-in via `HELIOS_DETECT_BROWSER_LOCALE=true`.
+- [x] Localize profile language labels and governance digest toasts.
+- [x] Translate visible example left-nav/page-title keys for the Chinese demo surface.
+- [x] Run focused i18n/UI/notification tests and affected package builds.
