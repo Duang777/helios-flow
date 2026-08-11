@@ -159,19 +159,18 @@ test.describe('TC-AI-PLAYGROUND-004: AI Playground', () => {
 
       await page.getByRole('tab', { name: /tools/i }).click();
       await expect(page.locator('[data-ai-playground-tools]')).toBeVisible();
+      await expect(page.locator('[data-ai-playground-tools-groups] > section')).toHaveCount(2);
+      const searchBox = page.getByRole('searchbox', { name: /search tools/i });
+      await expect(searchBox).toBeVisible();
+      await searchBox.fill('bulk');
+      await expect(page.locator('[data-ai-playground-tools-groups] > section')).toHaveCount(1);
       await expect(page.locator('[data-ai-tool-name="catalog.bulk_delete_products"]')).toBeVisible();
-      await expect(page.locator('[data-ai-tool-name="catalog.bulk_delete_products"]')).toContainText(
-        'Bulk delete products',
-      );
-      await expect(page.locator('[data-ai-tool-name="catalog.bulk_delete_products"]')).toContainText(
-        'conditional',
-      );
-      await expect(page.locator('[data-ai-tool-name="catalog.bulk_delete_products"]')).toContainText(
-        'Not allowed',
-      );
-      await expect(page.locator('[data-ai-tool-name="customers.search"]')).toContainText(
-        'Allowed',
-      );
+      await expect(page.locator('[data-ai-tool-name="customers.search"]')).toHaveCount(0);
+      await searchBox.fill('');
+      await page.getByRole('radio', { name: /allowed/i }).click();
+      await expect(page.locator('[data-ai-playground-tools-groups] > section')).toHaveCount(1);
+      await expect(page.locator('[data-ai-tool-name="customers.search"]')).toBeVisible();
+      await expect(page.locator('[data-ai-tool-name="catalog.bulk_delete_products"]')).toHaveCount(0);
     } else if (await empty.isVisible().catch(() => false)) {
       // Empty branch: agent registry is empty in this environment.
       await expect(empty).toBeVisible();

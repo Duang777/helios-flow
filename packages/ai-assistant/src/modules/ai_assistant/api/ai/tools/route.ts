@@ -70,8 +70,10 @@ export async function GET(req: NextRequest) {
       )
       .map((tool) => {
         const def = tool as AiToolDefinition
+        const moduleId = def.name.split('.')[0] ?? 'other'
         return {
           name: def.name,
+          moduleId,
           displayName: def.displayName ?? def.name,
           description: def.description ?? '',
           tags: def.tags ?? [],

@@ -7,9 +7,11 @@ import { useT } from '@helios/shared/lib/i18n/context'
 import { Alert, AlertDescription, AlertTitle } from '@helios/ui/primitives/alert'
 import { Badge } from '@helios/ui/primitives/badge'
 import { Button } from '@helios/ui/primitives/button'
+import { SearchInput } from '@helios/ui/primitives/search-input'
 import { IconButton } from '@helios/ui/primitives/icon-button'
 import { Label } from '@helios/ui/primitives/label'
 import { StatusBadge } from '@helios/ui/primitives/status-badge'
+import { SegmentedControl, SegmentedControlItem } from '@helios/ui/primitives/segmented-control'
 import { Switch } from '@helios/ui/primitives/switch'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@helios/ui/primitives/tabs'
 import { Textarea } from '@helios/ui/primitives/textarea'
@@ -73,6 +75,7 @@ async function fetchAgents(): Promise<AgentsResponse> {
 
 type ToolSummary = {
   name: string
+  moduleId: string
   displayName: string
   description: string
   tags: string[]
@@ -87,6 +90,17 @@ type ToolsResponse = {
   total: number
 }
 
+type ToolFocus = 'all' | 'allowed' | 'write' | 'bulk' | 'destructive'
+
+type ToolGroup = {
+  moduleId: string
+  tools: ToolSummary[]
+  allowedCount: number
+  writeCount: number
+  bulkCount: number
+  destructiveCount: number
+}
+
 async function fetchTools(): Promise<ToolsResponse> {
   const { result, status } = await apiCallOrThrow<ToolsResponse>(
     '/api/ai_assistant/ai/tools',
@@ -95,6 +109,64 @@ async function fetchTools(): Promise<ToolsResponse> {
   )
   if (!result) throw new Error(`Failed to load tools (${status})`)
   return result
+}
+
+function matchesToolSearch(tool: ToolSummary, query: string): boolean {
+  const normalized = query.trim().toLowerCase()
+  if (!normalized) return true
+  const haystack = [
+    tool.moduleId,
+    tool.name,
+    tool.displayName,
+    tool.description,
+    tool.tags.join(' '),
+  ]
+    .join(' ')
+    .toLowerCase()
+  return haystack.includes(normalized)
+}
+
+function matchesToolFocus(tool: ToolSummary, focus: ToolFocus, isAllowed: boolean): boolean {
+  switch (focus) {
+    case 'allowed':
+      return isAllowed
+    case 'write':
+      return tool.isMutation
+    case 'bulk':
+      return tool.isBulk
+    case 'destructive':
+      return Boolean(tool.isDestructive)
+    default:
+      return true
+  }
+}
+
+function groupToolsByModule(tools: ToolSummary[], allowed: Set<string>): ToolGroup[] {
+  const groups = new Map<string, ToolSummary[]>()
+  for (const tool of tools) {
+    const moduleId = tool.moduleId || tool.name.split('.')[0] || 'other'
+    const existing = groups.get(moduleId) ?? []
+    existing.push(tool)
+    groups.set(moduleId, existing)
+  }
+
+  return Array.from(groups.entries())
+    .map(([moduleId, moduleTools]) => {
+      const allowedTools = moduleTools.filter((tool) => allowed.has(tool.name))
+      return {
+        moduleId,
+        tools: moduleTools.sort((a, b) => a.name.localeCompare(b.name)),
+        allowedCount: allowedTools.length,
+        writeCount: moduleTools.filter((tool) => tool.isMutation).length,
+        bulkCount: moduleTools.filter((tool) => tool.isBulk).length,
+        destructiveCount: moduleTools.filter((tool) => Boolean(tool.isDestructive)).length,
+      }
+    })
+    .sort((a, b) => {
+      if (b.allowedCount !== a.allowedCount) return b.allowedCount - a.allowedCount
+      if (b.tools.length !== a.tools.length) return b.tools.length - a.tools.length
+      return a.moduleId.localeCompare(b.moduleId)
+    })
 }
 
 function PlaygroundLoading({ message }: { message: string }) {
@@ -174,10 +246,37 @@ function AgentDetails({ agent }: { agent: PlaygroundAgent }) {
 
 function ToolInventory({ allowedToolNames }: { allowedToolNames: string[] }) {
   const t = useT()
+  const [search, setSearch] = React.useState('')
+  const [focus, setFocus] = React.useState<ToolFocus>('all')
   const { data, isLoading, isError, error, refetch } = useQuery<ToolsResponse>({
     queryKey: ['ai_assistant', 'playground', 'tools'],
     queryFn: fetchTools,
   })
+
+  const tools = data?.tools ?? []
+  const allowedToolsSignature = allowedToolNames.join('\u0000')
+  const allowed = React.useMemo(() => new Set(allowedToolNames), [allowedToolNames])
+  const filteredTools = React.useMemo(
+    () =>
+      tools.filter((tool) => {
+        const isAllowed = allowed.has(tool.name)
+        return matchesToolSearch(tool, search) && matchesToolFocus(tool, focus, isAllowed)
+      }),
+    [allowed, focus, search, tools],
+  )
+  const groups = React.useMemo(
+    () => groupToolsByModule(filteredTools, allowed),
+    [allowed, filteredTools],
+  )
+  const allowedCount = tools.filter((tool) => allowed.has(tool.name)).length
+  const visibleMutationCount = filteredTools.filter((tool) => tool.isMutation).length
+  const visibleBulkCount = filteredTools.filter((tool) => tool.isBulk).length
+  const visibleDestructiveCount = filteredTools.filter((tool) => Boolean(tool.isDestructive)).length
+
+  React.useEffect(() => {
+    setSearch('')
+    setFocus('all')
+  }, [allowedToolsSignature])
 
   if (isLoading) {
     return (
@@ -213,10 +312,6 @@ function ToolInventory({ allowedToolNames }: { allowedToolNames: string[] }) {
     )
   }
 
-  const tools = data?.tools ?? []
-  const allowed = new Set(allowedToolNames)
-  const allowedCount = tools.filter((tool) => allowed.has(tool.name)).length
-
   if (tools.length === 0) {
     return (
       <EmptyState
@@ -232,101 +327,174 @@ function ToolInventory({ allowedToolNames }: { allowedToolNames: string[] }) {
 
   return (
     <div className="flex flex-col gap-3" data-ai-playground-tools>
-      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        <span>
-          {t('ai_assistant.playground.tools.summary.total', 'Registered tools: ')}
-          <span className="font-mono text-foreground">{tools.length}</span>
-        </span>
-        <span>
-          {t('ai_assistant.playground.tools.summary.allowed', 'Allowed on this agent: ')}
-          <span className="font-mono text-foreground">{allowedCount}</span>
-        </span>
-      </div>
-      <p className="text-xs text-muted-foreground">
-        {t(
-          'ai_assistant.playground.tools.hint',
-          'Tools marked with a success badge are whitelisted for the selected agent.',
-        )}
-      </p>
-      <div className="overflow-hidden rounded-md border border-border">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-left text-xs text-muted-foreground">
-            <tr>
-              <th className="px-3 py-2 font-medium">{t('ai_assistant.playground.tools.col.name', 'Tool')}</th>
-              <th className="px-3 py-2 font-medium">{t('ai_assistant.playground.tools.col.tags', 'Tags')}</th>
-              <th className="px-3 py-2 font-medium">{t('ai_assistant.playground.tools.col.kind', 'Kind')}</th>
-              <th className="px-3 py-2 font-medium">{t('ai_assistant.playground.tools.col.agent', 'Agent')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tools.map((tool) => {
-              const inAgent = allowed.has(tool.name)
-              const destructiveLabel =
-                tool.isDestructive === 'predicate'
-                  ? t('ai_assistant.playground.tools.conditional', 'conditional')
-                  : t('ai_assistant.playground.tools.destructive', 'destructive')
-              return (
-                <tr key={tool.name} className="border-t border-border align-top" data-ai-tool-name={tool.name}>
-                  <td className="px-3 py-2">
-                    <div className="font-medium text-foreground">{tool.displayName}</div>
-                    <div className="font-mono text-xs text-muted-foreground">{tool.name}</div>
-                    {tool.description ? (
-                      <p className="mt-1 text-xs text-muted-foreground">{tool.description}</p>
-                    ) : null}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex flex-wrap gap-1">
-                      {tool.tags.map((tag) => (
-                        <Badge
-                          key={tag}
-                          variant="neutral"
-                          size="sm"
-                          className="font-normal"
+      <div className="flex flex-col gap-3 rounded-md border border-border bg-background p-3">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <Badge variant="neutral" size="sm">
+            {t('ai_assistant.playground.tools.summary.total', 'Total: ')}
+            <span className="ml-1 font-mono text-foreground">{tools.length}</span>
+          </Badge>
+          <Badge variant="success" size="sm">
+            {t('ai_assistant.playground.tools.summary.allowed', 'Allowed: ')}
+            <span className="ml-1 font-mono text-foreground">{allowedCount}</span>
+          </Badge>
+          <Badge variant="warning" size="sm">
+            {t('ai_assistant.playground.tools.summary.write', 'Write: ')}
+            <span className="ml-1 font-mono text-foreground">{visibleMutationCount}</span>
+          </Badge>
+          <Badge variant="info" size="sm">
+            {t('ai_assistant.playground.tools.summary.bulk', 'Bulk: ')}
+            <span className="ml-1 font-mono text-foreground">{visibleBulkCount}</span>
+          </Badge>
+          <Badge variant="error" size="sm">
+            {t('ai_assistant.playground.tools.summary.destructive', 'Destructive: ')}
+            <span className="ml-1 font-mono text-foreground">{visibleDestructiveCount}</span>
+          </Badge>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            onClear={() => setSearch('')}
+            aria-label={t('ai_assistant.playground.tools.search', 'Search tools')}
+          />
+          <SegmentedControl
+            value={focus}
+            onValueChange={(next) => setFocus(next as ToolFocus)}
+            aria-label={t('ai_assistant.playground.tools.focus', 'Tool focus')}
+            size="sm"
+          >
+            <SegmentedControlItem value="all">
+              {t('ai_assistant.playground.tools.focus.all', 'All')}
+            </SegmentedControlItem>
+            <SegmentedControlItem value="allowed">
+              {t('ai_assistant.playground.tools.focus.allowed', 'Allowed')}
+            </SegmentedControlItem>
+            <SegmentedControlItem value="write">
+              {t('ai_assistant.playground.tools.focus.write', 'Write')}
+            </SegmentedControlItem>
+            <SegmentedControlItem value="bulk">
+              {t('ai_assistant.playground.tools.focus.bulk', 'Bulk')}
+            </SegmentedControlItem>
+            <SegmentedControlItem value="destructive">
+              {t('ai_assistant.playground.tools.focus.destructive', 'Destructive')}
+            </SegmentedControlItem>
+          </SegmentedControl>
+        </div>
+
+        {groups.length === 0 ? (
+          <EmptyState
+            icon={<Bot className="size-6" aria-hidden />}
+            title={t('ai_assistant.playground.tools.filteredEmpty.title', 'No tools match the current filters.')}
+            description={t(
+              'ai_assistant.playground.tools.filteredEmpty.description',
+              'Clear the search or switch the focus to see more tools.',
+            )}
+          />
+        ) : (
+          <div className="flex flex-col gap-3" data-ai-playground-tools-groups>
+            {groups.map((group) => (
+              <section key={group.moduleId} className="overflow-hidden rounded-md border border-border">
+                <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/30 px-3 py-2">
+                  <div className="min-w-0">
+                    <div className="font-medium text-foreground">{group.moduleId}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {t('ai_assistant.playground.tools.group.tools', 'Tools: ')}
+                      <span className="font-mono text-foreground">{group.tools.length}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Badge variant="neutral" size="sm">
+                      {group.tools.length}
+                    </Badge>
+                    {group.allowedCount ? <StatusBadge variant="success" dot>{group.allowedCount}</StatusBadge> : null}
+                    {group.writeCount ? <Badge variant="warning" size="sm">{group.writeCount}</Badge> : null}
+                    {group.bulkCount ? <Badge variant="info" size="sm">{group.bulkCount}</Badge> : null}
+                    {group.destructiveCount ? <Badge variant="error" size="sm">{group.destructiveCount}</Badge> : null}
+                  </div>
+                </header>
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/20 text-left text-xs text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">{t('ai_assistant.playground.tools.col.name', 'Tool')}</th>
+                      <th className="px-3 py-2 font-medium">{t('ai_assistant.playground.tools.col.tags', 'Tags')}</th>
+                      <th className="px-3 py-2 font-medium">{t('ai_assistant.playground.tools.col.kind', 'Kind')}</th>
+                      <th className="px-3 py-2 font-medium">{t('ai_assistant.playground.tools.col.agent', 'Agent')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {group.tools.map((tool) => {
+                      const inAgent = allowed.has(tool.name)
+                      const destructiveLabel =
+                        tool.isDestructive === 'predicate'
+                          ? t('ai_assistant.playground.tools.conditional', 'conditional')
+                          : t('ai_assistant.playground.tools.destructive', 'destructive')
+                      return (
+                        <tr
+                          key={tool.name}
+                          className="border-t border-border align-top"
+                          data-ai-tool-name={tool.name}
                         >
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex flex-col gap-1">
-                      {tool.isMutation ? (
-                        <Badge variant="warning" size="sm" className="w-fit">
-                          {t('ai_assistant.playground.tools.mutation', 'Mutation')}
-                        </Badge>
-                      ) : (
-                        <Badge variant="info" size="sm" className="w-fit">
-                          {t('ai_assistant.playground.tools.read', 'Read')}
-                        </Badge>
-                      )}
-                      {tool.isBulk ? (
-                        <Badge variant="neutral" size="sm" className="w-fit">
-                          {t('ai_assistant.playground.tools.bulk', 'Bulk')}
-                        </Badge>
-                      ) : null}
-                      {tool.isDestructive ? (
-                        <Badge variant="error" size="sm" className="w-fit">
-                          {destructiveLabel}
-                        </Badge>
-                      ) : null}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2">
-                    <StatusBadge
-                      variant={inAgent ? 'success' : 'neutral'}
-                      dot
-                      className="w-fit"
-                    >
-                      {inAgent
-                        ? t('ai_assistant.playground.tools.allowed', 'Allowed')
-                        : t('ai_assistant.playground.tools.notAllowed', 'Not allowed')}
-                    </StatusBadge>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+                          <td className="px-3 py-2">
+                            <div className="font-medium text-foreground">{tool.displayName}</div>
+                            <div className="font-mono text-xs text-muted-foreground">{tool.name}</div>
+                            {tool.description ? (
+                              <p className="mt-1 text-xs text-muted-foreground">{tool.description}</p>
+                            ) : null}
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="flex flex-wrap gap-1">
+                              {tool.tags.map((tag) => (
+                                <Badge
+                                  key={tag}
+                                  variant="neutral"
+                                  size="sm"
+                                  className="font-normal"
+                                >
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="flex flex-col gap-1">
+                              {tool.isMutation ? (
+                                <Badge variant="warning" size="sm" className="w-fit">
+                                  {t('ai_assistant.playground.tools.mutation', 'Mutation')}
+                                </Badge>
+                              ) : (
+                                <Badge variant="info" size="sm" className="w-fit">
+                                  {t('ai_assistant.playground.tools.read', 'Read')}
+                                </Badge>
+                              )}
+                              {tool.isBulk ? (
+                                <Badge variant="neutral" size="sm" className="w-fit">
+                                  {t('ai_assistant.playground.tools.bulk', 'Bulk')}
+                                </Badge>
+                              ) : null}
+                              {tool.isDestructive ? (
+                                <Badge variant="error" size="sm" className="w-fit">
+                                  {destructiveLabel}
+                                </Badge>
+                              ) : null}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2">
+                            <StatusBadge variant={inAgent ? 'success' : 'neutral'} dot className="w-fit">
+                              {inAgent
+                                ? t('ai_assistant.playground.tools.allowed', 'Allowed')
+                                : t('ai_assistant.playground.tools.notAllowed', 'Not allowed')}
+                            </StatusBadge>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </section>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

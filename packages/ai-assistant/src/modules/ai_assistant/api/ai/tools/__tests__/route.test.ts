@@ -36,6 +36,7 @@ const sampleTools = new Map<string, any>([
     'catalog.update_product',
     {
       name: 'catalog.update_product',
+      moduleId: 'catalog',
       displayName: 'Update product',
       description: 'Update a product record',
       tags: ['write', 'catalog'],
@@ -49,6 +50,7 @@ const sampleTools = new Map<string, any>([
     'catalog.bulk_delete_products',
     {
       name: 'catalog.bulk_delete_products',
+      moduleId: 'catalog',
       displayName: 'Bulk delete products',
       description: 'Delete many products at once',
       tags: ['write', 'catalog', 'bulk'],
@@ -62,6 +64,7 @@ const sampleTools = new Map<string, any>([
     'customers.search',
     {
       name: 'customers.search',
+      moduleId: 'customers',
       displayName: 'Search customers',
       description: 'Search the customer directory',
       tags: ['read', 'customers'],
@@ -106,6 +109,7 @@ describe('GET /api/ai_assistant/ai/tools', () => {
     // Shape: mutation flag + display name + tags carried through.
     const mutation = body.tools.find((t: any) => t.name === 'catalog.update_product')
     expect(mutation.isMutation).toBe(true)
+    expect(mutation.moduleId).toBe('catalog')
     expect(mutation.displayName).toBe('Update product')
     expect(mutation.tags).toContain('catalog')
     // Destructive metadata is serialized; predicates collapse to the sentinel string.

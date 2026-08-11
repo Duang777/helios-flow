@@ -11,16 +11,16 @@ Add a first-class tools inventory surface to the AI playground so admins can ins
 ## Task List
 
 ### Phase 1: Contract
-- [ ] Add/verify the tools inventory API response shape and permission gate.
-- [ ] Cover the route with unit tests, including bulk and conditional destructive tool metadata.
+- [x] Add/verify the tools inventory API response shape and permission gate.
+- [x] Cover the route with unit tests, including bulk and conditional destructive tool metadata.
 
 ### Phase 2: Playground UI
-- [ ] Add a `Tools` tab to the playground that lists registered tools and highlights the selected agent's whitelist.
-- [ ] Replace hardcoded status colors with semantic badge/status primitives.
+- [x] Add a `Tools` tab to the playground that lists registered tools and highlights the selected agent's whitelist.
+- [x] Replace hardcoded status colors with semantic badge/status primitives.
 
 ### Phase 3: Verification
-- [ ] Extend the playground Playwright smoke test to cover the new tools tab.
-- [ ] Update the playground docs with the new admin demo flow.
+- [x] Extend the playground Playwright smoke test to cover the new tools tab.
+- [x] Update the playground docs with the new admin demo flow.
 
 ## Risks and Mitigations
 | Risk | Impact | Mitigation |
@@ -28,4 +28,3 @@ Add a first-class tools inventory surface to the AI playground so admins can ins
 | Tool inventory gets out of sync with registry loading | Medium | Reuse the same loader path as the agent list route |
 | UI styling drifts from DS norms | Medium | Use status badge/badge primitives only |
 | Demo flow becomes hard to explain | Low | Document the tab in the playground guide |
-
