@@ -139,13 +139,12 @@ export async function POST(req: NextRequest, context: RouteContext): Promise<Res
     // caller's session, which for superadmins is legitimately multi-tenant.
     const em = container.resolve<EntityManager>('em')
     const repo = new AiPendingActionRepository(em)
-    const lookupCtx = {
-      tenantId: auth.tenantId ?? null,
-      organizationId: auth.orgId ?? null,
-      userId: auth.sub,
-    }
     const row = auth.tenantId
-      ? await repo.getById(pendingActionId, lookupCtx)
+      ? await repo.getById(pendingActionId, {
+          tenantId: auth.tenantId,
+          organizationId: auth.orgId ?? null,
+          userId: auth.sub,
+        })
       : await repo.getByIdUnscoped(pendingActionId)
     if (!row) {
       return jsonError(
@@ -154,6 +153,15 @@ export async function POST(req: NextRequest, context: RouteContext): Promise<Res
         'pending_action_not_found',
       )
     }
+    if (!row.tenantId) {
+      return jsonError(
+        500,
+        `Pending action "${pendingActionId}" is missing tenant scope.`,
+        'pending_action_scope_missing',
+      )
+    }
+    const actionTenantId = row.tenantId
+    const actionOrganizationId = row.organizationId ?? null
     // For unscoped lookups, the feature ACL check above (`hasRequiredFeatures`)
     // is sufficient authorization — combined with the row having been loaded by
     // id via `getByIdUnscoped`, the caller has demonstrated they hold the
@@ -181,8 +189,8 @@ export async function POST(req: NextRequest, context: RouteContext): Promise<Res
 
     const policyOverrideRepo = new AiAgentMutationPolicyOverrideRepository(em)
     const overrideRow = await policyOverrideRepo.get(row.agentId, {
-      tenantId: auth.tenantId,
-      organizationId: auth.orgId ?? null,
+      tenantId: actionTenantId,
+      organizationId: actionOrganizationId,
     })
     const rawOverridePolicy = overrideRow?.mutationPolicy ?? null
     const mutationPolicyOverride: AiAgentMutationPolicy | null =
@@ -193,8 +201,8 @@ export async function POST(req: NextRequest, context: RouteContext): Promise<Res
       agent,
       tool,
       ctx: {
-        tenantId: auth.tenantId,
-        organizationId: auth.orgId ?? null,
+        tenantId: actionTenantId,
+        organizationId: actionOrganizationId,
         userId: auth.sub,
         userFeatures: acl.features,
         isSuperAdmin: acl.isSuperAdmin,
@@ -208,8 +216,8 @@ export async function POST(req: NextRequest, context: RouteContext): Promise<Res
     }
 
     const executeCtx: PendingActionExecuteContext = {
-      tenantId: auth.tenantId,
-      organizationId: auth.orgId ?? null,
+      tenantId: actionTenantId,
+      organizationId: actionOrganizationId,
       userId: auth.sub,
       userFeatures: acl.features,
       isSuperAdmin: acl.isSuperAdmin,

@@ -39,7 +39,6 @@
   "auth.email.resetPassword.subject": "Zresetuj swoje hasło",
   "auth.email.resetPassword.title": "Zresetuj swoje hasło",
   "auth.login.brandName": "Helios",
-  "auth.login.panelHeadline": "Prowadź firmę ze spokojem i jasnością.",
   "auth.login.errors.generic": "Wystąpił błąd. Spróbuj ponownie.",
   "auth.login.errors.invalidCredentials": "Nieprawidłowy email lub hasło",
   "auth.login.errors.permissionDenied": "Nie masz uprawnień do tego obszaru. Skontaktuj się z administratorem.",
@@ -48,6 +47,7 @@
   "auth.login.forgotPassword": "Nie pamiętasz hasła?",
   "auth.login.loading": "Ładowanie...",
   "auth.login.logoAlt": "Logo Helios",
+  "auth.login.panelHeadline": "Prowadź firmę ze spokojem i jasnością.",
   "auth.login.rememberMe": "Zapamiętaj mnie",
   "auth.login.requireRoleMessage": "Dostęp wymaga roli: {roles}",
   "auth.login.requireRolesMessage": "Dostęp wymaga jednej z następujących ról: {roles}",
@@ -247,12 +247,12 @@
   "ui.profileMenu.changePassword": "Zmień hasło",
   "ui.profileMenu.language": "Język",
   "ui.profileMenu.notifications": "Preferencje powiadomień",
+  "ui.profileMenu.palette": "Wygląd",
+  "ui.profileMenu.palette.classic": "Biały",
+  "ui.profileMenu.palette.warm": "Ciepły",
   "ui.profileMenu.profile": "Mój Profil",
   "ui.profileMenu.settings": "Ustawienia",
   "ui.profileMenu.theme": "Motyw",
   "ui.profileMenu.theme.dark": "Ciemny",
-  "ui.profileMenu.theme.light": "Jasny",
-  "ui.profileMenu.palette": "Wygląd",
-  "ui.profileMenu.palette.warm": "Ciepły",
-  "ui.profileMenu.palette.classic": "Biały"
+  "ui.profileMenu.theme.light": "Jasny"
 }

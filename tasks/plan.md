@@ -103,4 +103,31 @@ Make the competition/demo app open in Chinese by default while preserving explic
 - `yarn workspace @helios/ui test -- ProfileDropdown --runInBand` passed.
 - `yarn workspace @helios/core test -- notifications.handlers --runInBand` passed.
 - `yarn workspace @helios/shared build`, `yarn workspace @helios/ui build`, and `yarn workspace @helios/core build` passed.
-- `yarn i18n:check-sync` still reports existing unrelated repository i18n debt, but the `app/example` issues introduced by this slice are cleared.
+- `yarn i18n:check-sync` was later promoted to a required green gate in Phase 7.
+
+## Phase 7: I18n Sync Closure
+
+### Goal
+Close the remaining translation-sync debt so the Chinese-first presentation baseline is backed by a green `yarn i18n:check-sync` gate instead of an explanation about pre-existing repository drift.
+
+### Architecture Decisions
+- Keep Chinese as the default product locale and keep English as the primary explicit switch target.
+- Preserve all translation keys that are referenced by real UI code; do not delete visible Chinese strings just because they were missing from the English reference locale.
+- Reuse existing module translations where they already exist, especially app-level `demoFeedback` keys from onboarding.
+- Allow the sync tool to create pl/es/de placeholder locale files for commercial, governance, insights, and projects so module translation contracts stay complete while English/Chinese remain the demo-critical paths.
+
+### Task List
+- [x] Add app-level `demoFeedback.*` keys to all app locales from the existing onboarding translations.
+- [x] Add missing catalog, sales, and dashboard navigation/page keys across locales.
+- [x] Run `yarn i18n:check-sync --fix` to sort stale files and create missing module locale files.
+- [x] Re-run `yarn i18n:check-sync` and require it to pass.
+- [x] Fix release-build type errors exposed by the green-gate pass in AI pending-action confirm, AI chat UI-part streaming, and Operating Loop page-context widgets.
+
+### Verification Notes
+- `yarn i18n:check-sync` passed with all 53 translation modules in sync.
+- `yarn workspace @helios/ai-assistant build` passed after tightening pending-action and UI-part stream types.
+- `yarn workspace @helios/core build` passed after aligning the Operating Loop injection widget props with the framework contract.
+- `yarn build:app` passed; existing Turbopack NFT trace warnings remain warnings only.
+- `yarn jest --config packages/ai-assistant/jest.config.cjs pending-action-contract --runInBand --forceExit` passed.
+- `yarn jest --config packages/ai-assistant/jest.config.cjs AiChatConversationRepository --runInBand --forceExit` passed.
+- `yarn workspace @helios/core test -- operating-loop-page-context --runInBand` passed.

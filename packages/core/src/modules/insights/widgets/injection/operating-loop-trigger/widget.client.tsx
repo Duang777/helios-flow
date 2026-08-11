@@ -17,32 +17,33 @@ import {
 } from '@helios/ui/primitives/dialog'
 import { useT } from '@helios/shared/lib/i18n/context'
 import { cn } from '@helios/shared/lib/utils'
+import type { InjectionWidgetComponentProps } from '@helios/shared/modules/widgets/injection'
 import {
   buildOperatingLoopPageContext,
-  type OperatingLoopHostContext,
   type OperatingLoopPageContext,
 } from './page-context'
 
 export const OPERATING_LOOP_ASSISTANT_ID = 'insights.operating_loop_assistant'
 
-type OperatingLoopTriggerProps = {
-  context?: OperatingLoopHostContext
-  data?: OperatingLoopHostContext['data']
-}
+type OperatingLoopTriggerProps = InjectionWidgetComponentProps<
+  Record<string, unknown>,
+  Record<string, unknown>
+>
 
 function buildContextItems(pageContext: OperatingLoopPageContext): AiChatContextItem[] {
-  return [
+  const items: AiChatContextItem[] = [
     { label: pageContext.recordType, detail: pageContext.recordId },
-    pageContext.organizationId
-      ? { label: 'organizationId', detail: pageContext.organizationId }
-      : null,
-    pageContext.extra.projectId
-      ? { label: 'projectId', detail: pageContext.extra.projectId }
-      : null,
-    pageContext.extra.contractId
-      ? { label: 'contractId', detail: pageContext.extra.contractId }
-      : null,
-  ].filter((item): item is AiChatContextItem => Boolean(item))
+  ]
+  if (pageContext.organizationId) {
+    items.push({ label: 'organizationId', detail: pageContext.organizationId })
+  }
+  if (pageContext.extra.projectId) {
+    items.push({ label: 'projectId', detail: pageContext.extra.projectId })
+  }
+  if (pageContext.extra.contractId) {
+    items.push({ label: 'contractId', detail: pageContext.extra.contractId })
+  }
+  return items
 }
 
 function buildSuggestions(t: (key: string, fallback?: string) => string): AiChatSuggestion[] {

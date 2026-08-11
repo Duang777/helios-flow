@@ -46,7 +46,7 @@ export type OperatingLoopHostContext = {
   kpiTargetId?: unknown
   findingId?: unknown
   customerEntityId?: unknown
-  data?: Record<string, HostRecord | undefined>
+  data?: Record<string, unknown>
 }
 
 function readString(value: unknown): string | undefined {
@@ -66,9 +66,13 @@ function isOperatingLoopEntityType(value: unknown): value is OperatingLoopEntity
   )
 }
 
-function firstRecord(data: OperatingLoopHostContext['data'] | undefined): HostRecord | undefined {
+function isHostRecord(value: unknown): value is HostRecord {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function firstRecord(data: Record<string, unknown> | undefined): HostRecord | undefined {
   if (!data) return undefined
-  return Object.values(data).find((record): record is HostRecord => Boolean(record))
+  return Object.values(data).find(isHostRecord)
 }
 
 function recordTypeFromEntityType(entityType: OperatingLoopEntityType): string {
@@ -78,7 +82,7 @@ function recordTypeFromEntityType(entityType: OperatingLoopEntityType): string {
 
 export function buildOperatingLoopPageContext(
   context?: OperatingLoopHostContext,
-  data?: OperatingLoopHostContext['data'],
+  data?: Record<string, unknown>,
 ): OperatingLoopPageContext | null {
   const record = firstRecord(data) ?? firstRecord(context?.data)
   const entityType = isOperatingLoopEntityType(context?.entityType) ? context.entityType : null

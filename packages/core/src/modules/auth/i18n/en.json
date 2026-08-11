@@ -39,7 +39,6 @@
   "auth.email.resetPassword.subject": "Reset your password",
   "auth.email.resetPassword.title": "Reset your password",
   "auth.login.brandName": "Helios",
-  "auth.login.panelHeadline": "Run your business with calm clarity.",
   "auth.login.errors.generic": "An error occurred. Please try again.",
   "auth.login.errors.invalidCredentials": "Invalid email or password",
   "auth.login.errors.permissionDenied": "You do not have permission to access this area. Please contact your administrator.",
@@ -48,6 +47,7 @@
   "auth.login.forgotPassword": "Forgot password?",
   "auth.login.loading": "Loading...",
   "auth.login.logoAlt": "Helios logo",
+  "auth.login.panelHeadline": "Run your business with calm clarity.",
   "auth.login.rememberMe": "Remember me",
   "auth.login.requireRoleMessage": "Access requires role: {roles}",
   "auth.login.requireRolesMessage": "Access requires one of the following roles: {roles}",
@@ -247,12 +247,12 @@
   "ui.profileMenu.changePassword": "Change Password",
   "ui.profileMenu.language": "Language",
   "ui.profileMenu.notifications": "Notification Preferences",
+  "ui.profileMenu.palette": "Appearance",
+  "ui.profileMenu.palette.classic": "White",
+  "ui.profileMenu.palette.warm": "Warm",
   "ui.profileMenu.profile": "My Profile",
   "ui.profileMenu.settings": "Settings",
   "ui.profileMenu.theme": "Theme",
   "ui.profileMenu.theme.dark": "Dark",
-  "ui.profileMenu.theme.light": "Light",
-  "ui.profileMenu.palette": "Appearance",
-  "ui.profileMenu.palette.warm": "Warm",
-  "ui.profileMenu.palette.classic": "White"
+  "ui.profileMenu.theme.light": "Light"
 }

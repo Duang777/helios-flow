@@ -39,7 +39,6 @@
   "auth.email.resetPassword.subject": "重置密码",
   "auth.email.resetPassword.title": "重置密码",
   "auth.login.brandName": "Helios",
-  "auth.login.panelHeadline": "以从容清晰的方式经营业务。",
   "auth.login.errors.generic": "发生错误，请重试。",
   "auth.login.errors.invalidCredentials": "邮箱或密码无效",
   "auth.login.errors.permissionDenied": "您没有权限访问此区域。请联系管理员。",
@@ -48,6 +47,7 @@
   "auth.login.forgotPassword": "忘记密码？",
   "auth.login.loading": "加载中...",
   "auth.login.logoAlt": "Helios 标志",
+  "auth.login.panelHeadline": "以从容清晰的方式经营业务。",
   "auth.login.rememberMe": "记住我",
   "auth.login.requireRoleMessage": "访问需要角色：{roles}",
   "auth.login.requireRolesMessage": "访问需要以下角色之一：{roles}",
@@ -247,12 +247,12 @@
   "ui.profileMenu.changePassword": "修改密码",
   "ui.profileMenu.language": "语言",
   "ui.profileMenu.notifications": "通知偏好",
+  "ui.profileMenu.palette": "外观",
+  "ui.profileMenu.palette.classic": "白色",
+  "ui.profileMenu.palette.warm": "米棕",
   "ui.profileMenu.profile": "我的个人资料",
   "ui.profileMenu.settings": "设置",
   "ui.profileMenu.theme": "主题",
   "ui.profileMenu.theme.dark": "深色",
-  "ui.profileMenu.theme.light": "浅色",
-  "ui.profileMenu.palette": "外观",
-  "ui.profileMenu.palette.warm": "米棕",
-  "ui.profileMenu.palette.classic": "白色"
+  "ui.profileMenu.theme.light": "浅色"
 }

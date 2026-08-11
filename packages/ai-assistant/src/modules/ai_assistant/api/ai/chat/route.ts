@@ -219,7 +219,11 @@ function extractDataPayload(eventBlock: string): string | null {
   return dataLines.join('\n')
 }
 
-function extractUiPartsFromToolOutput(output: unknown): unknown[] {
+function isUiPartRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function extractUiPartsFromToolOutput(output: unknown): Record<string, unknown>[] {
   let parsed = output
   if (typeof output === 'string') {
     const trimmed = output.trim()
@@ -230,9 +234,9 @@ function extractUiPartsFromToolOutput(output: unknown): unknown[] {
       return []
     }
   }
-  if (!parsed || typeof parsed !== 'object') return []
+  if (!isUiPartRecord(parsed)) return []
   const value = parsed as Record<string, unknown>
-  const parts: unknown[] = []
+  const parts: Record<string, unknown>[] = []
   if (value.status === 'pending-confirmation' || value.status === 'awaiting-confirmation') {
     const pendingActionId =
       typeof value.pendingActionId === 'string' && value.pendingActionId.length > 0
@@ -256,20 +260,20 @@ function extractUiPartsFromToolOutput(output: unknown): unknown[] {
       })
     }
   }
-  if (value.uiPart && typeof value.uiPart === 'object') parts.push(value.uiPart)
-  if (Array.isArray(value.uiParts)) parts.push(...value.uiParts)
+  if (isUiPartRecord(value.uiPart)) parts.push(value.uiPart)
+  if (Array.isArray(value.uiParts)) parts.push(...value.uiParts.filter(isUiPartRecord))
   return parts
 }
 
 function extractAssistantSnapshot(
   raw: string,
   contentType: string | null,
-): { content: string; uiParts: unknown[] } {
+): { content: string; uiParts: Record<string, unknown>[] } {
   if (!contentType?.includes('event-stream')) {
     return { content: raw, uiParts: [] }
   }
   let content = ''
-  const uiParts: unknown[] = []
+  const uiParts: Record<string, unknown>[] = []
   for (const block of raw.split('\n\n')) {
     const data = extractDataPayload(block)
     if (!data || data === '[DONE]') continue

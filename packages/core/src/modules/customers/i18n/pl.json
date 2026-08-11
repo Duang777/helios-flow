@@ -1333,6 +1333,7 @@
   "customers.deals.kanban.quickDeal.owner": "Właściciel",
   "customers.deals.kanban.quickDeal.probability": "Prawdopodobieństwo",
   "customers.deals.kanban.quickDeal.status": "Status",
+  "customers.deals.kanban.quickDeal.status.closed": "Closed",
   "customers.deals.kanban.quickDeal.status.in_progress": "W toku",
   "customers.deals.kanban.quickDeal.status.loose": "Wstrzymany",
   "customers.deals.kanban.quickDeal.status.open": "Otwarty",

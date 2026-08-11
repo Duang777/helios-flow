@@ -21,3 +21,5 @@
 - [x] Localize profile language labels and governance digest toasts.
 - [x] Translate visible example left-nav/page-title keys for the Chinese demo surface.
 - [x] Run focused i18n/UI/notification tests and affected package builds.
+- [x] Promote `yarn i18n:check-sync` to green by preserving used extra keys, sorting stale locale files, and creating missing module locale files.
+- [x] Fix release-build type errors in AI pending-action confirm, AI chat UI-part streaming, and Operating Loop page-context injection props.
