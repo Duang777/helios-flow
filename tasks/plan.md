@@ -160,3 +160,33 @@ Remove the visible English leaks reported on the staff/team-members screen by fi
 - `yarn i18n:check-sync` passed after the visible navigation key updates.
 - `yarn generate` passed after the staff seed and i18n changes.
 - Browser verification on `/backend/staff/team-members` found no remaining target English terms from the reported staff, resource planning, media, inbox, checkout, payment, or communication-channel navigation surface.
+
+## Phase 9: Catalog Chinese Demo Data Closure
+
+### Goal
+Remove the visible English leaks reported on the products and services list by fixing the catalog example data, injected SEO report copy, and price-kind display. The page should show Chinese product titles, descriptions, categories, field labels, channel labels, SEO report messages, and price-kind text while preserving stable SKU/code fields.
+
+### Architecture Decisions
+- Treat catalog example products as real seeded demo data and refresh existing rows by SKU or legacy English handle.
+- Keep SKU, field codes, category slugs, and price-kind codes stable because validators and integrations require ASCII identifiers.
+- Set example product handles to `null` so the list no longer shows English URL fragments under product titles.
+- Localize the list price-kind label through i18n instead of changing persisted price-kind codes.
+- Keep the example injection widget translation-backed; no runtime string replacement or mock response layer.
+
+### Task List
+- [x] Translate catalog fieldsets, categories, product titles, descriptions, variants, option values, channel labels, and offers.
+- [x] Make catalog example seeding refresh legacy English rows in place by SKU or legacy handle.
+- [x] Localize the injected catalog SEO report and product-list bulk actions.
+- [x] Localize the product-list price-kind display so `sale` renders as `促销价`.
+- [x] Re-run catalog example seeding for the local Acme Corp demo organization.
+- [x] Browser-verify `/backend/catalog/products` against the reported English strings.
+
+### Verification Notes
+- `yarn workspace @helios/core build` passed after the seed and product-list rendering changes.
+- `yarn workspace @helios/core test -- ProductsDataTable --runInBand` passed for the localized price-kind rendering path.
+- `yarn i18n:check-sync` passed after the catalog/example locale updates.
+- `yarn generate` passed after the catalog module and injection widget changes.
+- `yarn i18n:check` passed with no missing keys; existing hardcoded-string and locale value-coverage findings remain advisory under the active i18n remediation policy.
+- `yarn build:packages` passed and refreshed workspace package dist outputs before the app build.
+- `yarn build:app` passed after the full package build; existing Turbopack NFT trace warnings remain warnings only.
+- Browser verification on `/backend/catalog/products` found no remaining target English terms for the reported product rows, SEO report, channel labels, legacy handles, or `sale` price-kind text; the SEO widget rendered the real `健康` state after the Chinese product descriptions were extended past the existing quality threshold.

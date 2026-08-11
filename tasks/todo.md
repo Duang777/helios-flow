@@ -29,3 +29,9 @@
 - [x] Make staff example seeding match legacy English seed names and refresh those records in place.
 - [x] Re-run staff example seeding for the local Acme Corp demo organization.
 - [x] Run generation, i18n sync/check gates, focused staff tests, and browser verification after the staff Chinese closure.
+- [x] Translate catalog example products, variants, categories, fieldsets, channel labels, and offers for the Chinese demo surface.
+- [x] Make catalog example seeding refresh existing English rows by SKU or legacy handle.
+- [x] Localize the catalog SEO report, product bulk actions, and product-list price-kind label.
+- [x] Re-run catalog example seeding for the local Acme Corp demo organization.
+- [x] Browser-verify `/backend/catalog/products` against the reported English strings.
+- [x] Run generation, i18n sync/check, package build, app build, and final browser verification for the catalog Chinese closure.

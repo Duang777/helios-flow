@@ -4,8 +4,8 @@ import CatalogSeoReportWidget from './widget.client'
 const widget: InjectionWidgetModule = {
   metadata: {
     id: 'example.injection.catalog-seo-report',
-    title: 'Catalog SEO Report',
-    description: 'Flags products that need SEO updates directly in the list view.',
+    title: '目录 SEO 报告',
+    description: '在商品列表中标记需要更新 SEO 的商品。',
     priority: 10,
     enabled: true,
   },
