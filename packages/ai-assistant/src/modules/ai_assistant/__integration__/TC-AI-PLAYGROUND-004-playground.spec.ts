@@ -37,7 +37,7 @@ test.describe('TC-AI-PLAYGROUND-004: AI Playground', () => {
               description: 'Answers questions about customer records.',
               executionMode: 'chat',
               mutationPolicy: 'read-only',
-              allowedTools: ['customers.list_people'],
+              allowedTools: ['customers.search'],
               requiredFeatures: [],
               acceptedMediaTypes: [],
               hasOutputSchema: false,
@@ -78,6 +78,38 @@ test.describe('TC-AI-PLAYGROUND-004: AI Playground', () => {
           object: { title: 'Stubbed title' },
           finishReason: 'stop',
           usage: { inputTokens: 1, outputTokens: 2 },
+        }),
+      });
+    });
+
+    await page.route('**/api/ai_assistant/ai/tools', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          tools: [
+            {
+              name: 'catalog.bulk_delete_products',
+              displayName: 'Bulk delete products',
+              description: 'Delete many products at once.',
+              tags: ['write', 'catalog', 'bulk'],
+              isMutation: true,
+              isBulk: true,
+              isDestructive: 'predicate',
+              requiredFeatures: ['catalog.products.manage'],
+            },
+            {
+              name: 'customers.search',
+              displayName: 'Search customers',
+              description: 'Search the customer directory.',
+              tags: ['read', 'customers'],
+              isMutation: false,
+              isBulk: false,
+              isDestructive: false,
+              requiredFeatures: ['customers.people.view'],
+            },
+          ],
+          total: 2,
         }),
       });
     });
@@ -124,6 +156,22 @@ test.describe('TC-AI-PLAYGROUND-004: AI Playground', () => {
       await expect(
         page.locator('[data-ai-chat-debug-section="lastRequest"]'),
       ).toBeVisible();
+
+      await page.getByRole('tab', { name: /tools/i }).click();
+      await expect(page.locator('[data-ai-playground-tools]')).toBeVisible();
+      await expect(page.locator('[data-ai-tool-name="catalog.bulk_delete_products"]')).toBeVisible();
+      await expect(page.locator('[data-ai-tool-name="catalog.bulk_delete_products"]')).toContainText(
+        'Bulk delete products',
+      );
+      await expect(page.locator('[data-ai-tool-name="catalog.bulk_delete_products"]')).toContainText(
+        'conditional',
+      );
+      await expect(page.locator('[data-ai-tool-name="catalog.bulk_delete_products"]')).toContainText(
+        'Not allowed',
+      );
+      await expect(page.locator('[data-ai-tool-name="customers.search"]')).toContainText(
+        'Allowed',
+      );
     } else if (await empty.isVisible().catch(() => false)) {
       // Empty branch: agent registry is empty in this environment.
       await expect(empty).toBeVisible();

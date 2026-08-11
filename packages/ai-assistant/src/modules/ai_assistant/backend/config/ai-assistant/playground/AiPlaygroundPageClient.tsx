@@ -5,9 +5,11 @@ import { useQuery } from '@tanstack/react-query'
 import { Bot, BookOpen, Loader2, Play, RefreshCcw } from 'lucide-react'
 import { useT } from '@helios/shared/lib/i18n/context'
 import { Alert, AlertDescription, AlertTitle } from '@helios/ui/primitives/alert'
+import { Badge } from '@helios/ui/primitives/badge'
 import { Button } from '@helios/ui/primitives/button'
 import { IconButton } from '@helios/ui/primitives/icon-button'
 import { Label } from '@helios/ui/primitives/label'
+import { StatusBadge } from '@helios/ui/primitives/status-badge'
 import { Switch } from '@helios/ui/primitives/switch'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@helios/ui/primitives/tabs'
 import { Textarea } from '@helios/ui/primitives/textarea'
@@ -66,6 +68,32 @@ async function fetchAgents(): Promise<AgentsResponse> {
     { errorMessage: 'Failed to load agents' },
   )
   if (!result) throw new Error(`Failed to load agents (${status})`)
+  return result
+}
+
+type ToolSummary = {
+  name: string
+  displayName: string
+  description: string
+  tags: string[]
+  isMutation: boolean
+  isBulk: boolean
+  isDestructive: boolean | 'predicate'
+  requiredFeatures: string[]
+}
+
+type ToolsResponse = {
+  tools: ToolSummary[]
+  total: number
+}
+
+async function fetchTools(): Promise<ToolsResponse> {
+  const { result, status } = await apiCallOrThrow<ToolsResponse>(
+    '/api/ai_assistant/ai/tools',
+    { method: 'GET', credentials: 'include' },
+    { errorMessage: 'Failed to load tools' },
+  )
+  if (!result) throw new Error(`Failed to load tools (${status})`)
   return result
 }
 
@@ -140,6 +168,166 @@ function AgentDetails({ agent }: { agent: PlaygroundAgent }) {
           <dd className="font-mono">{agent.allowedTools.length}</dd>
         </div>
       </dl>
+    </div>
+  )
+}
+
+function ToolInventory({ allowedToolNames }: { allowedToolNames: string[] }) {
+  const t = useT()
+  const { data, isLoading, isError, error, refetch } = useQuery<ToolsResponse>({
+    queryKey: ['ai_assistant', 'playground', 'tools'],
+    queryFn: fetchTools,
+  })
+
+  if (isLoading) {
+    return (
+      <PlaygroundLoading
+        message={t('ai_assistant.playground.tools.loading', 'Loading AI tools...')}
+      />
+    )
+  }
+
+  if (isError) {
+    return (
+      <Alert variant="destructive" data-ai-playground-tools-error>
+        <AlertTitle>
+          {t('ai_assistant.playground.tools.loadErrorTitle', 'Failed to load AI tools')}
+        </AlertTitle>
+        <AlertDescription>
+          <span>{error instanceof Error ? error.message : String(error)}</span>
+          <div className="mt-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                void refetch()
+              }}
+            >
+              <RefreshCcw className="size-4" aria-hidden />
+              <span>{t('ai_assistant.playground.retry', 'Retry')}</span>
+            </Button>
+          </div>
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
+  const tools = data?.tools ?? []
+  const allowed = new Set(allowedToolNames)
+  const allowedCount = tools.filter((tool) => allowed.has(tool.name)).length
+
+  if (tools.length === 0) {
+    return (
+      <EmptyState
+        icon={<Bot className="size-6" aria-hidden />}
+        title={t('ai_assistant.playground.tools.empty.title', 'No AI tools are accessible.')}
+        description={t(
+          'ai_assistant.playground.tools.empty.description',
+          'Register tools via registerMcpTool() or declare them in a module’s ai-tools.ts and ensure the caller holds the tool’s required features.',
+        )}
+      />
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-3" data-ai-playground-tools>
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <span>
+          {t('ai_assistant.playground.tools.summary.total', 'Registered tools: ')}
+          <span className="font-mono text-foreground">{tools.length}</span>
+        </span>
+        <span>
+          {t('ai_assistant.playground.tools.summary.allowed', 'Allowed on this agent: ')}
+          <span className="font-mono text-foreground">{allowedCount}</span>
+        </span>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {t(
+          'ai_assistant.playground.tools.hint',
+          'Tools marked with a success badge are whitelisted for the selected agent.',
+        )}
+      </p>
+      <div className="overflow-hidden rounded-md border border-border">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40 text-left text-xs text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2 font-medium">{t('ai_assistant.playground.tools.col.name', 'Tool')}</th>
+              <th className="px-3 py-2 font-medium">{t('ai_assistant.playground.tools.col.tags', 'Tags')}</th>
+              <th className="px-3 py-2 font-medium">{t('ai_assistant.playground.tools.col.kind', 'Kind')}</th>
+              <th className="px-3 py-2 font-medium">{t('ai_assistant.playground.tools.col.agent', 'Agent')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tools.map((tool) => {
+              const inAgent = allowed.has(tool.name)
+              const destructiveLabel =
+                tool.isDestructive === 'predicate'
+                  ? t('ai_assistant.playground.tools.conditional', 'conditional')
+                  : t('ai_assistant.playground.tools.destructive', 'destructive')
+              return (
+                <tr key={tool.name} className="border-t border-border align-top" data-ai-tool-name={tool.name}>
+                  <td className="px-3 py-2">
+                    <div className="font-medium text-foreground">{tool.displayName}</div>
+                    <div className="font-mono text-xs text-muted-foreground">{tool.name}</div>
+                    {tool.description ? (
+                      <p className="mt-1 text-xs text-muted-foreground">{tool.description}</p>
+                    ) : null}
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="flex flex-wrap gap-1">
+                      {tool.tags.map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant="neutral"
+                          size="sm"
+                          className="font-normal"
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="flex flex-col gap-1">
+                      {tool.isMutation ? (
+                        <Badge variant="warning" size="sm" className="w-fit">
+                          {t('ai_assistant.playground.tools.mutation', 'Mutation')}
+                        </Badge>
+                      ) : (
+                        <Badge variant="info" size="sm" className="w-fit">
+                          {t('ai_assistant.playground.tools.read', 'Read')}
+                        </Badge>
+                      )}
+                      {tool.isBulk ? (
+                        <Badge variant="neutral" size="sm" className="w-fit">
+                          {t('ai_assistant.playground.tools.bulk', 'Bulk')}
+                        </Badge>
+                      ) : null}
+                      {tool.isDestructive ? (
+                        <Badge variant="error" size="sm" className="w-fit">
+                          {destructiveLabel}
+                        </Badge>
+                      ) : null}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2">
+                    <StatusBadge
+                      variant={inAgent ? 'success' : 'neutral'}
+                      dot
+                      className="w-fit"
+                    >
+                      {inAgent
+                        ? t('ai_assistant.playground.tools.allowed', 'Allowed')
+                        : t('ai_assistant.playground.tools.notAllowed', 'Not allowed')}
+                    </StatusBadge>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -548,7 +736,7 @@ export function AiPlaygroundPageClient() {
   const t = useT()
   const [selectedAgentId, setSelectedAgentId] = React.useState<string | null>(null)
   const [debugEnabled, setDebugEnabled] = React.useState(false)
-  const [tab, setTab] = React.useState<'chat' | 'object'>('chat')
+  const [tab, setTab] = React.useState<'chat' | 'object' | 'tools'>('chat')
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery<AgentsResponse>({
     queryKey: ['ai_assistant', 'playground', 'agents'],
@@ -677,7 +865,7 @@ export function AiPlaygroundPageClient() {
       {selectedAgent ? (
         <Tabs
           value={tab}
-          onValueChange={(next: string) => setTab(next === 'object' ? 'object' : 'chat')}
+          onValueChange={(next: string) => setTab(next as 'chat' | 'object' | 'tools')}
         >
           <TabsList>
             <TabsTrigger value="chat">
@@ -686,12 +874,20 @@ export function AiPlaygroundPageClient() {
             <TabsTrigger value="object">
               {t('ai_assistant.playground.tabs.object', 'Object mode')}
             </TabsTrigger>
+            <TabsTrigger value="tools">
+              {t('ai_assistant.playground.tabs.tools', 'Tools')}
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="chat">
             <ChatLane agent={selectedAgent} debug={debugEnabled} />
           </TabsContent>
           <TabsContent value="object">
             <ObjectLane agent={selectedAgent} />
+          </TabsContent>
+          <TabsContent value="tools">
+            {selectedAgent ? (
+              <ToolInventory allowedToolNames={selectedAgent.allowedTools} />
+            ) : null}
           </TabsContent>
         </Tabs>
       ) : null}

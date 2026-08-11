@@ -46,6 +46,10 @@ When a tenant has flipped the **Disable agentic loop** kill switch from [Setting
 
 Use the panel to confirm that a newly-saved prompt or loop override reached the runtime without restarting anything.
 
+## Tools tab
+
+The playground also includes a **Tools** tab that lists every AI tool visible to the caller and marks which ones are whitelisted on the selected agent. Use it to verify that a tool pack was loaded, that required features are wired, and that destructive or bulk tools are labeled correctly before a demo.
+
 ## Shortcuts
 
 The playground reuses the shared `<AiChat>` shortcut set:
@@ -67,5 +71,6 @@ Use this route after changing task plans, tool streaming, or prompt guidance:
 
 1. Open `/backend/config/ai-assistant/playground` and pick `customers.account_assistant` or `customers.deal_analyzer`.
 2. Ask: `Find deals assigned to Joe and summarize the useful matches.`
-3. Verify the visible plan appears before the CRM tool result finishes, the matching step advances from `pending` or `running` to `done`, and the raw `meta.update_task_plan` tool row is not shown as an operator task. Catalog agents stay quiet by default unless you opt them in with `taskPlan: { enabled: true }`.
-4. To cover the error path, temporarily remove a required CRM tool from the picked agent via a local prompt/tool override or use a test provider stub that returns a tool error. Send the same prompt and verify the matching plan row becomes `failed` while the final assistant text still renders.
+3. Switch to the **Tools** tab and confirm the currently selected agent's whitelist is marked `Allowed`, while the rest stay `Not allowed`.
+4. Switch back to Chat and verify the visible plan appears before the CRM tool result finishes, the matching step advances from `pending` or `running` to `done`, and the raw `meta.update_task_plan` tool row is not shown as an operator task. Catalog agents stay quiet by default unless you opt them in with `taskPlan: { enabled: true }`.
+5. To cover the error path, temporarily remove a required CRM tool from the picked agent via a local prompt/tool override or use a test provider stub that returns a tool error. Send the same prompt and verify the matching plan row becomes `failed` while the final assistant text still renders.
