@@ -24,3 +24,8 @@
 - [x] Promote `yarn i18n:check-sync` to green by preserving used extra keys, sorting stale locale files, and creating missing module locale files.
 - [x] Fix release-build type errors in AI pending-action confirm, AI chat UI-part streaming, and Operating Loop page-context injection props.
 - [x] Clear blocking `yarn i18n:check` missing-key failures for UI phone fields, commercial audit labels, and AI playground tools.
+- [x] Translate the visible staff team/member/role/timesheet navigation keys for the Chinese demo surface.
+- [x] Convert staff example seed teams, roles, tags, member descriptions, notes, activities, and addresses to Chinese.
+- [x] Make staff example seeding match legacy English seed names and refresh those records in place.
+- [x] Re-run staff example seeding for the local Acme Corp demo organization.
+- [x] Run generation, i18n sync/check gates, focused staff tests, and browser verification after the staff Chinese closure.

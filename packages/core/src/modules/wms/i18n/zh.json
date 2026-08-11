@@ -206,7 +206,7 @@
   "wms.backend.dashboard.quickActions.title": "Quick actions",
   "wms.backend.dashboard.subtitle": "Live activity 用于 today · auto-refresh 60s · last update {time}",
   "wms.backend.dashboard.subtitleLoading": "Live activity 用于 today · auto-refresh 60s",
-  "wms.backend.dashboard.title": "Operational dashboard",
+  "wms.backend.dashboard.title": "运营看板",
   "wms.backend.dashboard.trends.allocate": "全部ocate",
   "wms.backend.dashboard.trends.empty": "No movement trends yet.",
   "wms.backend.dashboard.trends.receive": "Receive",

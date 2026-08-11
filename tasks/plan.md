@@ -134,3 +134,29 @@ Close the remaining translation-sync debt so the Chinese-first presentation base
 - `yarn jest --config packages/ai-assistant/jest.config.cjs AiChatConversationRepository --runInBand --forceExit` passed.
 - `yarn workspace @helios/core test -- operating-loop-page-context --runInBand` passed.
 - `yarn generate` and `yarn build:packages` passed after the missing-key closure.
+
+## Phase 8: Staff Chinese Demo Data Closure
+
+### Goal
+Remove the visible English leaks reported on the staff/team-members screen by fixing both the translation layer and the underlying seeded records. The demo should open in Chinese and show Chinese staff navigation, teams, roles, tags, and member descriptions without runtime string replacement.
+
+### Architecture Decisions
+- Treat staff seed content as real demo data, not UI fallback text.
+- Preserve idempotency by matching both the new Chinese seed names and the legacy English seed names before updating records.
+- Update owned seed fields in place so existing demo databases move from `Engineering` / `Backend engineer` style content to Chinese without duplicate teams or roles.
+- Keep English support via the `en` locale and explicit language switching; only the Chinese locale and Chinese demo seed are changed.
+
+### Task List
+- [x] Translate visible staff navigation/list keys for teams, team members, roles, leave requests, availability, and timesheets.
+- [x] Change staff team, role, member, tag, note, activity, and address demo seeds to Chinese.
+- [x] Add legacy-name matching so existing English demo seed rows are refreshed in place.
+- [x] Re-run staff seed against the local Acme Corp organization to update the running demo database.
+- [x] Run generation, i18n sync/check gates, focused staff tests, and browser verification.
+
+### Verification Notes
+- `yarn workspace @helios/core build` passed after the seed/idempotency changes.
+- `yarn workspace @helios/core test -- scheduleSwitch --runInBand` passed as a focused staff sanity check.
+- Local database verification showed teams `工程 / 产品 / 运营`, roles `后端工程师 / 前端工程师 / 产品经理 / 体验设计师 / 运维工程师`, and Chinese member descriptions after `yarn helios staff seed-examples`.
+- `yarn i18n:check-sync` passed after the visible navigation key updates.
+- `yarn generate` passed after the staff seed and i18n changes.
+- Browser verification on `/backend/staff/team-members` found no remaining target English terms from the reported staff, resource planning, media, inbox, checkout, payment, or communication-channel navigation surface.

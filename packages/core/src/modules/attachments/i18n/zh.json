@@ -93,7 +93,7 @@
   "attachments.library.upload.success": "附件 uploaded.",
   "attachments.library.upload.tagsPlaceholder": "添加 tags",
   "attachments.library.upload.title": "上传 attachment",
-  "attachments.nav.group": "Media",
+  "attachments.nav.group": "媒体",
   "attachments.partitions.actions.add": "添加 partition",
   "attachments.partitions.actions.cancel": "取消",
   "attachments.partitions.actions.create": "创建 partition",
