@@ -59,5 +59,14 @@
   "insights.kpi.board.rollupLabel": "Company rollup (derived)",
   "insights.audit.kpiTargetCreate": "Create KPI target",
   "insights.audit.kpiTargetUpdate": "Update KPI target",
-  "insights.audit.kpiTargetDelete": "Delete KPI target"
+  "insights.audit.kpiTargetDelete": "Delete KPI target",
+  "insights.operatingLoop.trigger.ariaLabel": "Open Operating Loop Assistant",
+  "insights.operatingLoop.trigger.label": "Ask Operating AI",
+  "insights.operatingLoop.sheet.title": "Operating Loop Assistant",
+  "insights.operatingLoop.sheet.description": "Ask about this record across projects, settlement, KPI gaps, and governance findings.",
+  "insights.operatingLoop.sheet.placeholder": "Ask about delays, collection, KPI gaps, findings...",
+  "insights.operatingLoop.suggestion.fullLoop.label": "Full loop",
+  "insights.operatingLoop.suggestion.fullLoop.prompt": "Is this project delayed? How is contract collection? How far are KPI targets? Which governance findings apply? Include numbers, formula sources, evidence IDs, and backend links.",
+  "insights.operatingLoop.suggestion.actions.label": "Next actions",
+  "insights.operatingLoop.suggestion.actions.prompt": "Use the current page context to suggest next actions. For any write, create a confirmation card first and do not claim it is complete until confirmed."
 }

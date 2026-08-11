@@ -11,6 +11,8 @@ import { surfaceRecordConflict } from '@helios/ui/backend/conflicts'
 import { useT } from '@helios/shared/lib/i18n/context'
 import { useConfirmDialog } from '@helios/ui/backend/confirm-dialog'
 import { RecordNotFoundState, ErrorMessage } from '@helios/ui/backend/detail'
+import { Badge } from '@helios/ui/primitives/badge'
+import { InjectionSpot } from '@helios/ui/backend/injection/InjectionSpot'
 
 type InvoiceData = {
   id: string
@@ -24,6 +26,8 @@ type InvoiceData = {
   issuedOn: string | null
   dueDate: string | null
   isActive: boolean
+  organizationId: string
+  tenantId: string
   updatedAt?: string | null
 }
 
@@ -130,6 +134,26 @@ export default function EditInvoicePage({ params }: { params?: { id?: string } }
     <Page>
       <PageBody>
         {ConfirmDialogElement}
+        <div className="mb-6 flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {record.invoiceNo ?? record.id}
+          </h1>
+          <Badge variant="outline">{record.status}</Badge>
+          <InjectionSpot
+            spotId="detail:commercial.invoice:header"
+            context={{
+              entityType: 'commercial.invoice',
+              invoiceId: record.id,
+              contractId: record.contractId ?? undefined,
+              projectId: record.projectId ?? undefined,
+              customerEntityId: record.customerEntityId ?? undefined,
+              organizationId: record.organizationId,
+              recordId: record.id,
+              data: { invoice: record },
+            }}
+            data={{ invoice: record }}
+          />
+        </div>
         <CrudForm
           title={t('commercial.invoices.edit.title')}
           backHref="/backend/commercial/invoices"

@@ -14,6 +14,7 @@ import { useConfirmDialog } from '@helios/ui/backend/confirm-dialog'
 import { RecordNotFoundState, ErrorMessage } from '@helios/ui/backend/detail'
 import { Badge } from '@helios/ui/primitives/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@helios/ui/primitives/tabs'
+import { InjectionSpot } from '@helios/ui/backend/injection/InjectionSpot'
 
 type ContractData = {
   id: string
@@ -268,6 +269,19 @@ export default function EditContractPage({ params }: { params?: { id?: string } 
             {record.code ? (
               <span className="text-sm text-muted-foreground">{record.code}</span>
             ) : null}
+            <InjectionSpot
+              spotId="detail:commercial.contract:header"
+              context={{
+                entityType: 'commercial.contract',
+                contractId: record.id,
+                projectId: record.projectId ?? undefined,
+                customerEntityId: record.customerEntityId ?? undefined,
+                organizationId: record.organizationId,
+                recordId: record.id,
+                data: { contract: record },
+              }}
+              data={{ contract: record }}
+            />
           </div>
           <p className="text-sm text-muted-foreground">{t('commercial.boundary.notGl')}</p>
         </div>

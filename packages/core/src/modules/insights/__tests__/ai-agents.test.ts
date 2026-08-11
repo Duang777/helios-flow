@@ -62,7 +62,17 @@ describe('insights.operating_loop_assistant agent definition', () => {
     expect(agent.systemPrompt).toContain('formula source')
     expect(agent.systemPrompt).toContain('href')
     expect(agent.systemPrompt).toContain('evidence IDs')
+    expect(agent.systemPrompt).toContain('starts with `证据:` or `Evidence:`')
     expect(agent.systemPrompt).toContain('Do not claim you updated data until the approval card is confirmed')
+  })
+
+  it('routes fixed Chinese operating prompts to the required tool families', () => {
+    expect(agent.systemPrompt).toContain('逾期应收')
+    expect(agent.systemPrompt).toContain('commercial.list_overdue_invoices')
+    expect(agent.systemPrompt).toContain('commercial.explain_metric')
+    expect(agent.systemPrompt).toContain('governance.suggest_disposition')
+    expect(agent.systemPrompt).toContain('projects.get_delay_summary')
+    expect(agent.systemPrompt).toContain('Treat returned invoice ids, payment ids, and allocation ids as evidence IDs')
   })
 
   it('does not contradict the confirm-required project and commercial write tools', () => {

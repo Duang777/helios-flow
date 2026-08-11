@@ -196,7 +196,9 @@ export default function ProjectDetailPage({ params }: { params?: { id?: string }
             <InjectionSpot
               spotId="detail:projects.project:header"
               context={{
+                entityType: 'projects.project',
                 projectId: project.id,
+                organizationId: project.organizationId,
                 recordId: project.id,
                 data: { project },
               }}

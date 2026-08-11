@@ -13,6 +13,7 @@ import { useT } from '@helios/shared/lib/i18n/context'
 import { RecordNotFoundState, ErrorMessage } from '@helios/ui/backend/detail'
 import { Badge } from '@helios/ui/primitives/badge'
 import { Button } from '@helios/ui/primitives/button'
+import { InjectionSpot } from '@helios/ui/backend/injection/InjectionSpot'
 
 const STATUS_OPTIONS = ['open', 'acknowledged', 'resolved', 'dismissed'] as const
 const SEVERITY_OPTIONS = ['info', 'warning', 'critical'] as const
@@ -171,6 +172,17 @@ export default function FindingDetailPage({ params }: { params?: { id?: string }
             <Badge variant="outline">{record.ruleId}</Badge>
             <Badge variant="secondary">{record.status}</Badge>
             {record.isSimulation ? <Badge variant="outline">simulation</Badge> : null}
+            <InjectionSpot
+              spotId="detail:governance.finding:header"
+              context={{
+                entityType: 'governance.finding',
+                findingId: record.id,
+                organizationId: record.organizationId,
+                recordId: record.id,
+                data: { finding: record },
+              }}
+              data={{ finding: record }}
+            />
           </div>
           <p className="text-sm text-muted-foreground">
             {record.subjectType} · {record.asOf}

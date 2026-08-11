@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { login } from '@helios/core/modules/core/__integration__/helpers/auth'
+import { test, expect, type Page } from '@playwright/test'
+import { login } from '@helios/core/helpers/integration/auth'
 
 const playgroundPath = '/backend/config/ai-assistant/playground'
 
@@ -10,34 +10,29 @@ const playgroundPath = '/backend/config/ai-assistant/playground'
 // tool-name list flaky.
 const EXPECTED_LOOP_MODULES = ['projects', 'commercial', 'insights', 'governance'] as const
 
-// Parse the AI SDK v5 UI-message stream format the real chat route emits.
-// Each event is a JSON object on its own `data:` line; tool invocations are
-// announced by `tool-input-start` events that carry the toolName.
-//
 // The AI SDK v5 wire format encodes `module.tool_name` as `module__tool_name`
 // (double underscore) to avoid clashing with JSON dot-paths inside tool args.
 // We normalize back to the dot form so the assertions can use the canonical
 // names from `OPERATING_LOOP_ALLOWED_TOOLS`.
-function extractToolCallSequence(sse: string): string[] {
-  const toolNames: string[] = []
-  for (const rawLine of sse.split('\n')) {
-    const line = rawLine.trim()
-    if (!line.startsWith('data:')) continue
-    const payload = line.slice(5).trim()
-    if (!payload) continue
-    try {
-      const parsed = JSON.parse(payload) as {
-        type?: string
-        toolName?: string
-      }
-      if (parsed.type === 'tool-input-start' && typeof parsed.toolName === 'string') {
-        toolNames.push(parsed.toolName.replace(/__/g, '.'))
-      }
-    } catch {
-      // Ignore non-JSON provider chunks.
-    }
-  }
-  return toolNames
+function normalizeToolName(value: string): string {
+  return value.replace(/__/g, '.')
+}
+
+async function readVisibleToolCallSequence(page: Page): Promise<string[]> {
+  const rawToolNames = await page.locator('[data-ai-chat-tool-call]').evaluateAll((nodes) =>
+    nodes
+      .map((node) => node.getAttribute('data-ai-chat-tool-call') ?? '')
+      .filter((value) => value.length > 0),
+  )
+  return rawToolNames.map(normalizeToolName)
+}
+
+function loopOrderSatisfied(captured: string[], expected: readonly string[]): boolean {
+  const positions = expected.map((module) =>
+    captured.findIndex((tool) => tool === module || tool.startsWith(`${module}.`)),
+  )
+  return positions.every((position) => position >= 0)
+    && positions.every((position, index) => index === 0 || position > positions[index - 1])
 }
 
 // First-appearance-per-module check: every module must contribute at least
@@ -87,13 +82,13 @@ test.describe('TC-AI-OPERATING-QUALITY-002: Operating-loop AI conversation QA', 
   test('operating loop traverses project -> commercial -> insights -> governance', async ({
     page,
   }) => {
-    test.setTimeout(180_000)
+    test.setTimeout(300_000)
     await login(page, 'superadmin')
 
     // Drives the REAL agent — no chat-route mocking. The chat route streams
-    // AI SDK v5 JSON events; we capture them via Playwright passthrough and
-    // assert the four-module traversal order. Requires OPENAI_API_KEY (or a
-    // HELIOS_AI_* override) to be configured in apps/helios/.env.
+    // AI SDK v5 JSON events; AiChat renders tool-call rows as they arrive, and
+    // this spec asserts those visible UI rows instead of waiting for the SSE
+    // HTTP response to close.
     const prompt =
       'Give me a full operating-loop picture: which projects are delayed, how is contract collection, where are KPI gaps, and any governance findings. Use one query tool per module, then explain each one.'
 
@@ -116,19 +111,23 @@ test.describe('TC-AI-OPERATING-QUALITY-002: Operating-loop AI conversation QA', 
     await composer.fill(prompt)
     await page.getByRole('button', { name: /send message/i }).click()
 
-    // Wait for the assistant turn to finish — the composer clears after send.
     await expect(composer).toHaveValue('', { timeout: 120_000 })
 
     const chatResponse = await chatResponsePromise
     const chatUrl = chatResponse.url()
     const chatBody = JSON.parse(chatResponse.request().postData() || '{}') as Record<string, unknown>
-    const chatSse = await chatResponse.text()
 
     expect(chatUrl).toContain('agent=insights.operating_loop_assistant')
     const messages = chatBody.messages as Array<{ role?: string; content?: string }>
     expect(messages.at(-1)).toMatchObject({ role: 'user', content: prompt })
 
-    const toolSequence = extractToolCallSequence(chatSse)
+    await expect
+      .poll(async () => loopOrderSatisfied(await readVisibleToolCallSequence(page), EXPECTED_LOOP_MODULES), {
+        timeout: 240_000,
+        intervals: [1_000, 2_000, 5_000],
+      })
+      .toBe(true)
+    const toolSequence = await readVisibleToolCallSequence(page)
     expect(toolSequence.length).toBeGreaterThan(0)
     assertLoopOrder(toolSequence, EXPECTED_LOOP_MODULES)
   })

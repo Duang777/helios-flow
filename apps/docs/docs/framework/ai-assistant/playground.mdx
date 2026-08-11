@@ -58,6 +58,26 @@ Use the preset row to jump between common review cuts:
 - **Whitelist**: tools the selected agent is allowed to call.
 - **Risk check**: destructive or conditionally destructive tools.
 
+## Operating-loop acceptance
+
+For the M5-M7 operating advisor, use real app data and real model calls rather than mocked assistant replies:
+
+```bash
+yarn operating-loop:seed
+yarn ai:live-eval
+```
+
+`yarn operating-loop:seed` logs the seeded `organizationId`, `projectId`, and related record IDs. Reuse those values for page-context-aware live evaluation:
+
+```bash
+LIVE_AI_APP_URL=http://localhost:3000 \
+LIVE_AI_ORGANIZATION_ID=<organizationId> \
+LIVE_AI_PROJECT_ID=<projectId> \
+yarn ai:live-eval
+```
+
+The live eval uses fixed Chinese prompts and fails when the model response omits required tool calls, numbers, formula/source wording, evidence markers, or `/backend/...` links. Provider configuration comes from the normal model env (`LIVE_AI_API_KEY`, `LIVE_AI_BASE_URL`, `LIVE_AI_MODEL`, or the matching OpenAI/Helios aliases).
+
 ## Shortcuts
 
 The playground reuses the shared `<AiChat>` shortcut set:

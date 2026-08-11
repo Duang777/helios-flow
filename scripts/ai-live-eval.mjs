@@ -3,13 +3,16 @@
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { config as loadDotenv } from 'dotenv'
-
-const REQUIRED_OPERATING_LOOP_TOOLS = [
-  'projects__get_delay_summary',
-  'commercial__get_project_settlement_summary',
-  'insights__get_kpi_gap',
-  'governance__list_findings',
-]
+import {
+  OPERATING_LOOP_ACCEPTANCE_PROMPTS,
+  OPERATING_LOOP_AGENT_ID,
+  OPERATING_LOOP_REQUIRED_TOOLS,
+  assertOperatingLoopAnswerQuality,
+  evaluateOperatingLoopAnswer,
+  extractAssistantTextFromSse,
+  extractToolCallSequence,
+  normalizeToolName,
+} from './lib/operating-loop-acceptance.mjs'
 
 const DEFAULT_PROMPT =
   '项目 project-live-qa 是否延期？合同回款怎样？KPI 差多少？有哪些治理检出？'
@@ -48,6 +51,13 @@ function normalizeBaseUrl(value) {
   return value.replace(/\/+$/, '')
 }
 
+function readPositiveIntegerEnv(name, fallback) {
+  const value = readEnv(name)
+  if (!value) return fallback
+  const parsed = Number.parseInt(value, 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+
 function toResponsesApiBaseUrl(baseUrl) {
   const normalized = normalizeBaseUrl(baseUrl)
   return normalized.endsWith('/v1') ? normalized : `${normalized}/v1`
@@ -60,6 +70,10 @@ function toProviderRootUrl(baseUrl) {
 
 async function readJson(response) {
   const text = await response.text()
+  return parseJsonText(text)
+}
+
+function parseJsonText(text) {
   try {
     return JSON.parse(text)
   } catch {
@@ -67,17 +81,113 @@ async function readJson(response) {
   }
 }
 
+async function fetchTextWithTimeout(url, init, { label, timeoutMs }) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const response = await fetch(url, { ...init, signal: controller.signal })
+    const text = await response.text()
+    return { response, text }
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`[ai-live-eval] ${label} timed out after ${timeoutMs}ms`)
+    }
+    throw error
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+function hasTerminalSseEvent(raw) {
+  for (const block of String(raw ?? '').split(/\r?\n\r?\n/)) {
+    const payload = block
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith('data:'))
+      .map((line) => line.slice(5).trim())
+      .join('\n')
+    if (!payload || payload === '[DONE]') {
+      if (payload === '[DONE]') return true
+      continue
+    }
+    try {
+      const parsed = JSON.parse(payload)
+      if (
+        parsed?.type === 'loop-finish' ||
+        parsed?.type === 'finish' ||
+        parsed?.type === 'done' ||
+        parsed?.type === 'response.completed'
+      ) {
+        return true
+      }
+    } catch {
+      // Keep reading; provider text chunks are not always JSON.
+    }
+  }
+  return false
+}
+
+async function fetchSseWithTimeout(url, init, { label, timeoutMs, stopWhenRaw = null }) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  let reader = null
+  let text = ''
+  try {
+    const response = await fetch(url, { ...init, signal: controller.signal })
+    if (!response.body) {
+      return { response, text: await response.text(), sawTerminalEvent: false }
+    }
+
+    const decoder = new TextDecoder()
+    let sawTerminalEvent = false
+    reader = response.body.getReader()
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      text += decoder.decode(value, { stream: true })
+      if (
+        hasTerminalSseEvent(text) ||
+        (typeof stopWhenRaw === 'function' && stopWhenRaw(text))
+      ) {
+        sawTerminalEvent = true
+        await reader.cancel().catch(() => undefined)
+        break
+      }
+    }
+    text += decoder.decode()
+    return { response, text, sawTerminalEvent }
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      const toolCalls = extractToolCallSequence(text)
+      const assistantText = extractAssistantTextFromSse(text)
+      throw new Error(
+        `[ai-live-eval] ${label} timed out after ${timeoutMs}ms (partialTools=${toolCalls.join(',') || 'none'}, partialTextChars=${assistantText.length})`,
+      )
+    }
+    throw error
+  } finally {
+    clearTimeout(timeout)
+    if (reader) await reader.releaseLock()
+  }
+}
+
 async function providerFetch(baseUrl, apiKey, path, init = {}) {
-  const response = await fetch(`${baseUrl}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      ...(init.headers ?? {}),
+  const { response, text } = await fetchTextWithTimeout(
+    `${baseUrl}${path}`,
+    {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        ...(init.headers ?? {}),
+      },
     },
-  })
-  const json = await readJson(response)
+    {
+      label: `provider ${path}`,
+      timeoutMs: readPositiveIntegerEnv('LIVE_AI_PROVIDER_REQUEST_TIMEOUT_MS', 45_000),
+    },
+  )
+  const json = parseJsonText(text)
   if (!response.ok || json.error) {
     const message = json.error?.message ?? JSON.stringify(json).slice(0, 500)
     const code = json.error?.code ?? response.status
@@ -207,14 +317,14 @@ async function runOperatingLoopToolSelection(baseUrl, apiKey, model, prompt) {
   })
 
   const calls = extractFunctionCalls(json)
-  const calledNames = calls.map((call) => call.name)
-  const missing = REQUIRED_OPERATING_LOOP_TOOLS.filter((toolName) => !calledNames.includes(toolName))
+  const calledNames = calls.map((call) => normalizeToolName(call.name))
+  const missing = OPERATING_LOOP_REQUIRED_TOOLS.filter((toolName) => !calledNames.includes(toolName))
   if (missing.length > 0) {
     throw new Error(
       `[ai-live-eval] Operating-loop tool selection missed required tools: ${missing.join(', ')}`,
     )
   }
-  return { id: json.id ?? null, calls }
+  return { id: json.id ?? null, calls, normalizedCalls: calledNames }
 }
 
 async function loginApp(appUrl, email, password) {
@@ -233,58 +343,121 @@ async function loginApp(appUrl, email, password) {
   return json.token
 }
 
-function decodeSseText(raw) {
-  const chunks = []
-  for (const line of raw.split(/\r?\n/)) {
-    if (!line.startsWith('data:')) continue
-    const data = line.slice(5).trim()
-    if (!data || data === '[DONE]') continue
-    try {
-      const json = JSON.parse(data)
-      if (json.type === 'text-delta' && typeof json.delta === 'string') chunks.push(json.delta)
-      else if (json.type === 'text' && typeof json.content === 'string') chunks.push(json.content)
-      else if (!json.type && typeof json.content === 'string') chunks.push(json.content)
-    } catch {
-      // Ignore non-JSON SSE chunks.
-    }
-  }
-  return chunks.join('')
-}
-
 async function runAppChatSmoke({ appUrl, email, password, provider, model, upstreamBaseUrl }) {
   const token = await loginApp(appUrl, email, password)
   const url = new URL(`${appUrl}/api/ai_assistant/ai/chat`)
-  url.searchParams.set('agent', readEnv('LIVE_AI_AGENT') ?? 'insights.operating_loop_assistant')
+  url.searchParams.set('agent', readEnv('LIVE_AI_AGENT') ?? OPERATING_LOOP_AGENT_ID)
   url.searchParams.set('provider', provider)
   url.searchParams.set('model', model)
-  url.searchParams.set('baseUrl', `${upstreamBaseUrl}/v1`)
+  if (readEnv('LIVE_AI_APP_BASE_URL_OVERRIDE') === '1') {
+    url.searchParams.set('baseUrl', `${upstreamBaseUrl}/v1`)
+  }
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
+  const { response, text: raw } = await fetchSseWithTimeout(
+    url,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messages: [
+          {
+            role: 'user',
+            content:
+              '不要调用工具。用一句中文回答：你是谁？必须包含 Operating Loop Assistant。',
+          },
+        ],
+        debug: true,
+      }),
     },
-    body: JSON.stringify({
-      messages: [
-        {
-          role: 'user',
-          content:
-            '不要调用工具。用一句中文回答：你是谁？必须包含 Operating Loop Assistant。',
-        },
-      ],
-      debug: true,
-    }),
-  })
-  const raw = await response.text()
+    {
+      label: 'app chat smoke',
+      timeoutMs: readPositiveIntegerEnv('LIVE_AI_APP_REQUEST_TIMEOUT_MS', 90_000),
+      stopWhenRaw: (raw) => extractAssistantTextFromSse(raw).includes('Operating Loop Assistant'),
+    },
+  )
   if (!response.ok) {
     throw new Error(`[ai-live-eval] App chat failed (${response.status}): ${raw.slice(0, 500)}`)
   }
   return {
     status: response.status,
     contentType: response.headers.get('content-type'),
-    text: decodeSseText(raw).slice(0, 500),
+    text: extractAssistantTextFromSse(raw).slice(0, 500),
   }
+}
+
+async function runAppOperatingLoopAcceptance({
+  appUrl,
+  email,
+  password,
+  provider,
+  model,
+  upstreamBaseUrl,
+  pageContext,
+}) {
+  const token = await loginApp(appUrl, email, password)
+  const results = []
+  for (const promptCase of OPERATING_LOOP_ACCEPTANCE_PROMPTS) {
+    const url = new URL(`${appUrl}/api/ai_assistant/ai/chat`)
+    url.searchParams.set('agent', readEnv('LIVE_AI_AGENT') ?? OPERATING_LOOP_AGENT_ID)
+    url.searchParams.set('provider', provider)
+    url.searchParams.set('model', model)
+    if (readEnv('LIVE_AI_APP_BASE_URL_OVERRIDE') === '1') {
+      url.searchParams.set('baseUrl', `${upstreamBaseUrl}/v1`)
+    }
+
+  const { response, text: raw } = await fetchSseWithTimeout(
+      url,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: promptCase.prompt }],
+          debug: true,
+          ...(pageContext ? { pageContext } : {}),
+        }),
+      },
+      {
+        label: `app operating-loop prompt ${promptCase.id}`,
+        timeoutMs: readPositiveIntegerEnv('LIVE_AI_APP_REQUEST_TIMEOUT_MS', 90_000),
+        stopWhenRaw: (raw) =>
+          evaluateOperatingLoopAnswer({
+            text: extractAssistantTextFromSse(raw),
+            toolCalls: extractToolCallSequence(raw),
+            promptCase,
+          }).passed,
+      },
+    )
+    if (!response.ok) {
+      throw new Error(
+        `[ai-live-eval] App operating-loop prompt ${promptCase.id} failed (${response.status}): ${raw.slice(0, 500)}`,
+      )
+    }
+    const text = extractAssistantTextFromSse(raw)
+    const toolCalls = extractToolCallSequence(raw)
+    let quality
+    try {
+      quality = assertOperatingLoopAnswerQuality({ text, toolCalls, promptCase })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      throw new Error(
+        `[ai-live-eval] App operating-loop prompt ${promptCase.id} failed quality: ${message}; toolCalls=${toolCalls.join(',') || 'none'}; text=${text.slice(0, 500)}`,
+      )
+    }
+    results.push({
+      id: promptCase.id,
+      prompt: promptCase.prompt,
+      text: text.slice(0, 1000),
+      toolCalls,
+      quality,
+    })
+  }
+  return results
 }
 
 async function main() {
@@ -304,6 +477,16 @@ async function main() {
   const toolSelection = await runOperatingLoopToolSelection(apiBaseUrl, apiKey, model, prompt)
 
   const appUrl = readEnv('LIVE_AI_APP_URL')
+  const projectId = readEnv('LIVE_AI_PROJECT_ID')
+  const organizationId = readEnv('LIVE_AI_ORGANIZATION_ID')
+  const pageContext = projectId
+    ? {
+        entityType: 'projects.project',
+        recordType: 'project',
+        recordId: projectId,
+        organizationId: organizationId ?? undefined,
+      }
+    : null
   const appChat = appUrl
     ? await runAppChatSmoke({
         appUrl: normalizeBaseUrl(appUrl),
@@ -314,6 +497,17 @@ async function main() {
         upstreamBaseUrl,
       })
     : { skipped: 'Set LIVE_AI_APP_URL to run the Helios app chat smoke.' }
+  const appOperatingLoopAcceptance = appUrl
+    ? await runAppOperatingLoopAcceptance({
+        appUrl: normalizeBaseUrl(appUrl),
+        email: readEnv('LIVE_AI_APP_EMAIL') ?? 'admin@acme.com',
+        password: readEnv('LIVE_AI_APP_PASSWORD') ?? 'secret',
+        provider: readEnv('LIVE_AI_PROVIDER') ?? 'openai',
+        model,
+        upstreamBaseUrl,
+        pageContext,
+      })
+    : { skipped: 'Set LIVE_AI_APP_URL to run the Helios operating-loop acceptance prompts.' }
 
   console.log(
     JSON.stringify(
@@ -327,6 +521,7 @@ async function main() {
         responsesSmoke,
         operatingLoopToolSelection: toolSelection,
         appChat,
+        appOperatingLoopAcceptance,
       },
       null,
       2,
@@ -335,6 +530,11 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error))
+  if (error instanceof Error) {
+    const cause = error.cause instanceof Error ? ` cause=${error.cause.message}` : ''
+    console.error(`${error.message}${cause}`)
+  } else {
+    console.error(String(error))
+  }
   process.exitCode = 1
 })

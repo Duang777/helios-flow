@@ -59,5 +59,14 @@
   "insights.kpi.board.rollupLabel": "公司汇总（派生）",
   "insights.audit.kpiTargetCreate": "创建 KPI 目标",
   "insights.audit.kpiTargetUpdate": "更新 KPI 目标",
-  "insights.audit.kpiTargetDelete": "删除 KPI 目标"
+  "insights.audit.kpiTargetDelete": "删除 KPI 目标",
+  "insights.operatingLoop.trigger.ariaLabel": "打开经营闭环助手",
+  "insights.operatingLoop.trigger.label": "问经营 AI",
+  "insights.operatingLoop.sheet.title": "经营闭环助手",
+  "insights.operatingLoop.sheet.description": "围绕当前记录查询项目、结算、KPI 缺口与治理检出。",
+  "insights.operatingLoop.sheet.placeholder": "询问延期、回款、KPI 缺口、治理检出...",
+  "insights.operatingLoop.suggestion.fullLoop.label": "完整闭环",
+  "insights.operatingLoop.suggestion.fullLoop.prompt": "这个项目延期了吗？合同回款怎样？KPI 差多少？有哪些治理检出？请给出数字、公式来源、证据 ID 和后台链接。",
+  "insights.operatingLoop.suggestion.actions.label": "下一步动作",
+  "insights.operatingLoop.suggestion.actions.prompt": "基于当前页面上下文给出处置建议。需要写入的动作先生成确认卡，不要直接声称已经完成。"
 }

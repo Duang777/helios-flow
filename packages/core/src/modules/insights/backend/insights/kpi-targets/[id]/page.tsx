@@ -11,6 +11,8 @@ import { surfaceRecordConflict } from '@helios/ui/backend/conflicts'
 import { useT } from '@helios/shared/lib/i18n/context'
 import { useConfirmDialog } from '@helios/ui/backend/confirm-dialog'
 import { RecordNotFoundState, ErrorMessage } from '@helios/ui/backend/detail'
+import { Badge } from '@helios/ui/primitives/badge'
+import { InjectionSpot } from '@helios/ui/backend/injection/InjectionSpot'
 
 const METRIC_OPTIONS = ['revenue', 'gross_profit', 'gross_margin', 'collection'] as const
 
@@ -160,6 +162,24 @@ export default function EditKpiTargetPage({ params }: { params?: { id?: string }
   return (
     <Page>
       <PageBody>
+        <div className="mb-6 flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t('insights.kpiTargets.edit.title')}
+          </h1>
+          <Badge variant="outline">{record.metricKey}</Badge>
+          <Badge variant="secondary">{record.periodKey}</Badge>
+          <InjectionSpot
+            spotId="detail:insights.kpi_target:header"
+            context={{
+              entityType: 'insights.kpi_target',
+              kpiTargetId: record.id,
+              organizationId: record.organizationId,
+              recordId: record.id,
+              data: { kpiTarget: record },
+            }}
+            data={{ kpiTarget: record }}
+          />
+        </div>
         <CrudForm
           title={t('insights.kpiTargets.edit.title')}
           backHref="/backend/insights/kpi-targets"
