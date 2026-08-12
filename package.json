@@ -75,6 +75,7 @@
     "operating-loop:feishu:brand": "node scripts/operating-loop-feishu-brand.mjs",
     "operating-loop:feishu:verify": "node scripts/operating-loop-feishu-verify.mjs",
     "ai:live-eval": "node scripts/ai-live-eval.mjs",
+    "demo:videos": "node scripts/record-demo-videos.mjs",
     "helios": "node packages/cli/dist/bin.js",
     "registry:setup-user": "./scripts/registry/setup-user.sh",
     "registry:publish": "./scripts/registry/publish.sh",

@@ -73,3 +73,4 @@
 - [x] Document Feishu requirement coverage, current support, and deterministic gaps.
 - [x] Localize the visible WMS inventory console surface for Chinese default mode.
 - [x] Remove the generic Helios contact popup/floating feedback widget from the backend competition shell.
+- [x] Add a repeatable Playwright video recorder with Chinese/English subtitle output for competition and all-module showcases.

@@ -227,6 +227,23 @@ Keep the running competition environment focused on the operating-loop advisor b
 - [x] Remove the backend-shell mount for `DemoFeedbackWidget` so no automatic contact dialog or floating feedback entry appears during demonstrations.
 - [x] Keep the component and translations available for templates/onboarding surfaces, but do not render it in the Helios backend product shell.
 
+## Phase 10.6: Module Video Showcase Pipeline
+
+### Goal
+Create a repeatable, real-app video pipeline for competition and sales demos: record backend modules with Playwright, generate Chinese and English subtitle sidecars, and keep video artifacts out of git.
+
+### Architecture Decisions
+- Use Playwright `recordVideo` for browser footage because it records the same local Helios app the operator will demo.
+- Generate `.srt` and `.vtt` subtitle files per scene so the same raw footage can be uploaded with selectable subtitles or later burned into a final cut.
+- Keep the first production path dependency-light: no Remotion app is added yet; Remotion or ffmpeg can consume the generated manifest later.
+- Provide two scene modes: curated `competition` scenes for the operating-loop story, and generated `all-modules` scenes from the backend route registry for broader module coverage.
+
+### Task List
+- [x] Add a Playwright-backed demo recorder that logs in through the real auth API and captures backend pages.
+- [x] Add Chinese and English subtitle generation for every recorded scene.
+- [x] Add a preview `index.html` and machine-readable `manifest.json` for produced videos.
+- [x] Add route-registry-driven all-module scene discovery plus focused script tests.
+
 ## Phase 11: Operating Loop Production Closure
 
 ### Goal
