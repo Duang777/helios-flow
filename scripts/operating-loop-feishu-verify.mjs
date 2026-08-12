@@ -63,14 +63,26 @@ async function main() {
     method: 'POST',
     body: JSON.stringify({ organizationId: scope.organizationId, asOf: options.asOf }),
   })
-  const [customers, invoices, risks, digest, notifications] = await Promise.all([
+  const organizationParams = new URLSearchParams({
+    view: 'manage',
+    tenantId: scope.tenantId,
+    ids: scope.organizationId,
+    page: '1',
+    pageSize: '1',
+  })
+  const [organizationResponse, customers, invoices, risks, digest, notifications] = await Promise.all([
+    api(`/api/directory/organizations?${organizationParams.toString()}`),
     listAll(api, '/api/customers/companies'),
     listAll(api, '/api/commercial/invoices'),
     listAll(api, '/api/projects/risks'),
     api(`/api/insights/operating-loop/today?organizationId=${encodeURIComponent(scope.organizationId)}&asOf=${encodeURIComponent(options.asOf)}`),
     listAll(api, '/api/notifications?type=insights.operating_loop.digest'),
   ])
+  const organization = Array.isArray(organizationResponse?.items)
+    ? organizationResponse.items.find((item) => item?.id === scope.organizationId) ?? organizationResponse.items[0] ?? null
+    : null
   const result = evaluateFeishuOperatingLoopVerification({
+    organization,
     customers,
     invoices,
     risks,
@@ -84,6 +96,7 @@ async function main() {
         ok: result.ok,
         asOf: options.asOf,
         organizationId: scope.organizationId,
+        companyName: organization?.name ?? null,
         governanceRules: {
           created: rules?.summary?.created ?? rules?.created ?? null,
           updated: rules?.summary?.updated ?? rules?.updated ?? null,

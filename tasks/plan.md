@@ -383,6 +383,21 @@ Turn the customer-provided Feishu/Lark test data package into real Helios operat
   - The proactive notification linked to `/backend/insights/operating-loop/today`.
 - Focused script verification passed 16 tests; focused insights completion/digest tests passed 14 tests.
 
+## Phase 15: Feishu Competition Subject Alignment
+
+### Goal
+Make the running demo environment visibly align with the Feishu competition company subject and promote the written Feishu requirements into explicit verification artifacts. The system should fail verification when the selected Helios organization still shows generic demo branding.
+
+### Task List
+- [x] Add an API-backed branding command that renames the current Helios organization through `/api/directory/organizations`.
+- [x] Add a verifier assertion that the running organization name is `北京四维图新科技股份有限公司`.
+- [x] Document the Feishu package requirement coverage matrix, including covered rules and known deterministic gaps.
+
+### Verification Gate
+- `node --test scripts/__tests__/operating-loop-feishu-import.test.mjs scripts/__tests__/operating-loop-feishu-verifier.test.mjs`
+- `yarn operating-loop:feishu:brand`
+- `yarn operating-loop:feishu:verify -- --as-of=2026-08-12`
+
 ### Verification Gate
 - `yarn generate`
 - `yarn i18n:check`

@@ -6,6 +6,10 @@ import {
 } from '../lib/operating-loop-feishu-verifier.mjs'
 
 const baseInput = {
+  organization: {
+    id: 'org-1',
+    name: '北京四维图新科技股份有限公司',
+  },
   customers: [
     { source: 'feishu:customer_id=CUST-0001;org_id=REG-A', displayName: '宝马（中国）汽车贸易有限公司' },
     { source: 'feishu:customer_id=CUST-0999;org_id=REG-A', displayName: '宝马（中国）汽车贸易有限公司' },
@@ -67,6 +71,7 @@ test('reports missing signals instead of passing with incomplete data', () => {
   const result = evaluateFeishuOperatingLoopVerification({
     ...baseInput,
     customers: [baseInput.customers[0]],
+    organization: { ...baseInput.organization, name: 'Acme Corp' },
     invoices: [],
     risks: [],
     digest: {
@@ -82,6 +87,7 @@ test('reports missing signals instead of passing with incomplete data', () => {
   assert.deepEqual(
     result.failures.map((failure) => failure.code),
     [
+      'company_name_mismatch',
       'duplicate_customer_missing',
       'overdue_invoice_missing',
       'delayed_risk_missing',

@@ -52,3 +52,19 @@ test('operating-loop-feishu-verify prints help without requiring credentials', (
   assert.match(result.stdout, /operating-loop:feishu:verify/)
   assert.match(result.stdout, /does not seed or mutate business records/)
 })
+
+test('operating-loop-feishu-brand prints help without requiring credentials', () => {
+  const result = spawnSync(process.execPath, ['scripts/operating-loop-feishu-brand.mjs', '--help'], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      OPERATING_LOOP_SEED_EMAIL: '',
+      OPERATING_LOOP_SEED_PASSWORD: '',
+    },
+  })
+
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /operating-loop:feishu:brand/)
+  assert.match(result.stdout, /company subject/)
+})

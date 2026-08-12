@@ -72,6 +72,7 @@
     "mcp:dev": "turbo run mcp:dev --filter=@helios/ai-assistant",
     "operating-loop:seed": "node scripts/operating-loop-seed.mjs",
     "operating-loop:feishu:import": "node scripts/operating-loop-feishu-import.mjs",
+    "operating-loop:feishu:brand": "node scripts/operating-loop-feishu-brand.mjs",
     "operating-loop:feishu:verify": "node scripts/operating-loop-feishu-verify.mjs",
     "ai:live-eval": "node scripts/ai-live-eval.mjs",
     "helios": "node packages/cli/dist/bin.js",

@@ -1,4 +1,7 @@
+export const FEISHU_OPERATING_LOOP_COMPANY_NAME = '北京四维图新科技股份有限公司'
+
 export const FEISHU_OPERATING_LOOP_VERIFY_EXPECTATIONS = {
+  companyName: FEISHU_OPERATING_LOOP_COMPANY_NAME,
   duplicateCustomerSourceIds: ['CUST-0001', 'CUST-0999'],
   overdueInvoiceSourceIds: ['INV-00001', 'INV-00002'],
   delayedRiskSourceIds: ['RSK-0003', 'RSK-0006', 'RSK-0010', 'RSK-0015'],
@@ -24,6 +27,16 @@ function failure(code, message, details = {}) {
 
 export function evaluateFeishuOperatingLoopVerification(input, expectations = FEISHU_OPERATING_LOOP_VERIFY_EXPECTATIONS) {
   const failures = []
+  const organizationName = typeof input.organization?.name === 'string' ? input.organization.name.trim() : ''
+  if (organizationName !== expectations.companyName) {
+    failures.push(
+      failure('company_name_mismatch', 'Expected the running organization to match the Feishu package company subject.', {
+        expected: expectations.companyName,
+        actual: organizationName || null,
+      }),
+    )
+  }
+
   const customersBySource = new Map(
     input.customers
       .map((row) => [
@@ -116,6 +129,7 @@ export function evaluateFeishuOperatingLoopVerification(input, expectations = FE
       importedInvoiceCount: invoiceSourceIds.size,
       importedRiskCount: riskSourceIds.size,
       expectedDelayedRiskCount: expectations.delayedRiskSourceIds.length,
+      companyName: organizationName || null,
       digestMetrics: metrics,
       digestGroupCounts: groupCounts,
       proactiveDigestNotification: proactiveNotification

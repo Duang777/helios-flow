@@ -68,3 +68,6 @@
 - [x] Make KPI completion and today digest respect each target's active month/quarter/year period and as-of cutoff.
 - [x] Add a read-only Feishu operating-loop verifier for duplicate customer, overdue invoice, delayed project/risk, KPI gap, and proactive digest.
 - [x] Run the Feishu API-backed import verification against the local Acme Corp organization.
+- [x] Add an API-backed Feishu competition branding command for the running Helios organization.
+- [x] Make Feishu verification fail when the organization name does not match `北京四维图新科技股份有限公司`.
+- [x] Document Feishu requirement coverage, current support, and deterministic gaps.
