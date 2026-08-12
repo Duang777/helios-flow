@@ -300,9 +300,14 @@ async function sendAiPrompt(page, prompt) {
   const composer = page.locator('[aria-label="Message composer"], textarea#ai-chat-composer').last()
   await composer.waitFor({ state: 'visible', timeout: 15_000 })
   await composer.fill(prompt)
+  await composer.press('Enter')
+  await page.waitForTimeout(500)
+  const stillTyped = await composer.inputValue().catch(() => '')
+  if (stillTyped.trim().length === 0) return
+
   const sendButton = page.getByRole('button', { name: /发送消息|发送|Send message|Send/i }).last()
   if (await isVisible(sendButton, 2_000)) {
-    await sendButton.click()
+    await sendButton.click({ timeout: 5_000 })
   } else {
     await composer.press(process.platform === 'darwin' ? 'Meta+Enter' : 'Control+Enter')
   }
