@@ -6,9 +6,11 @@ import { existsSync, mkdirSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve, relative } from 'node:path'
 
 import {
+  DEFAULT_AI_WAIT_MS,
   DEFAULT_SCENE_DURATION_MS,
   DEFAULT_VIEWPORT,
   buildSceneCues,
+  buildSceneSteps,
   buildSrt,
   buildVtt,
   resolveScenes,
@@ -41,6 +43,10 @@ function parseArgs(argv) {
     durationMs: DEFAULT_SCENE_DURATION_MS,
     generatedRoutesPath: DEFAULT_ROUTES_PATH,
     viewport: { ...DEFAULT_VIEWPORT },
+    aiWaitMs: Number.parseInt(readEnv('DEMO_VIDEO_AI_WAIT_MS', String(DEFAULT_AI_WAIT_MS)), 10),
+    skipAi: readEnv('DEMO_VIDEO_SKIP_AI', 'false') === 'true',
+    overlayCaptions: readEnv('DEMO_VIDEO_OVERLAY_CAPTIONS', 'true') !== 'false',
+    continueOnError: true,
     headed: false,
     slowMo: 60,
     dryRun: false,
@@ -55,6 +61,9 @@ function parseArgs(argv) {
     } else if (arg === '--dry-run') options.dryRun = true
     else if (arg === '--list-scenes') options.listScenes = true
     else if (arg === '--headed') options.headed = true
+    else if (arg === '--skip-ai') options.skipAi = true
+    else if (arg === '--no-overlay-captions') options.overlayCaptions = false
+    else if (arg === '--fail-fast') options.continueOnError = false
     else if (arg.startsWith('--app-url=')) options.appUrl = arg.slice('--app-url='.length).replace(/\/+$/, '')
     else if (arg.startsWith('--email=')) options.email = arg.slice('--email='.length)
     else if (arg.startsWith('--password=')) options.password = arg.slice('--password='.length)
@@ -63,6 +72,7 @@ function parseArgs(argv) {
     else if (arg.startsWith('--limit=')) options.limit = Number.parseInt(arg.slice('--limit='.length), 10)
     else if (arg.startsWith('--output-dir=')) options.outputDir = resolve(ROOT, arg.slice('--output-dir='.length))
     else if (arg.startsWith('--duration-ms=')) options.durationMs = Number.parseInt(arg.slice('--duration-ms='.length), 10)
+    else if (arg.startsWith('--ai-wait-ms=')) options.aiWaitMs = Number.parseInt(arg.slice('--ai-wait-ms='.length), 10)
     else if (arg.startsWith('--routes=')) options.generatedRoutesPath = resolve(ROOT, arg.slice('--routes='.length))
     else if (arg.startsWith('--slow-mo=')) options.slowMo = Number.parseInt(arg.slice('--slow-mo='.length), 10)
     else if (arg.startsWith('--viewport=')) options.viewport = parseViewport(arg.slice('--viewport='.length))
@@ -75,6 +85,9 @@ function parseArgs(argv) {
   if (!Number.isFinite(options.durationMs) || options.durationMs < 2_000) {
     throw new Error('[record-demo-videos] --duration-ms must be at least 2000')
   }
+  if (!Number.isFinite(options.aiWaitMs) || options.aiWaitMs < 1_000) {
+    throw new Error('[record-demo-videos] --ai-wait-ms must be at least 1000')
+  }
   return options
 }
 
@@ -84,6 +97,7 @@ function printHelp() {
   yarn demo:videos -- --mode=all-modules --limit=20
   yarn demo:videos -- --list-scenes
   yarn demo:videos -- --scene=02-today-digest --headed
+  yarn demo:videos -- --scene=09-governance --ai-wait-ms=45000
 
 Records real Helios backend pages with Playwright and writes:
   videos/<scene>.webm
@@ -92,7 +106,9 @@ Records real Helios backend pages with Playwright and writes:
   manifest.json and index.html
 
 The recorder logs in through /api/auth/login and uses real app data. It does
-not mock AI replies or business records.`)
+not mock AI replies or business records. By default it opens the real AI
+assistant for each scene, sends the scene prompt, and waits for streamed output.
+Use --skip-ai only for camera/blocking checks, not final competition footage.`)
 }
 
 async function loginContext(context, options) {
@@ -146,7 +162,12 @@ async function recordScene(browser, scene, options) {
   await page.goto(`${options.appUrl}${scene.path}`, { waitUntil: 'domcontentloaded', timeout: 45_000 })
   await page.waitForLoadState('load', { timeout: 20_000 }).catch(() => null)
   await stabilizePage(page)
-  await runSceneAction(page, scene, options.durationMs)
+  const steps = buildSceneSteps(scene, {
+    durationMs: options.durationMs,
+    aiWaitMs: options.aiWaitMs,
+    includeAi: !options.skipAi,
+  })
+  const stepResults = await runSceneAction(page, steps, options)
   const video = page.video()
   await context.close()
   const videoPath = await video?.path()
@@ -156,8 +177,9 @@ async function recordScene(browser, scene, options) {
   mkdirSync(dirname(finalVideoPath), { recursive: true })
   renameSync(videoPath, finalVideoPath)
 
-  const zhCues = buildSceneCues(scene, options.durationMs, 'zh')
-  const enCues = buildSceneCues(scene, options.durationMs, 'en')
+  const cueOptions = { aiWaitMs: options.aiWaitMs, includeAi: !options.skipAi }
+  const zhCues = buildSceneCues(scene, options.durationMs, 'zh', cueOptions)
+  const enCues = buildSceneCues(scene, options.durationMs, 'en', cueOptions)
   const captionDir = join(options.outputDir, 'captions')
   mkdirSync(captionDir, { recursive: true })
   writeFileSync(join(captionDir, `${scene.id}.zh.srt`), buildSrt(zhCues))
@@ -174,6 +196,7 @@ async function recordScene(browser, scene, options) {
       enSrt: `captions/${scene.id}.en.srt`,
       enVtt: `captions/${scene.id}.en.vtt`,
     },
+    steps: stepResults,
   }
 }
 
@@ -188,26 +211,173 @@ async function stabilizePage(page) {
   await page.waitForTimeout(1_200)
 }
 
-async function runSceneAction(page, scene, durationMs) {
-  const half = Math.max(1_000, Math.floor(durationMs / 2))
-  if (scene.action === 'scroll') {
-    await page.waitForTimeout(1_000)
-    await page.evaluate(async () => {
-      const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-      const target = document.scrollingElement || document.documentElement
-      const maxScroll = Math.max(0, target.scrollHeight - window.innerHeight)
-      const step = Math.max(120, Math.floor(maxScroll / 5))
-      for (let i = 0; i < 5; i += 1) {
-        window.scrollBy({ top: step, behavior: 'smooth' })
-        await delay(450)
+async function runSceneAction(page, steps, options) {
+  const results = []
+  for (const step of steps) {
+    await showStepOverlay(page, step, options)
+    const startedAt = new Date().toISOString()
+    try {
+      if (step.kind === 'scroll') {
+        await scrollPage(page, step.durationMs)
+      } else if (step.kind === 'ai') {
+        await performAiStep(page, step)
+      } else {
+        await page.waitForTimeout(step.durationMs)
       }
-      await delay(500)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    }).catch(() => undefined)
-    await page.waitForTimeout(Math.max(1_000, durationMs - half))
+      results.push({ ...serializeStep(step), startedAt, status: 'ok' })
+    } catch (error) {
+      const message = error?.message || String(error)
+      results.push({ ...serializeStep(step), startedAt, status: 'failed', error: message })
+      if (!options.continueOnError) throw error
+      await page.waitForTimeout(Math.max(1_000, Math.min(step.durationMs, 3_000)))
+    }
+  }
+  await clearStepOverlay(page)
+  return results
+}
+
+async function scrollPage(page, durationMs) {
+  await page.waitForTimeout(600)
+  await page.evaluate(async (targetDurationMs) => {
+    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+    const target = document.scrollingElement || document.documentElement
+    const maxScroll = Math.max(0, target.scrollHeight - window.innerHeight)
+    if (maxScroll === 0) {
+      await delay(targetDurationMs)
+      return
+    }
+    const iterations = 5
+    const step = Math.max(120, Math.floor(maxScroll / iterations))
+    const delayMs = Math.max(250, Math.floor(targetDurationMs / (iterations + 2)))
+    for (let i = 0; i < iterations; i += 1) {
+      window.scrollBy({ top: step, behavior: 'smooth' })
+      await delay(delayMs)
+    }
+    await delay(delayMs)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, durationMs).catch(() => undefined)
+}
+
+async function performAiStep(page, step) {
+  await openAiAssistant(page, step.agentId)
+  await sendAiPrompt(page, step.promptZh)
+  await page.waitForTimeout(step.durationMs)
+}
+
+async function openAiAssistant(page, agentId) {
+  const dock = page.locator(`[data-ai-dock-agent="${cssEscape(agentId)}"]`)
+  if (await isVisible(dock)) return
+
+  const trigger = page.locator('[data-ai-launcher-trigger], [data-ai-launcher-trigger-mobile]').first()
+  if (!(await isVisible(trigger))) {
+    throw new Error('AI launcher trigger is not visible')
+  }
+  await trigger.click()
+
+  const picker = page.locator('[data-ai-launcher-picker]')
+  await picker.waitFor({ state: 'visible', timeout: 10_000 })
+  const search = page.locator('[data-ai-launcher-search-input]')
+  await search.fill(agentId)
+  const option = page.locator(`[data-ai-launcher-agent-id="${cssEscape(agentId)}"]`).first()
+  if (await isVisible(option, 8_000)) {
+    await option.click()
+  } else {
+    await search.press('Enter')
+  }
+
+  const dockButton = page.locator('[data-ai-launcher-dock]').first()
+  if (await isVisible(dockButton, 5_000)) {
+    await dockButton.click()
+    await dock.waitFor({ state: 'visible', timeout: 15_000 }).catch(() => undefined)
     return
   }
-  await page.waitForTimeout(durationMs)
+
+  await page.locator('[aria-label="Message composer"], textarea#ai-chat-composer').first()
+    .waitFor({ state: 'visible', timeout: 15_000 })
+}
+
+async function sendAiPrompt(page, prompt) {
+  const composer = page.locator('[aria-label="Message composer"], textarea#ai-chat-composer').last()
+  await composer.waitFor({ state: 'visible', timeout: 15_000 })
+  await composer.fill(prompt)
+  const sendButton = page.getByRole('button', { name: /发送消息|发送|Send message|Send/i }).last()
+  if (await isVisible(sendButton, 2_000)) {
+    await sendButton.click()
+  } else {
+    await composer.press(process.platform === 'darwin' ? 'Meta+Enter' : 'Control+Enter')
+  }
+}
+
+async function showStepOverlay(page, step, options) {
+  if (!options.overlayCaptions) return
+  await page.evaluate((payload) => {
+    const existing = document.querySelector('[data-demo-video-caption]')
+    if (existing) existing.remove()
+    const container = document.createElement('div')
+    container.setAttribute('data-demo-video-caption', '')
+    container.style.position = 'fixed'
+    container.style.left = '28px'
+    container.style.bottom = '28px'
+    container.style.zIndex = '2147483647'
+    container.style.maxWidth = '760px'
+    container.style.padding = '18px 22px'
+    container.style.borderRadius = '8px'
+    container.style.background = 'rgba(23, 18, 14, 0.86)'
+    container.style.color = '#fffaf3'
+    container.style.boxShadow = '0 18px 48px rgba(0, 0, 0, 0.22)'
+    container.style.fontFamily = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+    container.style.pointerEvents = 'none'
+
+    const title = document.createElement('div')
+    title.textContent = payload.title
+    title.style.fontSize = '24px'
+    title.style.fontWeight = '700'
+    title.style.lineHeight = '1.25'
+    title.style.marginBottom = '8px'
+
+    const subtitle = document.createElement('div')
+    subtitle.textContent = payload.subtitle
+    subtitle.style.fontSize = '17px'
+    subtitle.style.lineHeight = '1.55'
+    subtitle.style.opacity = '0.9'
+
+    container.append(title, subtitle)
+    document.body.append(container)
+  }, {
+    title: step.titleZh,
+    subtitle: step.subtitleZh,
+  }).catch(() => undefined)
+}
+
+async function clearStepOverlay(page) {
+  await page.evaluate(() => {
+    document.querySelector('[data-demo-video-caption]')?.remove()
+  }).catch(() => undefined)
+}
+
+function serializeStep(step) {
+  return {
+    id: step.id,
+    kind: step.kind,
+    durationMs: step.durationMs,
+    titleZh: step.titleZh,
+    titleEn: step.titleEn,
+    agentId: step.agentId,
+    promptZh: step.promptZh,
+  }
+}
+
+async function isVisible(locator, timeout = 0) {
+  try {
+    if (timeout > 0) await locator.waitFor({ state: 'visible', timeout })
+    return await locator.isVisible()
+  } catch {
+    return false
+  }
+}
+
+function cssEscape(value) {
+  return String(value).replaceAll('\\', '\\\\').replaceAll('"', '\\"')
 }
 
 function writeManifest(options, scenes) {
@@ -217,6 +387,8 @@ function writeManifest(options, scenes) {
     mode: options.mode,
     viewport: options.viewport,
     durationMs: options.durationMs,
+    aiWaitMs: options.aiWaitMs,
+    skipAi: options.skipAi,
     scenes,
   }
   mkdirSync(options.outputDir, { recursive: true })
@@ -229,11 +401,16 @@ function buildPreviewHtml(manifest) {
     <section>
       <h2>${escapeHtml(scene.titleZh)} <small>${escapeHtml(scene.moduleId)}</small></h2>
       <p>${escapeHtml(scene.subtitleZh)}</p>
-      <video controls width="960">
-        <source src="${escapeHtml(scene.video)}" type="video/webm" />
-        <track default kind="subtitles" srclang="zh" label="中文" src="${escapeHtml(scene.captions.zhVtt)}" />
-        <track kind="subtitles" srclang="en" label="English" src="${escapeHtml(scene.captions.enVtt)}" />
-      </video>
+      ${scene.status === 'failed'
+        ? `<pre>${escapeHtml(scene.error)}</pre>`
+        : `<video controls width="960">
+          <source src="${escapeHtml(scene.video)}" type="video/webm" />
+          <track default kind="subtitles" srclang="zh" label="中文" src="${escapeHtml(scene.captions.zhVtt)}" />
+          <track kind="subtitles" srclang="en" label="English" src="${escapeHtml(scene.captions.enVtt)}" />
+        </video>`}
+      ${Array.isArray(scene.steps) && scene.steps.length > 0
+        ? `<ol>${scene.steps.map((step) => `<li>${escapeHtml(step.titleZh)}：${escapeHtml(step.status)}${step.agentId ? ` · ${escapeHtml(step.agentId)}` : ''}</li>`).join('')}</ol>`
+        : ''}
     </section>`).join('\n')
   return `<!doctype html>
 <html lang="zh-CN">
@@ -245,6 +422,8 @@ function buildPreviewHtml(manifest) {
     section { margin: 0 0 40px; padding-bottom: 32px; border-bottom: 1px solid #ddd4c8; }
     small { color: #7a6f65; font-size: 14px; font-weight: 500; }
     video { display: block; max-width: 100%; border: 1px solid #ddd4c8; border-radius: 8px; background: #000; }
+    pre { white-space: pre-wrap; border: 1px solid #d8cabe; border-radius: 8px; padding: 16px; background: #fffaf3; }
+    li { margin: 4px 0; color: #5f554c; }
   </style>
 </head>
 <body>
@@ -309,6 +488,11 @@ async function main() {
           enSrt: `captions/${scene.id}.en.srt`,
           enVtt: `captions/${scene.id}.en.vtt`,
         },
+        steps: buildSceneSteps(scene, {
+          durationMs: options.durationMs,
+          aiWaitMs: options.aiWaitMs,
+          includeAi: !options.skipAi,
+        }).map((step) => ({ ...serializeStep(step), status: 'planned' })),
       })))
       console.log(`[record-demo-videos] Dry-run manifest written to ${join(options.outputDir, 'manifest.json')}`)
     }
@@ -321,7 +505,23 @@ async function main() {
   try {
     for (const scene of scenes) {
       console.log(`[record-demo-videos] Recording ${scene.id}: ${scene.titleZh} (${scene.path})`)
-      recorded.push(await recordScene(browser, scene, options))
+      try {
+        recorded.push(await recordScene(browser, scene, options))
+      } catch (error) {
+        if (!options.continueOnError) throw error
+        const message = error?.message || String(error)
+        console.error(`[record-demo-videos] Scene failed: ${scene.id}: ${message}`)
+        recorded.push({
+          ...scene,
+          status: 'failed',
+          error: message,
+          steps: buildSceneSteps(scene, {
+            durationMs: options.durationMs,
+            aiWaitMs: options.aiWaitMs,
+            includeAi: !options.skipAi,
+          }).map((step) => ({ ...serializeStep(step), status: 'not-recorded' })),
+        })
+      }
     }
   } finally {
     await browser.close()

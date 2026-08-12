@@ -4,6 +4,7 @@ import test from 'node:test'
 import {
   buildAllModuleScenesFromRoutes,
   buildSceneCues,
+  buildSceneSteps,
   buildSrt,
   buildVtt,
   formatSrtTimestamp,
@@ -19,18 +20,47 @@ test('formats SRT and VTT timestamps for caption files', () => {
 })
 
 test('builds bilingual caption cues for a scene', () => {
-  const [cue] = buildSceneCues({
+  const cues = buildSceneCues({
     titleZh: '今日经营摘要',
     titleEn: 'Today Operating Digest',
     subtitleZh: '中文说明',
     subtitleEn: 'English explanation',
-  }, 8_000, 'zh')
+    featureZh: '功能说明',
+    featureEn: 'Feature description',
+    agentId: 'insights.operating_loop_assistant',
+    aiPromptZh: '请分析今日风险。',
+    aiPromptEn: 'Analyze today risks.',
+    action: 'scroll',
+  }, 8_000, 'zh', { aiWaitMs: 4_000 })
 
+  assert.equal(cues.length, 3)
+  const [cue] = cues
   assert.equal(cue.startMs, 0)
-  assert.equal(cue.endMs, 8_000)
+  assert.equal(cue.endMs, 2_000)
   assert.match(cue.text, /今日经营摘要/)
-  assert.match(buildSrt([cue]), /00:00:00,000 --> 00:00:08,000/)
+  assert.match(cues[2].text, /AI 对话与执行效果/)
+  assert.match(buildSrt([cue]), /00:00:00,000 --> 00:00:02,000/)
   assert.match(buildVtt([cue]), /^WEBVTT/)
+})
+
+test('builds detailed scene steps with AI prompt metadata', () => {
+  const steps = buildSceneSteps({
+    titleZh: '治理检出',
+    titleEn: 'Governance Findings',
+    subtitleZh: '治理说明',
+    subtitleEn: 'Governance description',
+    featureZh: '批量处置',
+    featureEn: 'Bulk disposition',
+    action: 'scroll',
+    agentId: 'governance.assistant',
+    aiPromptZh: '请生成处置预览。',
+    aiPromptEn: 'Create a disposition preview.',
+  }, { durationMs: 9_000, aiWaitMs: 5_000 })
+
+  assert.deepEqual(steps.map((step) => step.id), ['overview', 'module-tour', 'ai-dialogue'])
+  assert.equal(steps[1].kind, 'scroll')
+  assert.equal(steps[2].agentId, 'governance.assistant')
+  assert.match(steps[2].subtitleZh, /confirm|处置|预览/)
 })
 
 test('parses backend route module ids and paths from generated route source', () => {

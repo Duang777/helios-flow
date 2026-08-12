@@ -457,3 +457,46 @@ Remove high-visibility English copy from the WMS inventory console in Chinese de
 | Prompt regression becomes flaky | Medium | Assert categories/tool calls/markers, not exact prose |
 | Context overreach leaks records | High | Pass only visible ids; all tools retain tenant/org filters and feature checks |
 | Chinese sweep translates stable codes | Medium | Preserve ids/codes/SKUs/provider names; translate labels, descriptions, demo display values |
+
+## Phase 17: Detailed Module Video Walkthroughs
+
+### Goal
+Turn the video recorder from a page sweep into a reusable, detailed product
+walkthrough system: every curated module scene should explain the module,
+exercise the real page, open the relevant AI assistant, send a Chinese prompt,
+and capture the real model/tool output with Chinese and English subtitles.
+
+### Architecture Decisions
+- Keep Playwright as the truthful recorder because it can authenticate through
+  Helios, select assistants by `agentId`, send prompts into the real chat UI,
+  and wait on streamed model output.
+- Treat WebReel as an optional finishing tool for polished cursor/key HUD and
+  MP4/GIF/WebM rendering, not as the source of mocked AI behavior.
+- Store scene narration, feature tour copy, target assistant, and AI prompt in
+  `scripts/lib/demo-video-scenes.mjs` so module walkthrough changes are reviewable.
+- Generate subtitle cues from the same step model used by the recorder, keeping
+  video actions, captions, and manifest evidence aligned.
+- Continue recording batches after a scene failure by default, while allowing
+  `--fail-fast` for strict CI-style capture.
+
+### Task List
+- [x] Add detailed scene metadata for the 15 competition modules.
+- [x] Generate multi-step Chinese/English subtitle cues from scene steps.
+- [x] Add a recorded on-screen narration overlay for overview, feature tour,
+  and AI dialogue stages.
+- [x] Automate real AI launcher selection by `agentId` and send scene-specific
+  Chinese prompts through the chat composer.
+- [x] Add dry-run and preview manifest step details for review before recording.
+- [x] Document when to use Playwright versus WebReel for final competition videos.
+- [x] Run focused script tests and one local smoke capture.
+- [ ] Commit and push the detailed walkthrough pipeline.
+
+### Verification Notes
+- `node --test scripts/__tests__/demo-video-scenes.test.mjs` passed 7 focused
+  scene/caption tests.
+- `yarn test:scripts` passed 379 script tests.
+- `yarn demo:videos -- --dry-run --scene=02-today-digest --output-dir=.tmp/demo-video-detailed-dry-run`
+  wrote a manifest with overview, module-tour, and AI-dialogue steps.
+- `yarn demo:videos -- --scene=02-today-digest --duration-ms=4000 --ai-wait-ms=8000 --output-dir=.tmp/demo-video-detailed-ai-smoke`
+  produced video, Chinese/English captions, preview HTML, and an `ok` real AI
+  dialogue step for `insights.operating_loop_assistant`.

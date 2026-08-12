@@ -74,3 +74,8 @@
 - [x] Localize the visible WMS inventory console surface for Chinese default mode.
 - [x] Remove the generic Helios contact popup/floating feedback widget from the backend competition shell.
 - [x] Add a repeatable Playwright video recorder with Chinese/English subtitle output for competition and all-module showcases.
+- [x] Expand competition video scenes into detailed module walkthroughs with feature-tour narration, AI prompts, and per-step subtitles.
+- [x] Automate real AI launcher selection and prompt submission in the recording pipeline.
+- [x] Document WebReel as an optional finishing workflow while keeping Playwright as the real AI/business-data recorder.
+- [ ] Run focused script tests and one local smoke capture for the detailed walkthrough pipeline.
+- [ ] Commit and push the detailed walkthrough pipeline.
