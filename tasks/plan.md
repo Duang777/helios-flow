@@ -218,6 +218,15 @@ Remove the visible English Agent names and descriptions from the global AI assis
 - `yarn workspace @helios/ui build`, `yarn workspace @helios/ai-assistant build`, `yarn workspace @helios/core build`, `yarn build:packages`, and `yarn build:app` passed after the Agent metadata localization changes.
 - In-app browser verification on `/backend/catalog/categories` confirmed the page shell is Chinese. The plugin could not trigger the hidden global launcher button in its current viewport sandbox, so the Agent picker text is covered by the focused React regression instead of a pixel-click assertion.
 
+## Phase 10.5: Competition Shell Cleanup
+
+### Goal
+Keep the running competition environment focused on the operating-loop advisor by removing the generic Helios sales/contact popup from the backend shell.
+
+### Task List
+- [x] Remove the backend-shell mount for `DemoFeedbackWidget` so no automatic contact dialog or floating feedback entry appears during demonstrations.
+- [x] Keep the component and translations available for templates/onboarding surfaces, but do not render it in the Helios backend product shell.
+
 ## Phase 11: Operating Loop Production Closure
 
 ### Goal

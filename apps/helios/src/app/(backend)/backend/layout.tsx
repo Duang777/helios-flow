@@ -10,7 +10,6 @@ import { profilePathPrefixes } from '@helios/core/modules/auth/lib/profile-secti
 import { APP_VERSION } from '@helios/shared/lib/version'
 import { parseBooleanWithDefault } from '@helios/shared/lib/boolean'
 import { PageInjectionBoundary } from '@helios/ui/backend/injection/PageInjectionBoundary'
-import { DemoFeedbackWidget } from '@/components/DemoFeedbackWidget'
 import { BackendHeaderChrome } from '@/components/BackendHeaderChrome'
 
 registerBackendRouteManifests(backendRoutes)
@@ -81,7 +80,6 @@ export default async function BackendLayout({
 
   const collapsedCookie = cookieStore.get('om_sidebar_collapsed')?.value
   const initialCollapsed = collapsedCookie === '1'
-  const demoModeEnabled = parseBooleanWithDefault(process.env.DEMO_MODE, true)
   const hideBackendFooter = parseBooleanWithDefault(process.env.HELIOS_HIDE_BACKEND_FOOTER, false)
   const deployEnv = process.env.DEPLOY_ENV
   const grantedFeatures = Array.isArray(auth?.features)
@@ -134,7 +132,6 @@ export default async function BackendLayout({
         <PageInjectionBoundary path={path} context={injectionContext}>
           {children}
         </PageInjectionBoundary>
-        {demoModeEnabled ? <DemoFeedbackWidget demoModeEnabled={demoModeEnabled} /> : null}
       </AppShell>
     </I18nProvider>
   )
