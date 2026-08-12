@@ -41,6 +41,30 @@ describe('getQueuePendingProbe — local strategy', () => {
     expect(probe.delayedFuture).toBe(0)
   })
 
+  it('resolves relative QUEUE_BASE_DIR values from the runtime cwd', async () => {
+    const originalBaseDir = process.env.QUEUE_BASE_DIR
+    process.env.QUEUE_BASE_DIR = 'relative-queue-storage'
+    try {
+      const queue = createQueue<{ value: number }>('relative-env-queue', 'local')
+      await queue.enqueue({ value: 1 })
+      await queue.close()
+
+      const queueFile = path.join(tmp, 'relative-queue-storage', 'relative-env-queue', 'queue.json')
+      expect(fs.existsSync(queueFile)).toBe(true)
+
+      const probe = await getQueuePendingProbe('relative-env-queue', 'local')
+      expect(probe.error).toBe(false)
+      expect(probe.ready).toBe(1)
+      expect(probe.delayedFuture).toBe(0)
+    } finally {
+      if (originalBaseDir === undefined) {
+        delete process.env.QUEUE_BASE_DIR
+      } else {
+        process.env.QUEUE_BASE_DIR = originalBaseDir
+      }
+    }
+  })
+
   it('treats future-delayed jobs as not ready', async () => {
     const queue = createQueue<{ value: number }>('probe-queue', 'local', { baseDir: tmp })
     await queue.enqueue({ value: 1 }, { delayMs: 60_000 })

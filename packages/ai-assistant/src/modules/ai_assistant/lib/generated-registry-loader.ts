@@ -24,6 +24,13 @@ const logger = createLogger('ai_assistant')
 
 const requireFromHere = createRequire(import.meta.url)
 
+function runtimeCwd(): string {
+  return path.resolve(
+    /*turbopackIgnore: true*/
+    process.cwd(),
+  )
+}
+
 /**
  * Locate a generated registry file (e.g. `ai-tools.generated.ts`) without
  * hardcoding the workspace layout. Searches upward from this module's compiled
@@ -42,8 +49,19 @@ export function findGeneratedFile(fileName: string): string | null {
   if (here) {
     let cursor = path.dirname(here)
     for (let i = 0; i < 12; i++) {
-      const candidate = path.join(cursor, 'apps', 'helios', '.helios', 'generated', fileName)
-      if (fs.existsSync(candidate)) return candidate
+      const candidate = path.join(
+        /*turbopackIgnore: true*/
+        cursor,
+        'apps',
+        'helios',
+        '.helios',
+        'generated',
+        fileName,
+      )
+      if (fs.existsSync(
+        /*turbopackIgnore: true*/
+        candidate,
+      )) return candidate
       const next = path.dirname(cursor)
       if (next === cursor) break
       cursor = next
@@ -51,10 +69,17 @@ export function findGeneratedFile(fileName: string): string | null {
   }
   // Fallbacks: cwd-based lookup (CLI invoked from apps/helios, or a standalone
   // app whose root holds `.helios/generated`).
-  const fromCwd = path.resolve(process.cwd(), 'apps', 'helios', '.helios', 'generated', fileName)
-  if (fs.existsSync(fromCwd)) return fromCwd
-  const fromCwdDirect = path.resolve(process.cwd(), '.helios', 'generated', fileName)
-  if (fs.existsSync(fromCwdDirect)) return fromCwdDirect
+  const cwd = runtimeCwd()
+  const fromCwd = path.join(cwd, 'apps', 'helios', '.helios', 'generated', fileName)
+  if (fs.existsSync(
+    /*turbopackIgnore: true*/
+    fromCwd,
+  )) return fromCwd
+  const fromCwdDirect = path.join(cwd, '.helios', 'generated', fileName)
+  if (fs.existsSync(
+    /*turbopackIgnore: true*/
+    fromCwdDirect,
+  )) return fromCwdDirect
   return null
 }
 
@@ -79,17 +104,34 @@ export async function compileAndImportGenerated(tsPath: string): Promise<Record<
   // appRoot is two directories up from `.helios/generated/<file>.ts`.
   const appRoot = path.dirname(path.dirname(path.dirname(tsPath)))
 
-  if (!fs.existsSync(tsPath)) {
+  if (!fs.existsSync(
+    /*turbopackIgnore: true*/
+    tsPath,
+  )) {
     throw new Error(`Generated file not found: ${tsPath}`)
   }
 
-  const jsExists = fs.existsSync(jsPath)
+  const jsExists = fs.existsSync(
+    /*turbopackIgnore: true*/
+    jsPath,
+  )
   const needsCompile =
-    !jsExists || fs.statSync(tsPath).mtimeMs > fs.statSync(jsPath).mtimeMs
+    !jsExists ||
+    fs.statSync(
+      /*turbopackIgnore: true*/
+      tsPath,
+    ).mtimeMs > fs.statSync(
+      /*turbopackIgnore: true*/
+      jsPath,
+    ).mtimeMs
 
   if (needsCompile) {
     const esbuild = await import('esbuild')
-    const tsSource = fs.readFileSync(tsPath, 'utf-8')
+    const tsSource = fs.readFileSync(
+      /*turbopackIgnore: true*/
+      tsPath,
+      'utf-8',
+    )
     const aliasRewritten = rewriteGeneratedAliasImportsForRuntime(
       tsSource,
       appRoot,
@@ -102,7 +144,11 @@ export async function compileAndImportGenerated(tsPath: string): Promise<Record<
       sourcemap: false,
       sourcefile: tsPath,
     })
-    fs.writeFileSync(jsPath, result.code)
+    fs.writeFileSync(
+      /*turbopackIgnore: true*/
+      jsPath,
+      result.code,
+    )
   }
 
   if (useJestCjsArtifact) {
@@ -179,20 +225,40 @@ function rewriteGeneratedAliasImportsForRuntime(
   appRoot: string,
   runtime: 'esm' | 'cjs',
 ): string {
-  const generatedDir = path.join(appRoot, '.helios', 'generated')
+  const generatedDir = path.join(
+    /*turbopackIgnore: true*/
+    appRoot,
+    '.helios',
+    'generated',
+  )
   const toResolvedLiteral = (target: string): string => {
-    const candidate = fs.existsSync(target)
+    const tsCandidate = `${target}.ts`
+    const candidate = fs.existsSync(
+      /*turbopackIgnore: true*/
+      target,
+    )
       ? target
-      : fs.existsSync(target + '.ts')
-        ? target + '.ts'
+      : fs.existsSync(
+          /*turbopackIgnore: true*/
+          tsCandidate,
+        )
+        ? tsCandidate
         : target
     const specifier = runtime === 'esm' ? pathToFileURL(candidate).href : candidate
     return toSafeJsStringLiteral(specifier)
   }
   const resolveAlias = (relativePath: string): string =>
-    toResolvedLiteral(path.join(appRoot, relativePath))
+    toResolvedLiteral(path.join(
+      /*turbopackIgnore: true*/
+      appRoot,
+      relativePath,
+    ))
   const resolveRelative = (specifier: string): string =>
-    toResolvedLiteral(path.resolve(generatedDir, specifier))
+    toResolvedLiteral(path.resolve(
+      /*turbopackIgnore: true*/
+      generatedDir,
+      specifier,
+    ))
   return source
     .replace(/from\s+["']@\/([^"']+)["']/g, (_match, relativePath: string) => {
       return `from ${resolveAlias(relativePath)}`

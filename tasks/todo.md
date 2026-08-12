@@ -50,3 +50,9 @@
 - [x] Add M5-M7 list/detail Operating Loop page-context coverage for project, milestone, risk, contract, invoice, payment, allocation, KPI target/completion, governance finding, and identity map.
 - [x] Extend DataTable injection context with organization scope, visible filters, search, pagination, totals, and selection.
 - [x] Hydrate AI agent system prompts for list page contexts with `entityType + tableId`.
+- [x] Reproduce the Turbopack/NFT app-build trace warning for the local queue import chain.
+- [x] Add shared local queue base-dir resolution for strategy/probe paths.
+- [x] Add queue regression tests for cwd default storage and relative `QUEUE_BASE_DIR`.
+- [x] Mark AI Assistant standalone generated-registry filesystem probes as runtime-only.
+- [x] Mark example QA event persistence as runtime-only.
+- [x] Run focused queue/AI tests, package builds, app build, and commit/push the trace-warning fix.

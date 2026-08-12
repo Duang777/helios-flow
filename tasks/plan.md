@@ -275,6 +275,42 @@ Move the operating advisor from “competition-stable demo” toward a productio
 - [ ] Translate user-facing demo data while preserving codes, SKUs, UUIDs, provider names, and technical integration names where appropriate.
 - [ ] Keep English switching via locale dictionaries.
 
+## Phase 12: Build Trace Warning Closure
+
+### Goal
+Turn the long-standing `yarn build:app` Turbopack/NFT trace warning into a fixed build hygiene issue instead of another advisory explanation. The app build should no longer report `apps/helios/next.config.ts Encountered unexpected file in NFT list` through queue, AI assistant generated-registry, or QA event import chains.
+
+### Root Cause
+- The local queue strategy and the pending-job probe resolved their default storage path from a relative `.helios/queue` value at module runtime.
+- The AI Assistant standalone generated-registry loader legitimately probes generated registry files on disk for CLI/MCP runtimes.
+- The example QA event route persists captured server events to a runtime `.helios/qa-events.jsonl` file.
+- Next/Turbopack's NFT tracer sees cwd-relative filesystem paths inside server-imported packages/routes as potentially unbounded project-root access, so it traced the app tree and surfaced `next.config.ts` as an unexpected file.
+- The runtime behavior is intentional: local queues, standalone generated-registry loading, and QA event capture should keep their existing storage/search contracts.
+
+### Architecture Decisions
+- Keep the local queue strategy and `QUEUE_BASE_DIR` contract unchanged.
+- Add a shared queue helper that resolves default and relative local queue paths from `process.cwd()` at runtime, annotated with Turbopack's `turbopackIgnore` marker so the build tracer does not expand the whole project.
+- Reuse the helper from both the writer path (`createLocalQueue`) and the read-only pending probe to avoid future divergence.
+- Mark AI Assistant standalone generated-registry filesystem probes as runtime-only while preserving the Next app's preferred `@/.helios/generated/*` import path.
+- Mark example QA event persistence as runtime-only; it is not a build input and must remain best-effort.
+- Guard path semantics with queue unit tests instead of relying only on app build output.
+
+### Task List
+- [x] Reproduce the existing `yarn build:app` warning and capture the queue/event/core import trace.
+- [x] Add `resolveLocalQueueBaseDir` for local queue path resolution.
+- [x] Wire local strategy and pending probe through the helper.
+- [x] Add focused tests for default cwd resolution and relative `QUEUE_BASE_DIR` probing.
+- [x] Mark AI Assistant generated-registry filesystem probes as runtime-only and run focused loader tests.
+- [x] Mark example QA event persistence as runtime-only and re-run generation.
+- [x] Run queue tests, package builds, app build, and git hygiene checks.
+
+### Verification Notes
+- `yarn workspace @helios/queue test -- local.strategy pending-probe --runInBand` passed.
+- `yarn jest --config packages/ai-assistant/jest.config.cjs generated-registry-loader --runInBand --forceExit` passed.
+- `yarn workspace @helios/queue build` and `yarn workspace @helios/ai-assistant build` passed; generated package dist kept the `turbopackIgnore` markers.
+- `yarn generate` passed with generated outputs unchanged.
+- `yarn build:app --force` passed with no Turbopack/NFT trace warnings.
+
 ### Verification Gate
 - `yarn generate`
 - `yarn i18n:check`
