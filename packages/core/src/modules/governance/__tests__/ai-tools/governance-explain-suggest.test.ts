@@ -113,6 +113,7 @@ describe('governance explain + suggest tools', () => {
     expect(toolNames).toEqual(
       expect.arrayContaining([
         'governance.update_finding_disposition',
+        'governance.update_findings_disposition',
         'governance.acknowledge_finding',
       ]),
     )
@@ -127,5 +128,18 @@ describe('governance explain + suggest tools', () => {
     expect(template.status).toBe('${proposal.suggestedStatus}')
     expect(template.ownerRole).toBe('${proposal.ownerRole}')
     expect(template.suggestedDueOn).toBe('${proposal.suggestedDueOn}')
+    const bulkDispositionLink = linked.find(
+      (entry) => entry.toolName === 'governance.update_findings_disposition',
+    )
+    expect(bulkDispositionLink).toBeDefined()
+    expect((bulkDispositionLink!.argsTemplate as Record<string, unknown>).records).toEqual([
+      {
+        findingId: '${findingId}',
+        status: '${proposal.suggestedStatus}',
+        ownerRole: '${proposal.ownerRole}',
+        suggestedDueOn: '${proposal.suggestedDueOn}',
+        impactSummary: '${proposal.impactSummary}',
+      },
+    ])
   })
 })

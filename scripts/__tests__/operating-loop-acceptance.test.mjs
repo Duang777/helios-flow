@@ -45,6 +45,25 @@ test('evaluateOperatingLoopAnswer reports missing tools and answer markers', () 
   assert.ok(result.failures.some((failure) => failure.includes('missing hasBackendHref')))
 })
 
+test('all operating-loop acceptance prompts declare stable tool and marker expectations', () => {
+  assert.ok(OPERATING_LOOP_ACCEPTANCE_PROMPTS.length >= 10)
+  const ids = new Set()
+  for (const promptCase of OPERATING_LOOP_ACCEPTANCE_PROMPTS) {
+    assert.equal(typeof promptCase.id, 'string')
+    assert.ok(!ids.has(promptCase.id), `duplicate prompt id: ${promptCase.id}`)
+    ids.add(promptCase.id)
+    assert.equal(typeof promptCase.prompt, 'string')
+    assert.ok(promptCase.prompt.length > 10, `${promptCase.id} prompt is too short`)
+    assert.ok(Array.isArray(promptCase.requiredTools), `${promptCase.id} missing requiredTools`)
+    assert.ok(promptCase.requiredTools.length > 0, `${promptCase.id} requiredTools is empty`)
+    assert.ok(Array.isArray(promptCase.requiredMarkers), `${promptCase.id} missing requiredMarkers`)
+    assert.ok(promptCase.requiredMarkers.length > 0, `${promptCase.id} requiredMarkers is empty`)
+    for (const tool of promptCase.requiredTools) {
+      assert.match(tool, /^[a-z_]+\.[a-z0-9_]+$/, `${promptCase.id} has invalid tool name ${tool}`)
+    }
+  }
+})
+
 test('assertOperatingLoopAnswerQuality accepts a complete Chinese closed-loop answer', () => {
   const result = assertOperatingLoopAnswerQuality({
     text:

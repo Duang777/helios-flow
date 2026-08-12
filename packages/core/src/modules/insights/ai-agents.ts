@@ -50,6 +50,7 @@ const OPERATING_LOOP_ALLOWED_TOOLS: readonly string[] = [
   'governance.suggest_disposition',
   'governance.acknowledge_finding',
   'governance.update_finding_disposition',
+  'governance.update_findings_disposition',
   'governance.acknowledge_findings',
   'projects.manage_milestone',
   'search.hybrid_search',

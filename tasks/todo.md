@@ -40,3 +40,10 @@
 - [x] Add Chinese metadata translations for catalog, commercial, customers, governance, insights, and projects Agents.
 - [x] Add a localized launcher regression that verifies Chinese Agent display and search.
 - [x] Run generation, i18n sync/check, package/app builds, and browser verification for the Agent metadata closure.
+- [x] Add Phase 11 production-closure plan for confirm-required writes, governance bulk disposition, page context, digest UI, Chinese sweep, and real-model prompt expansion.
+- [x] Implement `governance.update_findings_disposition` as a confirm-required bulk mutation with per-record status/owner/due/impact patches.
+- [x] Expose the governance bulk disposition tool through `governance.assistant` and `insights.operating_loop_assistant`.
+- [x] Extend linked mutation metadata from `governance.suggest_disposition` to advertise the new bulk disposition path.
+- [x] Expand fixed Chinese operating-loop real-model prompt cases beyond the initial 3 cases.
+- [x] Add/extend tests for governance bulk disposition and operating-loop acceptance prompt metadata.
+- [ ] Run focused governance/operating-loop tests, `yarn generate`, `yarn i18n:check`, and affected builds for the first production-closure slice.

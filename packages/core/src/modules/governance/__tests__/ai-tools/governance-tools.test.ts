@@ -48,6 +48,7 @@ describe('governance disposition AI tools', () => {
       'governance.acknowledge_finding',
       'governance.update_finding_disposition',
       'governance.acknowledge_findings',
+      'governance.update_findings_disposition',
     ]) {
       const tool = findTool(name)
       expect(tool.isMutation).toBe(true)
@@ -120,5 +121,66 @@ describe('governance disposition AI tools', () => {
       status: 'failed',
       error: { code: 'api_error', message: 'Finding not found' },
     })
+  })
+
+  it('governance.update_findings_disposition applies per-record owner, due date, status, and impact patches', async () => {
+    const tool = findTool('governance.update_findings_disposition')
+    runMock
+      .mockResolvedValueOnce({ success: true, statusCode: 200, data: { ok: true } })
+      .mockResolvedValueOnce({ success: false, statusCode: 409, error: 'Record changed' })
+
+    const result = (await tool.handler(
+      {
+        records: [
+          {
+            findingId: '11111111-1111-4111-8111-111111111111',
+            status: 'acknowledged',
+            ownerRole: 'finance_ops',
+            suggestedDueOn: '2026-09-15',
+            impactSummary: 'AR collection follow-up required.',
+          },
+          {
+            findingId: '22222222-2222-4222-8222-222222222222',
+            status: 'resolved',
+            ownerRole: 'project_manager',
+          },
+        ],
+      },
+      makeCtx() as never,
+    )) as Record<string, unknown>
+
+    expect(runMock).toHaveBeenCalledTimes(2)
+    expect(runMock.mock.calls[0][0]).toMatchObject({
+      method: 'PUT',
+      path: '/governance/findings',
+      body: {
+        id: '11111111-1111-4111-8111-111111111111',
+        tenantId: 'tenant-1',
+        organizationId: 'org-1',
+        status: 'acknowledged',
+        ownerRole: 'finance_ops',
+        suggestedDueOn: '2026-09-15',
+        impactSummary: 'AR collection follow-up required.',
+      },
+    })
+    expect(runMock.mock.calls[1][0]).toMatchObject({
+      body: {
+        id: '22222222-2222-4222-8222-222222222222',
+        status: 'resolved',
+        ownerRole: 'project_manager',
+      },
+    })
+    const records = result.records as Array<Record<string, unknown>>
+    expect(records[0]).toMatchObject({
+      recordId: '11111111-1111-4111-8111-111111111111',
+      status: 'updated',
+      href: '/backend/governance/findings/11111111-1111-4111-8111-111111111111',
+    })
+    expect(records[1]).toMatchObject({
+      recordId: '22222222-2222-4222-8222-222222222222',
+      status: 'failed',
+      error: { code: 'api_error', message: 'Record changed' },
+    })
+    expect(result.failedRecordIds).toEqual(['22222222-2222-4222-8222-222222222222'])
   })
 })

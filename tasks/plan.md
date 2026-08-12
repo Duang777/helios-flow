@@ -217,3 +217,71 @@ Remove the visible English Agent names and descriptions from the global AI assis
 - `yarn i18n:check` passed with zero missing keys. Existing hardcoded-string and value-coverage findings remain advisory under the active i18n remediation policy.
 - `yarn workspace @helios/ui build`, `yarn workspace @helios/ai-assistant build`, `yarn workspace @helios/core build`, `yarn build:packages`, and `yarn build:app` passed after the Agent metadata localization changes.
 - In-app browser verification on `/backend/catalog/categories` confirmed the page shell is Chinese. The plugin could not trigger the hidden global launcher button in its current viewport sandbox, so the Agent picker text is covered by the focused React regression instead of a pixel-click assertion.
+
+## Phase 11: Operating Loop Production Closure
+
+### Goal
+Move the operating advisor from “competition-stable demo” toward a production-grade closed loop: all already-shipped write tools must stay confirm-required, governance bulk disposition must cover assignment and due dates, page context must be consistent across list/detail surfaces, proactive digest UI must be navigable, Chinese-first presentation must keep shrinking visible English debt, and real-model regression prompts must cover the operational paths operators will demo.
+
+### Current Implementation Baseline
+- Confirm-required write tools already exist for `projects.manage_project`, `projects.manage_milestone`, `commercial.manage_contract`, `commercial.manage_invoice`, `commercial.manage_payment`, `commercial.manage_allocation`, and `insights.manage_kpi_target`.
+- Governance already supports single `acknowledge_finding`, single `update_finding_disposition`, and batch `acknowledge_findings`.
+- `insights.operating_loop_assistant` already allows the write tools above and runs with `mutationPolicy: confirm-required`.
+- Gaps remain in bulk governance disposition (owner role, suggested due date, status, impact summary), richer prompt regression, broader page-context coverage, digest navigation UI, and Chinese presentation sweep.
+
+### Architecture Decisions
+- Do not introduce mock write responses. AI write tools must call existing API/command routes through `createAiApiOperationRunner` or the pending-action confirm handler.
+- Preserve AI tool names as frozen contracts. Add new tools only when the current tool shape cannot represent the needed operation.
+- Keep write tools additive and confirm-required; do not downgrade policy or bypass `ai_pending_actions`.
+- Prefer bulk tools with per-record result arrays over all-or-nothing batch writes so operators see partial failures.
+- Use page-context ids that are already visible on the page; downstream tool ACL and tenant/org filters remain authoritative.
+- Extend the live-model prompt set with stable observable requirements rather than brittle exact text.
+
+### Phase 11A: Governance Bulk Disposition
+- [ ] Add `governance.update_findings_disposition` as a confirm-required bulk mutation.
+- [ ] Support per-record patch fields: `status`, `ownerRole`, `suggestedDueOn`, `impactSummary`.
+- [ ] Preview the batch as a pending action and execute through `/governance/findings` PUT per record.
+- [ ] Return per-record `updated` / `failed` results with `href`.
+- [ ] Add unit coverage for ACL declaration, API runner calls, partial failures, and linked mutation exposure.
+
+### Phase 11B: Real-Model Prompt Expansion
+- [ ] Expand `OPERATING_LOOP_ACCEPTANCE_PROMPTS` from 3 prompts to 10+ Chinese prompts across project delay, overdue AR, KPI gap, governance disposition, write suggestions, and page-context follow-ups.
+- [ ] Require tool sets appropriate to each prompt, not one global tool list.
+- [ ] Keep assertions on numbers, formula/source, evidence IDs, and `/backend/` links.
+- [ ] Add script unit tests so new prompts cannot silently miss required tool metadata.
+
+### Phase 11C: Page Context Coverage
+- [ ] Inventory M5-M7 list/detail pages and existing widget injection spots.
+- [ ] Add missing list-page assistant triggers with `organizationId` and visible filter context.
+- [ ] Normalize entity-specific page context fields for project, milestone, risk, contract, invoice, payment, allocation, KPI target, finding, and identity map.
+- [ ] Add focused page-context tests for each entity mapping.
+
+### Phase 11D: Proactive Digest UI
+- [ ] Add or enhance a Today Operating Digest page/panel with grouped critical findings, overdue invoices, delayed projects, and KPI gaps.
+- [ ] Make notification actions deep-link to the digest and source records.
+- [ ] Add aggregation states: empty, partial source failure, and grouped-by-severity.
+- [ ] Cover with focused component/integration tests and a Playwright smoke path.
+
+### Phase 11E: Chinese Presentation Sweep
+- [ ] Use `yarn i18n:check` baseline to detect new advisory debt.
+- [ ] Sweep high-visibility M5-M7 screens and AI surfaces for English strings that are not stable ids/codes.
+- [ ] Translate user-facing demo data while preserving codes, SKUs, UUIDs, provider names, and technical integration names where appropriate.
+- [ ] Keep English switching via locale dictionaries.
+
+### Verification Gate
+- `yarn generate`
+- `yarn i18n:check`
+- `yarn workspace @helios/core test -- governance operating-loop ai-tools --runInBand`
+- `node --test scripts/__tests__/operating-loop-acceptance.test.mjs`
+- `yarn ai:live-eval` when real provider/app env is present
+- Focused Playwright tests for digest/page-context UI when UI files change
+- `yarn build:packages` or affected package builds before commit
+
+### Risks and Mitigations
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| AI writes unsafe or stale data | High | Keep every write behind pending-action confirmation and stale-version preview where available |
+| Batch governance hides partial failures | Medium | Return per-record results and failed ids; never present mixed outcome as full success |
+| Prompt regression becomes flaky | Medium | Assert categories/tool calls/markers, not exact prose |
+| Context overreach leaks records | High | Pass only visible ids; all tools retain tenant/org filters and feature checks |
+| Chinese sweep translates stable codes | Medium | Preserve ids/codes/SKUs/provider names; translate labels, descriptions, demo display values |

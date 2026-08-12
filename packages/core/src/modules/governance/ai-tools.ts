@@ -10,6 +10,7 @@ import {
 } from '@helios/ai-assistant/modules/ai_assistant/lib/ai-api-operation-runner'
 import type {
   AiToolDefinition,
+  AiToolLoadBeforeRecord,
   McpToolContext,
 } from '@helios/ai-assistant/modules/ai_assistant/lib/types'
 import { GovernanceFinding } from './data/entities'
@@ -332,6 +333,134 @@ acknowledgeFindingsTool = defineAiTool({
   },
 }) as AiToolDefinition<AcknowledgeFindingsInput, Record<string, unknown>>
 
+const bulkDispositionRecordInput = z
+  .object({
+    findingId: z.string().uuid(),
+    status: z.enum(['open', 'acknowledged', 'resolved', 'dismissed']).optional(),
+    ownerRole: z.string().trim().min(1).max(128).nullable().optional(),
+    suggestedDueOn: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .nullable()
+      .optional(),
+    impactSummary: z.string().trim().min(1).max(4000).nullable().optional(),
+  })
+  .superRefine((value, ctx) => {
+    const hasPatch =
+      value.status !== undefined ||
+      value.ownerRole !== undefined ||
+      value.suggestedDueOn !== undefined ||
+      value.impactSummary !== undefined
+    if (!hasPatch) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'At least one disposition field is required.',
+        path: ['status'],
+      })
+    }
+  })
+
+const updateFindingsDispositionInput = z.object({
+  records: z.array(bulkDispositionRecordInput).min(1).max(20),
+})
+
+type BulkDispositionRecordInput = z.infer<typeof bulkDispositionRecordInput>
+type UpdateFindingsDispositionInput = z.infer<typeof updateFindingsDispositionInput>
+
+function dispositionAfter(input: BulkDispositionRecordInput): Record<string, unknown> {
+  const after: Record<string, unknown> = {}
+  if (input.status !== undefined) after.status = input.status
+  if (input.ownerRole !== undefined) after.ownerRole = input.ownerRole
+  if (input.suggestedDueOn !== undefined) after.suggestedDueOn = input.suggestedDueOn
+  if (input.impactSummary !== undefined) after.impactSummary = input.impactSummary
+  return after
+}
+
+async function loadFindingBatchPreview(
+  input: UpdateFindingsDispositionInput,
+  ctx: McpToolContext,
+): Promise<AiToolLoadBeforeRecord[]> {
+  assertTenantScope(ctx as GovernanceToolContext)
+  const em = (ctx as GovernanceToolContext).container.resolve('em') as EntityManager
+  const rows: AiToolLoadBeforeRecord[] = []
+  for (const record of input.records) {
+    const finding = await em.findOne(
+      GovernanceFinding,
+      scopedFindingFilter(record.findingId, ctx as GovernanceToolContext),
+    )
+    if (!finding) continue
+    rows.push({
+      recordId: finding.id,
+      entityType: 'governance.finding',
+      label: finding.title || finding.ruleId || finding.id,
+      recordVersion: recordVersionFromUpdatedAt(finding.updatedAt),
+      before: {
+        status: finding.status,
+        ownerRole: finding.ownerRole ?? null,
+        suggestedDueOn: finding.suggestedDueOn ?? null,
+        impactSummary: finding.impactSummary ?? null,
+      },
+      after: dispositionAfter(record),
+    })
+  }
+  return rows
+}
+
+let updateFindingsDispositionTool: AiToolDefinition<UpdateFindingsDispositionInput, Record<string, unknown>>
+
+updateFindingsDispositionTool = defineAiTool({
+  name: 'governance.update_findings_disposition',
+  displayName: 'Update findings disposition',
+  description:
+    'Batch assign owner role, suggested completion date, status, or impact summary for up to 20 governance findings. Requires operator confirmation.',
+  inputSchema: updateFindingsDispositionInput,
+  requiredFeatures: ['governance.manage'],
+  isMutation: true,
+  isBulk: true,
+  loadBeforeRecords: loadFindingBatchPreview,
+  async handler(rawInput: UpdateFindingsDispositionInput, ctx: McpToolContext) {
+    const input = updateFindingsDispositionInput.parse(rawInput)
+    assertTenantScope(ctx as GovernanceToolContext)
+    const toolCtx: AiToolExecutionContext = {
+      ...ctx,
+      tool: updateFindingsDispositionTool as AiToolDefinition,
+    }
+    const runner = createAiApiOperationRunner(toolCtx)
+    const records: Array<Record<string, unknown>> = []
+    for (const record of input.records) {
+      const response = await runner.run({
+        method: 'PUT',
+        path: '/governance/findings',
+        body: findingUpdateBody(record, ctx as GovernanceToolContext),
+      })
+      if (response.success) {
+        records.push({
+          recordId: record.findingId,
+          status: 'updated',
+          href: `/backend/governance/findings/${record.findingId}`,
+        })
+      } else {
+        records.push({
+          recordId: record.findingId,
+          status: 'failed',
+          error: {
+            code: 'api_error',
+            message: response.error ?? 'Failed to update finding disposition.',
+          },
+        })
+      }
+    }
+    const failedRecordIds = records
+      .filter((record) => record.status === 'failed')
+      .map((record) => record.recordId)
+    return {
+      commandName: 'governance.findings.batch_disposition',
+      records,
+      failedRecordIds,
+    }
+  },
+}) as AiToolDefinition<UpdateFindingsDispositionInput, Record<string, unknown>>
+
 const explainRuleInput = z
   .object({
     ruleId: z
@@ -463,6 +592,22 @@ const suggestDispositionTool = defineAiTool({
           },
         },
         {
+          toolName: 'governance.update_findings_disposition',
+          purpose:
+            'Persist one or more structured dispositions in a single confirmed batch action.',
+          argsTemplate: {
+            records: [
+              {
+                findingId: '${findingId}',
+                status: '${proposal.suggestedStatus}',
+                ownerRole: '${proposal.ownerRole}',
+                suggestedDueOn: '${proposal.suggestedDueOn}',
+                impactSummary: '${proposal.impactSummary}',
+              },
+            ],
+          },
+        },
+        {
           toolName: 'governance.acknowledge_finding',
           purpose: 'Mark the finding as acknowledged (status only, no other fields).',
           argsTemplate: { findingId: '${findingId}' },
@@ -489,6 +634,7 @@ export const aiTools: GovernanceAiToolDefinition[] = [
   suggestDispositionTool,
   acknowledgeFindingTool,
   updateFindingDispositionTool,
+  updateFindingsDispositionTool as unknown as GovernanceAiToolDefinition,
   acknowledgeFindingsTool as unknown as GovernanceAiToolDefinition,
 ]
 
