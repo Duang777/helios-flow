@@ -398,6 +398,21 @@ Make the running demo environment visibly align with the Feishu competition comp
 - `yarn operating-loop:feishu:brand`
 - `yarn operating-loop:feishu:verify -- --as-of=2026-08-12`
 
+## Phase 16: WMS Chinese Surface Cleanup
+
+### Goal
+Remove high-visibility English copy from the WMS inventory console in Chinese default mode while preserving English locale behavior and technical identifiers such as SKU.
+
+### Task List
+- [x] Localize inventory console title, description, operation buttons, scope selectors, balance table headers, search placeholder, and empty state.
+- [x] Localize WMS left-nav labels for inventory, warehouses, zones, locations, lots, movements, and reservations.
+- [x] Localize reservation and movement section labels that become visible when scrolling the same inventory console.
+- [x] Browser-verify `/backend/wms/inventory` shows Chinese labels and no targeted English residues.
+
+### Verification Notes
+- `yarn i18n:check` passed with no new advisory issues above baseline and one improved metric.
+- Playwright DOM verification passed for `/backend/wms/inventory`; targeted English residues were empty and the expected Chinese labels/placeholders were present.
+
 ### Verification Gate
 - `yarn generate`
 - `yarn i18n:check`

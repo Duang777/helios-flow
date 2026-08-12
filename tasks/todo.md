@@ -71,3 +71,4 @@
 - [x] Add an API-backed Feishu competition branding command for the running Helios organization.
 - [x] Make Feishu verification fail when the organization name does not match `北京四维图新科技股份有限公司`.
 - [x] Document Feishu requirement coverage, current support, and deterministic gaps.
+- [x] Localize the visible WMS inventory console surface for Chinese default mode.
