@@ -12,10 +12,11 @@ import { GovernanceFinding } from '../../governance/data/entities'
 import { ProjectMilestone } from '../../projects/data/entities'
 import { isMilestoneDelayed } from '../../projects/lib/milestoneDelay'
 import { KpiTarget } from '../data/entities'
-import { metricKeySchema } from '../data/validators'
+import { metricKeySchema, periodTypeSchema } from '../data/validators'
 import {
   buildCompletionItem,
   computeMetricActuals,
+  parsePeriodRange,
   type DatedCommercialFacts,
   type MetricKey,
   type PeriodType,
@@ -141,8 +142,6 @@ export async function loadOperatingLoopCommercialFacts(
 
 function countKpiGaps(input: {
   organizationId: string
-  periodType: Extract<PeriodType, 'month'>
-  periodKey: string
   asOf: string
   targets: KpiTarget[]
   facts: DatedCommercialFacts
@@ -152,8 +151,11 @@ function countKpiGaps(input: {
     const parsedMetricKey = metricKeySchema.safeParse(target.metricKey)
     if (!parsedMetricKey.success) continue
 
+    const activePeriod = resolveKpiTargetActivePeriod(target, input.asOf)
+    if (!activePeriod) continue
+
     const metricKey: MetricKey = parsedMetricKey.data
-    const actuals = computeMetricActuals(input.facts, input.periodType, input.periodKey, metricKey, input.asOf)
+    const actuals = computeMetricActuals(input.facts, activePeriod.periodType, activePeriod.periodKey, metricKey, input.asOf)
     const item = buildCompletionItem({
       organizationId: input.organizationId,
       metricKey,
@@ -169,6 +171,27 @@ function countKpiGaps(input: {
     }
   }
   return gapCount
+}
+
+export function resolveKpiTargetActivePeriod(
+  target: Pick<KpiTarget, 'periodType' | 'periodKey'>,
+  asOf: string,
+): { periodType: PeriodType; periodKey: string } | null {
+  const parsedPeriodType = periodTypeSchema.safeParse(target.periodType)
+  if (!parsedPeriodType.success) return null
+  try {
+    const period = parsePeriodRange(parsedPeriodType.data, target.periodKey)
+    if (period.start <= asOf && asOf <= period.end) {
+      return { periodType: parsedPeriodType.data, periodKey: target.periodKey }
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+export function isKpiTargetActiveOn(target: Pick<KpiTarget, 'periodType' | 'periodKey'>, asOf: string): boolean {
+  return resolveKpiTargetActivePeriod(target, asOf) !== null
 }
 
 async function countDelayedProjects(em: EntityManager, scope: OperatingLoopDigestScope): Promise<number> {
@@ -217,8 +240,6 @@ export async function collectOperatingLoopDigestMetrics(
     em.find(KpiTarget, {
       tenantId: scope.tenantId,
       organizationId: scope.organizationId,
-      periodType: period.periodType,
-      periodKey: period.periodKey,
       isActive: true,
       deletedAt: null,
     } as FilterQuery<KpiTarget>),
@@ -237,10 +258,8 @@ export async function collectOperatingLoopDigestMetrics(
     overdueOutstanding: overdueSummary.overdueOutstanding,
     kpiGapCount: countKpiGaps({
       organizationId: scope.organizationId,
-      periodType: period.periodType,
-      periodKey: period.periodKey,
       asOf: scope.asOf,
-      targets,
+      targets: targets.filter((target) => isKpiTargetActiveOn(target, scope.asOf)),
       facts,
     }),
     ...period,

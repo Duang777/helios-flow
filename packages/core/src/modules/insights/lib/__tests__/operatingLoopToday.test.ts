@@ -182,6 +182,48 @@ describe('collectOperatingLoopTodayDigest', () => {
     })
   })
 
+  it('includes active annual KPI targets in the today digest', async () => {
+    const em = createMockEntityManager({
+      find: (entity) => {
+        if (entity === KpiTarget) {
+          return [
+            createEntity({
+              id: 'kpi-target-year-1',
+              organizationId: 'org-1',
+              tenantId: 'tenant-1',
+              metricKey: 'revenue',
+              unit: 'amount',
+              periodType: 'year',
+              periodKey: '2026',
+              targetValue: '5000.00',
+              currencyCode: 'CNY',
+              isActive: true,
+              deletedAt: null,
+            }),
+          ]
+        }
+        if (entity === ProjectMilestone || entity === Project || entity === GovernanceFinding) return []
+        if (entity === CommercialInvoice || entity === PaymentAllocation) return []
+        return []
+      },
+    })
+
+    const digest = await collectOperatingLoopTodayDigest(em as never, scope)
+
+    expect(digest.groups.kpiGaps[0]).toMatchObject({
+      title: 'revenue',
+      href: '/backend/insights/kpi-targets/kpi-target-year-1',
+      scopedIds: { kpiTargetId: 'kpi-target-year-1' },
+      facts: {
+        targetValue: '5000.00',
+        actualValue: '0.00',
+        periodType: 'year',
+        periodKey: '2026',
+      },
+    })
+    expect(digest.metrics.kpiGapCount).toBe(1)
+  })
+
   it('keeps partial group failures visible without replacing them with fake data', async () => {
     const em = createMockEntityManager({
       find: (entity) => {

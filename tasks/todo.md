@@ -61,3 +61,10 @@
 - [x] Build the Today Operating Digest page with grouped异常、源记录跳转和经营参谋入口.
 - [x] Wire item-level Operating Loop Assistant page context and confirm-required preview suggestions.
 - [x] Add i18n, focused tests, browser smoke, generation/build gates, then commit and push.
+- [x] Add Feishu test package normalization with exact sheet-header validation.
+- [x] Validate Feishu source references and KPI source-org dimension safety.
+- [x] Add script tests for the Feishu package normalization layer and dry-run command boundary.
+- [x] Wire the Feishu package into an API-backed operating-loop importer.
+- [x] Make KPI completion and today digest respect each target's active month/quarter/year period and as-of cutoff.
+- [x] Add a read-only Feishu operating-loop verifier for duplicate customer, overdue invoice, delayed project/risk, KPI gap, and proactive digest.
+- [x] Run the Feishu API-backed import verification against the local Acme Corp organization.

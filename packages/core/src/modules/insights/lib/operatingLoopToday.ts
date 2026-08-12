@@ -15,8 +15,10 @@ import {
 } from './completion'
 import {
   collectOperatingLoopDigestMetrics,
+  isKpiTargetActiveOn,
   loadOperatingLoopCommercialFacts,
   OPERATING_LOOP_DIGEST_FORMULA_SOURCES,
+  resolveKpiTargetActivePeriod,
   resolveOperatingLoopDigestPeriod,
   type OperatingLoopDigestMetrics,
   type OperatingLoopDigestScope,
@@ -291,8 +293,6 @@ async function collectKpiGaps(
     em.find(KpiTarget, {
       tenantId: scope.tenantId,
       organizationId: scope.organizationId,
-      periodType: period.periodType,
-      periodKey: period.periodKey,
       isActive: true,
       deletedAt: null,
     } as FilterQuery<KpiTarget>),
@@ -300,12 +300,15 @@ async function collectKpiGaps(
 
   const items: CompletionItem[] = []
   const targetsByMetric = new Map<MetricKey, KpiTarget>()
-  for (const target of targets) {
+  const activeTargets = targets.filter((target) => isKpiTargetActiveOn(target, scope.asOf))
+  for (const target of activeTargets) {
     const parsedMetricKey = metricKeySchema.safeParse(target.metricKey)
     if (!parsedMetricKey.success) continue
+    const activePeriod = resolveKpiTargetActivePeriod(target, scope.asOf)
+    if (!activePeriod) continue
     const metricKey = parsedMetricKey.data
     targetsByMetric.set(metricKey, target)
-    const actuals = computeMetricActuals(facts, period.periodType, period.periodKey, metricKey, scope.asOf)
+    const actuals = computeMetricActuals(facts, activePeriod.periodType, activePeriod.periodKey, metricKey, scope.asOf)
     items.push(
       buildCompletionItem({
         organizationId: scope.organizationId,
@@ -348,8 +351,8 @@ async function collectKpiGaps(
           targetValue: item.targetValue,
           actualValue: item.actualValue,
           completionRate: item.completionRate,
-          periodType: period.periodType,
-          periodKey: period.periodKey,
+          periodType: target?.periodType ?? period.periodType,
+          periodKey: target?.periodKey ?? period.periodKey,
         },
       }
     })

@@ -68,20 +68,22 @@ export function filterFactsByPeriod(
   facts: DatedCommercialFacts,
   periodType: PeriodType,
   periodKey: string,
+  asOf?: string,
 ): CommercialMetricsInput {
   const { start, end } = parsePeriodRange(periodType, periodKey)
+  const effectiveEnd = asOf && asOf < end ? asOf : end
   return {
     revenues: facts.revenues
-      .filter((row) => dateInRange(row.recognizedOn, start, end))
+      .filter((row) => dateInRange(row.recognizedOn, start, effectiveEnd))
       .map((row) => ({ amount: row.amount, dataVersion: row.dataVersion })),
     costs: facts.costs
-      .filter((row) => dateInRange(row.incurredOn, start, end))
+      .filter((row) => dateInRange(row.incurredOn, start, effectiveEnd))
       .map((row) => ({ amount: row.amount, dataVersion: row.dataVersion })),
     contracts: facts.contracts
-      .filter((row) => !row.startDate || dateInRange(row.startDate, start, end))
+      .filter((row) => !row.startDate || dateInRange(row.startDate, start, effectiveEnd))
       .map((row) => ({ amount: row.amount, status: row.status })),
     invoices: facts.invoices
-      .filter((row) => dateInRange(row.issuedOn, start, end))
+      .filter((row) => dateInRange(row.issuedOn, start, effectiveEnd))
       .map((row) => ({
         id: row.id,
         amount: row.amount,
@@ -89,12 +91,12 @@ export function filterFactsByPeriod(
         status: row.status,
       })),
     allocations: facts.allocations
-      .filter((row) => row.allocatedOn && dateInRange(row.allocatedOn, start, end))
+      .filter((row) => row.allocatedOn && dateInRange(row.allocatedOn, start, effectiveEnd))
       .map((row) => ({
         invoiceId: row.invoiceId,
         allocatedAmount: row.allocatedAmount,
       })),
-    asOf: end,
+    asOf: effectiveEnd,
   }
 }
 
@@ -134,8 +136,7 @@ export function computeMetricActuals(
   metricKey: MetricKey,
   asOf: string,
 ): { actualValue: string | null; unit: 'amount' | 'ratio'; actualSource: 'commercial.metrics' | 'projects' } {
-  const filtered = filterFactsByPeriod(facts, periodType, periodKey)
-  filtered.asOf = asOf
+  const filtered = filterFactsByPeriod(facts, periodType, periodKey, asOf)
   const metrics = computeCommercialMetrics(filtered)
   const resolved = resolveActualForMetric(metrics, metricKey)
   return {
@@ -188,8 +189,7 @@ export function extractMetricComponents(
   collectionNumerator: string
   collectionDenominator: string
 } {
-  const filtered = filterFactsByPeriod(facts, periodType, periodKey)
-  filtered.asOf = asOf
+  const filtered = filterFactsByPeriod(facts, periodType, periodKey, asOf)
   const metrics = computeCommercialMetrics(filtered)
   const invoiceCents = sumMoneyCents(filtered.invoices.map((row) => row.amount))
   const allocCents = sumMoneyCents(filtered.allocations.map((row) => row.allocatedAmount))

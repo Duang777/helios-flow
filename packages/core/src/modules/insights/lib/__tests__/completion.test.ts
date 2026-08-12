@@ -42,6 +42,36 @@ describe('computeMetricActuals', () => {
     expect(actuals.actualSource).toBe('commercial.metrics')
   })
 
+  it('does not count facts after asOf inside the active period', () => {
+    const actuals = computeMetricActuals(
+      {
+        ...facts,
+        revenues: [
+          ...facts.revenues,
+          { amount: '9000.00', dataVersion: 'actual', recognizedOn: '2026-08-20' },
+        ],
+        costs: [
+          ...facts.costs,
+          { amount: '1000.00', dataVersion: 'actual', incurredOn: '2026-08-20' },
+        ],
+        invoices: [
+          ...facts.invoices,
+          { id: 'inv-2', amount: '9000.00', dueDate: '2026-08-30', status: 'issued', issuedOn: '2026-08-20' },
+        ],
+        allocations: [
+          ...facts.allocations,
+          { invoiceId: 'inv-2', allocatedAmount: '9000.00', allocatedOn: '2026-08-20' },
+        ],
+      },
+      'month',
+      '2026-08',
+      'revenue',
+      '2026-08-12',
+    )
+
+    expect(actuals.actualValue).toBe('1000.00')
+  })
+
   it('computes gross margin as ratio within period', () => {
     const actuals = computeMetricActuals(facts, 'month', '2026-08', 'gross_margin', '2026-08-31')
     expect(actuals.actualValue).toBe('60.00')

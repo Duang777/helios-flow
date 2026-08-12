@@ -1,5 +1,6 @@
 import {
   buildOperatingLoopDigestNotification,
+  isKpiTargetActiveOn,
   resolveOperatingLoopDigestPeriod,
   type OperatingLoopDigestMetrics,
 } from '../operatingLoopDigest'
@@ -62,5 +63,12 @@ describe('operating loop digest', () => {
       periodType: 'month',
       periodKey: '2026-08',
     })
+  })
+
+  it('treats month, quarter, and year KPI targets as active when they cover today', () => {
+    expect(isKpiTargetActiveOn({ periodType: 'month', periodKey: '2026-08' } as never, '2026-08-12')).toBe(true)
+    expect(isKpiTargetActiveOn({ periodType: 'quarter', periodKey: '2026-Q3' } as never, '2026-08-12')).toBe(true)
+    expect(isKpiTargetActiveOn({ periodType: 'year', periodKey: '2026' } as never, '2026-08-12')).toBe(true)
+    expect(isKpiTargetActiveOn({ periodType: 'month', periodKey: '2026-09' } as never, '2026-08-12')).toBe(false)
   })
 })

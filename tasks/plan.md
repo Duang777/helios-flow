@@ -341,11 +341,54 @@ Turn the long-standing `yarn build:app` Turbopack/NFT trace warning into a fixed
 - `yarn generate` passed with generated outputs unchanged.
 - `yarn build:app --force` passed with no Turbopack/NFT trace warnings.
 
+## Phase 14: Feishu Test Package Ingestion
+
+### Goal
+Turn the customer-provided Feishu/Lark test data package into real Helios operating-loop data without mock replies or fallback rules. The import path should read the authorized spreadsheet, normalize and validate the rows, then write through the same HTTP APIs used by operators so tenant scoping, ACL, optimistic locking, and command side effects remain active.
+
+### Source Package
+- Guide document: authorized Feishu wiki copy provided by the user.
+- Data spreadsheet: authorized Feishu wiki spreadsheet copy provided by the user.
+- Sheet coverage: organization, employee, customer, opportunity, opportunity_followup, project, project_milestone, project_risk, contract, project_revenue, project_cost, invoice, payment, invoice_payment_relation, and kpi_target.
+- Period and口径: January-August 2026 business data, CNY, amount fields are tax-exclusive, opportunity probability is 0-100, project gross-margin targets are decimals.
+
+### Architecture Decisions
+- Keep Feishu credentials in environment variables only. Do not commit app secrets, tenant tokens, downloaded private sheets, or local operational files.
+- Split source reading, normalization/validation, and HTTP writes into separate script modules so the importer can be tested without network access.
+- Preserve Feishu source ids in supported codes, tags, notes, or source fields; do not coerce non-UUID external ids into Helios UUID fields.
+- Import employees through the real staff team-member API before project/risk writes so负责人 fields can reference real staff UUIDs.
+- Treat Feishu business org codes such as `REG-A` as source dimensions, not Helios tenant organizations. KPI target imports must use an explicit source-org scope or an explicit future dimension model; never silently collapse REG-A/REG-B/REG-C rows into one target.
+- Write through existing customer, staff, projects, commercial, insights, and governance APIs. Do not add direct database writes for this package.
+
+### Task List
+- [x] Add a Feishu package reader/normalizer with exact sheet-header validation and source-id preserving mappings.
+- [x] Add small script tests covering header validation, reference validation, KPI dimension safety, key business mappings, and dry-run command boundaries.
+- [x] Add an API-backed importer that logs in to Helios, imports employees/customers/deals/projects/contracts/invoices/payments/KPI rows idempotently, and reports per-table results.
+- [x] Run governance rules after import and verify the proactive operating digest is generated from imported data.
+- [x] Add a read-only competition verification command for imported signals and the proactive digest.
+- [x] Document required env vars and the safe dry-run/apply/verify workflow.
+
+### Verification Notes
+- `node --test scripts/__tests__/operating-loop-feishu-pack.test.mjs scripts/__tests__/operating-loop-feishu-import.test.mjs` passed.
+- Feishu online dry-run against the authorized copied spreadsheet passed for `REG-A`: 10 organizations, 36 employees, 91 customers, 270 opportunities, 540 followups, 108 projects, 324 milestones, 17 risks, 108 contracts, 648 revenue lines, 1944 cost lines, 216 invoices, 214 payments, 214 allocations, and 4 scoped KPI targets.
+- Dry-run validation returned 0 errors and 0 mapping warnings after adding source enum mappings for closed projects, frozen customers, contract status/type variants, yearly KPI periods, and project gross-profit/gross-margin names.
+- The dry-run identified the expected real demo signals: duplicate BMW customer rows (`CUST-0001` and `CUST-0999`), high milestone-delay risks (`RSK-0003`, `RSK-0006`, `RSK-0010`, `RSK-0015`), and overdue-candidate invoices such as `INV-00001` and `INV-00002`.
+- API-backed `--apply` writes through Helios HTTP routes and completed successfully against local `http://localhost:3000` with 0 failed operations after idempotency fixes. Final rerun reused 36 employees, 91 customers, 270 opportunities, 540 followups, 108 projects, 324 milestones, 17 risks, 108 contracts, 648 revenue lines, 1944 cost lines, 216 invoices, 214 payments, and 213 allocations, and updated 4 KPI targets by natural key.
+- Source allocation `IPR-00030` is structurally inconsistent: its running allocation `77295000.00` exceeds invoice `INV-00032` amount `64412500.00`. The importer reports it as a source-data conflict and skips it instead of mutating the amount or hiding the issue.
+- KPI completion now respects the target's own month/quarter/year period and excludes commercial facts after `asOf`, so annual REG-A targets are visible in the August operating digest without changing source data.
+- `yarn operating-loop:feishu:verify -- --as-of=2026-08-12` passed against the local Acme Corp organization:
+  - Governance rules updated 48 findings.
+  - Digest metrics: 7 critical findings, 6 delayed projects, 29 overdue invoices, `427903300.00` CNY overdue outstanding, and 3 KPI gaps.
+  - Digest groups were healthy: 7 critical findings, 1 overdue invoice detail, 4 delayed project details, and 3 KPI gap details.
+  - The proactive notification linked to `/backend/insights/operating-loop/today`.
+- Focused script verification passed 16 tests; focused insights completion/digest tests passed 14 tests.
+
 ### Verification Gate
 - `yarn generate`
 - `yarn i18n:check`
 - `yarn workspace @helios/core test -- governance operating-loop ai-tools --runInBand`
 - `node --test scripts/__tests__/operating-loop-acceptance.test.mjs`
+- `yarn operating-loop:feishu:verify -- --as-of=2026-08-12`
 - `yarn ai:live-eval` when real provider/app env is present
 - Focused Playwright tests for digest/page-context UI when UI files change
 - `yarn build:packages` or affected package builds before commit
