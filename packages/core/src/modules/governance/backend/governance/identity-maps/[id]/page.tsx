@@ -146,6 +146,7 @@ export default function EditIdentityMapPage({ params }: { params?: { id?: string
       <PageBody>
         <CrudForm
           title={t('governance.identityMaps.edit.title')}
+          entityId="governance.identity_map"
           fields={[]}
           groups={groups}
           initialValues={record}

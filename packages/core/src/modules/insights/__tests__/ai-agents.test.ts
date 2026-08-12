@@ -188,4 +188,29 @@ describe('insights.operating_loop_assistant agent definition', () => {
 
     expect(result).toContain('customerEntityId: 44444444-4444-4444-8444-444444444444')
   })
+
+  it('resolvePageContext preserves list table filters and scoped ids', async () => {
+    const result = await agent.resolvePageContext!(
+      {
+        entityType: 'commercial.invoice',
+        recordId: '',
+        tenantId: 'tenant-1',
+        organizationId: 'org-1',
+        tableId: 'commercial.invoices.list',
+        visibleFilters: { status: 'issued' },
+        extra: { projectId: 'project-1', contractId: 'contract-1' },
+        selectedRecordIds: ['invoice-1'],
+        page: 2,
+        pageSize: 50,
+        totalMatching: 7,
+        container: { resolve: jest.fn() } as never,
+      } as Parameters<NonNullable<typeof agent.resolvePageContext>>[0],
+    )
+
+    expect(result).toContain('tableId: commercial.invoices.list')
+    expect(result).toContain('visibleFilters: {"status":"issued"}')
+    expect(result).toContain('scopedIds: {"projectId":"project-1","contractId":"contract-1"}')
+    expect(result).toContain('selectedRecordIds: invoice-1')
+    expect(result).toContain('totalMatching: 7')
+  })
 })

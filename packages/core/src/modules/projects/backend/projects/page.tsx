@@ -216,6 +216,7 @@ export default function ProjectsPage() {
           pagination={{ page, pageSize: 50, total, totalPages, onPageChange: setPage }}
           isLoading={isLoading}
           perspective={{ tableId: 'projects.list' }}
+          injectionContext={{ entityType: 'projects.project' }}
         />
       </PageBody>
       {ConfirmDialogElement}

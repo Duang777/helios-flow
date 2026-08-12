@@ -27,6 +27,7 @@ import { useCustomFieldFilterDefs } from './utils/customFieldFilters'
 import { fetchCustomFieldDefinitionsPayload, type CustomFieldsetDto } from './utils/customFieldDefs'
 import { RowActions, type RowActionItem } from './RowActions'
 import { subscribeOrganizationScopeChanged, type OrganizationScopeChangedDetail } from '@helios/shared/lib/frontend/organizationEvents'
+import { useOrganizationScopeDetail } from '@helios/shared/lib/frontend/useOrganizationScope'
 import { InjectionSpot } from './injection/InjectionSpot'
 import { useAppEvent } from './injection/useAppEvent'
 import { useInjectionDataWidgets } from './injection/useInjectionDataWidgets'
@@ -1162,6 +1163,7 @@ export function DataTable<T>({
   const t = useT()
   const { confirm, ConfirmDialogElement } = useConfirmDialog()
   const router = useRouter()
+  const organizationScope = useOrganizationScopeDetail()
   const resolvedRowClickActionIds = rowClickActionIds ?? DEFAULT_ROW_CLICK_ACTION_IDS
   const containerRef = React.useRef<HTMLDivElement>(null)
   const lastScopeRef = React.useRef<OrganizationScopeChangedDetail | null>(null)
@@ -1355,7 +1357,7 @@ export function DataTable<T>({
     ?? (perspective?.tableId ? `data-table:${perspective.tableId}` : null)
     ?? (extensionTableIdProp ? `data-table:${extensionTableIdProp}` : null)
   const resolvedReplacementHandle = replacementHandle ?? ComponentReplacementHandles.dataTable(extensionTableId ?? 'unknown')
-  const baseInjectionContext = React.useMemo(
+  const baseInjectionContext = React.useMemo<Record<string, unknown>>(
     () => {
       // R2-M2 / F9 (2026-05-26): the default injection context now derives
       // `tableId` from `extensionTableId ?? perspective?.tableId` (was
@@ -1366,14 +1368,20 @@ export function DataTable<T>({
       // `context.tableId = "foo"` instead of the previous `null`. This only
       // populates a field that was null before, so toolbar/header/footer/
       // search-trailing widgets that read `tableId` get a value while widgets
-      // that ignore it are unaffected. Explicit `injectionContext` from the
-      // caller still wins as-is — preserves the existing public contract.
-      if (injectionContext) return injectionContext
+      // that ignore it are unaffected. Caller-provided `injectionContext`
+      // overrides these base identity fields; the table state below is appended
+      // separately so widgets see the current search/filter/page/selection view.
       const resolvedTableId = extensionTableId ?? perspective?.tableId ?? null
       const baseTitle = typeof title === 'string' ? title : undefined
-      return { tableId: resolvedTableId, title: baseTitle }
+      return {
+        tableId: resolvedTableId,
+        title: baseTitle,
+        organizationId: organizationScope.organizationId ?? undefined,
+        tenantId: organizationScope.tenantId ?? undefined,
+        ...(injectionContext ?? {}),
+      }
     },
-    [injectionContext, perspective?.tableId, extensionTableId, title]
+    [injectionContext, organizationScope.organizationId, organizationScope.tenantId, perspective?.tableId, extensionTableId, title]
   )
   const headerInjectionSpotId = React.useMemo(
     () => (resolvedInjectionSpotId ? `${resolvedInjectionSpotId}:header` : null),
@@ -1669,12 +1677,37 @@ export function DataTable<T>({
   }, [hasInjectedBulkActions, rowSelection])
   const resolvedInjectionContext = React.useMemo(
     () => {
-      if (!hasInjectedBulkActions) return baseInjectionContext
       const selectedIds = Object.keys(rowSelection).filter((key) => rowSelection[key])
-      if (selectedIds.length === 0) return baseInjectionContext
-      return { ...baseInjectionContext, selectedRowIds: selectedIds, selectedCount: selectedIds.length }
+      const hostVisibleFilters =
+        baseInjectionContext.visibleFilters &&
+        typeof baseInjectionContext.visibleFilters === 'object' &&
+        !Array.isArray(baseInjectionContext.visibleFilters)
+          ? (baseInjectionContext.visibleFilters as Record<string, unknown>)
+          : {}
+      const tableVisibleFilters = advancedFilter
+        ? serializeTreeForPersist(advancedFilter.value)
+        : Object.fromEntries(
+            Object.entries(filterValues ?? {}).filter(
+              ([, value]) => value !== undefined && value !== null && value !== '',
+            ),
+          )
+      const visibleFilters = { ...hostVisibleFilters, ...tableVisibleFilters }
+      const hasVisibleFilters = Object.keys(visibleFilters).length > 0
+
+      return {
+        ...baseInjectionContext,
+        searchValue: typeof searchValue === 'string' ? searchValue : undefined,
+        visibleFilters: hasVisibleFilters ? visibleFilters : undefined,
+        page: pagination?.page,
+        pageSize: pagination?.pageSize,
+        totalMatching: pagination?.total ?? data.length,
+        totalPages: pagination?.totalPages,
+        rowCount: data.length,
+        selectedRowIds: selectedIds,
+        selectedCount: selectedIds.length,
+      }
     },
-    [baseInjectionContext, hasInjectedBulkActions, rowSelection],
+    [advancedFilter, baseInjectionContext, data.length, filterValues, pagination, rowSelection, searchValue],
   )
   React.useEffect(() => {
     const ids = table.getAllLeafColumns().map((column) => column.id)

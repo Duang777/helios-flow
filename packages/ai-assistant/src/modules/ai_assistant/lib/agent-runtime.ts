@@ -1119,18 +1119,21 @@ export async function composeSystemPrompt(
   const entityType = pageContext?.entityType
   const recordId = pageContext?.recordId
   if (typeof entityType !== 'string' || entityType.length === 0) return baseFromOverride
-  if (typeof recordId !== 'string' || recordId.length === 0) return baseFromOverride
+  const hasRecordContext = typeof recordId === 'string' && recordId.length > 0
+  const hasListContext = typeof pageContext?.tableId === 'string' && pageContext.tableId.length > 0
+  if (!hasRecordContext && !hasListContext) return baseFromOverride
   if (!container) {
     logger.warn('Agent declares resolvePageContext but no container was passed to runAiAgentText; skipping hydration', { agentId: agent.id })
     return baseFromOverride
   }
   const hydrationInput: AiAgentPageContextInput = {
+    ...pageContext,
     entityType,
-    recordId,
+    recordId: hasRecordContext ? recordId : '',
     container,
     tenantId,
     organizationId,
-  }
+  } as AiAgentPageContextInput
   try {
     const hydrated = await resolve(hydrationInput)
     if (typeof hydrated === 'string' && hydrated.trim().length > 0) {

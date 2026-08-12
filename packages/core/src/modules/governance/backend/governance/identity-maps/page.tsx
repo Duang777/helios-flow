@@ -233,6 +233,7 @@ export default function IdentityMapsPage() {
           pagination={{ page, pageSize: 50, total, totalPages, onPageChange: setPage }}
           isLoading={isLoading}
           perspective={{ tableId: 'governance.identity_maps.list' }}
+          injectionContext={{ entityType: 'governance.identity_map' }}
         />
       </PageBody>
       {ConfirmDialogElement}

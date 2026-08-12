@@ -142,6 +142,11 @@ export default function MilestonesPage() {
           pagination={{ page, pageSize: 50, total, totalPages, onPageChange: setPage }}
           isLoading={isLoading}
           perspective={{ tableId: 'projects.milestones.list' }}
+          injectionContext={{
+            entityType: 'projects.milestone',
+            projectId: projectId || undefined,
+            visibleFilters: projectId ? { projectId } : undefined,
+          }}
         />
       </PageBody>
     </Page>

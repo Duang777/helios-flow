@@ -32,7 +32,10 @@ type OperatingLoopTriggerProps = InjectionWidgetComponentProps<
 
 function buildContextItems(pageContext: OperatingLoopPageContext): AiChatContextItem[] {
   const items: AiChatContextItem[] = [
-    { label: pageContext.recordType, detail: pageContext.recordId },
+    {
+      label: pageContext.recordType,
+      detail: pageContext.recordId ?? pageContext.tableId ?? pageContext.view,
+    },
   ]
   if (pageContext.organizationId) {
     items.push({ label: 'organizationId', detail: pageContext.organizationId })
@@ -88,7 +91,8 @@ export default function OperatingLoopTriggerWidget({ context, data }: OperatingL
         size="sm"
         onClick={() => setOpen(true)}
         data-operating-loop-ai-trigger=""
-        data-operating-loop-record-id={pageContext.recordId}
+        data-operating-loop-record-id={pageContext.recordId ?? undefined}
+        data-operating-loop-table-id={pageContext.tableId ?? undefined}
         aria-label={t('insights.operatingLoop.trigger.ariaLabel', 'Open Operating Loop Assistant')}
       >
         <AiIcon className="size-4" />

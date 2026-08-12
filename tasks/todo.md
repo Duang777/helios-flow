@@ -46,4 +46,7 @@
 - [x] Extend linked mutation metadata from `governance.suggest_disposition` to advertise the new bulk disposition path.
 - [x] Expand fixed Chinese operating-loop real-model prompt cases beyond the initial 3 cases.
 - [x] Add/extend tests for governance bulk disposition and operating-loop acceptance prompt metadata.
-- [ ] Run focused governance/operating-loop tests, `yarn generate`, `yarn i18n:check`, and affected builds for the first production-closure slice.
+- [x] Run focused governance/operating-loop tests, `yarn generate`, `yarn i18n:check`, and affected builds for the first production-closure slice.
+- [x] Add M5-M7 list/detail Operating Loop page-context coverage for project, milestone, risk, contract, invoice, payment, allocation, KPI target/completion, governance finding, and identity map.
+- [x] Extend DataTable injection context with organization scope, visible filters, search, pagination, totals, and selection.
+- [x] Hydrate AI agent system prompts for list page contexts with `entityType + tableId`.

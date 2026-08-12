@@ -240,6 +240,11 @@ export default function FindingsPage() {
           pagination={{ page, pageSize: 50, total, totalPages, onPageChange: setPage }}
           isLoading={isLoading}
           perspective={{ tableId: 'governance.findings.list' }}
+          injectionContext={{
+            entityType: 'governance.finding',
+            organizationId: organizationId ?? undefined,
+            tenantId: tenantId ?? undefined,
+          }}
         />
       </PageBody>
       {ConfirmDialogElement}

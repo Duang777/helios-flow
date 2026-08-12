@@ -58,6 +58,37 @@ const OPERATING_LOOP_ALLOWED_TOOLS: readonly string[] = [
   'meta.describe_agent',
 ]
 
+type OperatingLoopResolvedPageContextInput = AiAgentPageContextInput & {
+  tableId?: unknown
+  searchValue?: unknown
+  visibleFilters?: unknown
+  page?: unknown
+  pageSize?: unknown
+  totalMatching?: unknown
+  selectedRecordIds?: unknown
+  extra?: unknown
+}
+
+function readContextString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function readContextNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function formatContextRecord(value: unknown): string | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const json = JSON.stringify(value)
+  return json === '{}' ? null : json
+}
+
+function formatContextStringList(value: unknown): string | null {
+  if (!Array.isArray(value)) return null
+  const list = value.filter((item): item is string => typeof item === 'string' && item.length > 0)
+  return list.length > 0 ? list.join(', ') : null
+}
+
 function resolvePageContextField(entityType: string | null): string {
   switch (entityType) {
     case 'customers.customer_entity':
@@ -182,14 +213,28 @@ const operatingLoopAgent: AiAgentDefinition = {
     operations: ['read', 'search', 'aggregate'],
   },
   resolvePageContext: async (input: AiAgentPageContextInput) => {
+    const pageContext = input as OperatingLoopResolvedPageContextInput
     const recordId = typeof input.recordId === 'string' ? input.recordId : null
     const entityType = typeof input.entityType === 'string' ? input.entityType : null
-    if (!recordId && !entityType && !input.organizationId) return null
+    const tableId = readContextString(pageContext.tableId)
+    if (!recordId && !entityType && !input.organizationId && !tableId) return null
+    const visibleFilters = formatContextRecord(pageContext.visibleFilters)
+    const extra = formatContextRecord(pageContext.extra)
+    const selectedRecordIds = formatContextStringList(pageContext.selectedRecordIds)
+    const page = readContextNumber(pageContext.page)
+    const pageSize = readContextNumber(pageContext.pageSize)
+    const totalMatching = readContextNumber(pageContext.totalMatching)
     return [
       'Current page context:',
       input.organizationId ? `- organizationId: ${input.organizationId}` : null,
       entityType ? `- entityType: ${entityType}` : null,
+      tableId ? `- tableId: ${tableId}` : null,
       recordId ? `- ${resolvePageContextField(entityType)}: ${recordId}` : null,
+      visibleFilters ? `- visibleFilters: ${visibleFilters}` : null,
+      extra ? `- scopedIds: ${extra}` : null,
+      selectedRecordIds ? `- selectedRecordIds: ${selectedRecordIds}` : null,
+      totalMatching !== null ? `- totalMatching: ${totalMatching}` : null,
+      page !== null && pageSize !== null ? `- page: ${page}, pageSize: ${pageSize}` : null,
       'Prefer the matching scoped tool first, then continue the operating loop if the user asks why, how much, or what to do next.',
     ]
       .filter((line): line is string => typeof line === 'string')

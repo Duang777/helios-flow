@@ -251,10 +251,17 @@ Move the operating advisor from “competition-stable demo” toward a productio
 - [ ] Add script unit tests so new prompts cannot silently miss required tool metadata.
 
 ### Phase 11C: Page Context Coverage
-- [ ] Inventory M5-M7 list/detail pages and existing widget injection spots.
-- [ ] Add missing list-page assistant triggers with `organizationId` and visible filter context.
-- [ ] Normalize entity-specific page context fields for project, milestone, risk, contract, invoice, payment, allocation, KPI target, finding, and identity map.
-- [ ] Add focused page-context tests for each entity mapping.
+- [x] Inventory M5-M7 list/detail pages and existing widget injection spots.
+- [x] Add missing list-page assistant triggers with `organizationId` and visible filter context.
+- [x] Normalize entity-specific page context fields for project, milestone, risk, contract, invoice, payment, allocation, KPI target, finding, and identity map.
+- [x] Add focused page-context tests for each entity mapping.
+
+### Phase 11C Verification Notes
+- `DataTable` now merges host `injectionContext` with organization scope, search, visible filters, pagination, total matching count, row count, and selected row ids for all `data-table:*` injection spots.
+- `insights.injection.operating-loop-trigger` now supports `operating_loop.list` and `operating_loop.detail` contexts, with stable `extra` ids for project, milestone, risk, contract, invoice, payment, allocation, KPI target, finding, identity map, and customer entity.
+- The Operating Loop Assistant is mounted on M5-M7 list search-trailing slots plus missing CrudForm detail header slots for milestones, risks, payments, allocations, and identity maps.
+- AI runtime page-context hydration now supports list contexts with `entityType + tableId`, so list filters and scoped ids reach the agent system prompt instead of being dropped when `recordId` is absent.
+- Focused tests passed: `yarn workspace @helios/core test -- operating-loop-page-context ai-agents --runInBand`, `yarn workspace @helios/ui test -- DataTable.extensions --runInBand`, and `yarn jest --config packages/ai-assistant/jest.config.cjs agent-runtime --runInBand --forceExit`.
 
 ### Phase 11D: Proactive Digest UI
 - [ ] Add or enhance a Today Operating Digest page/panel with grouped critical findings, overdue invoices, delayed projects, and KPI gaps.

@@ -21,6 +21,8 @@ type PaymentData = {
   currencyCode: string | null
   paidOn: string | null
   isActive: boolean
+  organizationId: string
+  tenantId: string
   updatedAt?: string | null
 }
 
@@ -127,6 +129,7 @@ export default function EditPaymentPage({ params }: { params?: { id?: string } }
         <CrudForm
           title={t('commercial.payments.edit.title')}
           backHref="/backend/commercial/payments"
+          entityId="commercial.payment"
           fields={[]}
           groups={groups}
           initialValues={{ ...record, updatedAt: record.updatedAt }}

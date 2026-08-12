@@ -228,6 +228,7 @@ export default function ContractsPage() {
           pagination={{ page, pageSize: 50, total, totalPages, onPageChange: setPage }}
           isLoading={isLoading}
           perspective={{ tableId: 'commercial.contracts.list' }}
+          injectionContext={{ entityType: 'commercial.contract' }}
         />
       </PageBody>
       {ConfirmDialogElement}

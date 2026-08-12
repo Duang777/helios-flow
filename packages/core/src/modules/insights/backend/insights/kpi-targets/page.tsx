@@ -243,6 +243,7 @@ export default function KpiTargetsPage() {
           pagination={{ page, pageSize: 50, total, totalPages, onPageChange: setPage }}
           isLoading={isLoading}
           perspective={{ tableId: 'insights.kpi_targets.list' }}
+          injectionContext={{ entityType: 'insights.kpi_target' }}
         />
       </PageBody>
       {ConfirmDialogElement}

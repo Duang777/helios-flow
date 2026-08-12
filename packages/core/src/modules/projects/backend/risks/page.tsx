@@ -130,6 +130,11 @@ export default function RisksPage() {
           pagination={{ page, pageSize: 50, total, totalPages, onPageChange: setPage }}
           isLoading={isLoading}
           perspective={{ tableId: 'projects.risks.list' }}
+          injectionContext={{
+            entityType: 'projects.risk',
+            projectId: projectId || undefined,
+            visibleFilters: projectId ? { projectId } : undefined,
+          }}
         />
       </PageBody>
     </Page>

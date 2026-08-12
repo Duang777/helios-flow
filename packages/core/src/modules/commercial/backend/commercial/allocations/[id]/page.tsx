@@ -19,6 +19,8 @@ type AllocationData = {
   allocatedAmount: string | null
   allocatedOn: string | null
   isActive: boolean
+  organizationId: string
+  tenantId: string
   updatedAt?: string | null
 }
 
@@ -114,6 +116,7 @@ export default function EditAllocationPage({ params }: { params?: { id?: string 
         <CrudForm
           title={t('commercial.allocations.edit.title')}
           backHref="/backend/commercial/allocations"
+          entityId="commercial.payment_allocation"
           fields={[]}
           groups={groups}
           initialValues={{ ...record, updatedAt: record.updatedAt }}

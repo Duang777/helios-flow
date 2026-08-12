@@ -197,6 +197,14 @@ export default function KpiCompletionBoardPage() {
           data={tableData}
           isLoading={isLoading}
           perspective={{ tableId: 'insights.kpi.completion' }}
+          injectionContext={{
+            entityType: 'insights.kpi_completion',
+            organizationId: organizationId ?? undefined,
+            visibleFilters: {
+              includeDescendants,
+              ...(organizationId ? { organizationId } : {}),
+            },
+          }}
         />
       </PageBody>
     </Page>

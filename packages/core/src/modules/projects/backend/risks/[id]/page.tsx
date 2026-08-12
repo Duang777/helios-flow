@@ -19,6 +19,8 @@ type RiskData = {
   riskType: string
   status: string
   ownerEmployeeId: string | null
+  organizationId: string
+  tenantId: string
   updatedAt?: string | null
 }
 
@@ -128,6 +130,7 @@ export default function EditRiskPage({ params }: { params?: { id?: string } }) {
         <CrudForm
           title={t('projects.risks.edit.title')}
           backHref="/backend/risks"
+          entityId="projects.risk"
           fields={[]}
           groups={groups}
           initialValues={{ ...row, updatedAt: row.updatedAt }}

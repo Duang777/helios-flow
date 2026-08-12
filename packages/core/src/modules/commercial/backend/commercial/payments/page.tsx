@@ -236,6 +236,11 @@ export default function PaymentPage() {
           pagination={{ page, pageSize: 50, total, totalPages, onPageChange: setPage }}
           isLoading={isLoading}
           perspective={{ tableId: 'commercial.payments.list' }}
+          injectionContext={{
+            entityType: 'commercial.payment',
+            customerEntityId: customerEntityId || undefined,
+            visibleFilters: customerEntityId ? { customerEntityId } : undefined,
+          }}
         />
       </PageBody>
       {ConfirmDialogElement}

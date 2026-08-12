@@ -19,6 +19,8 @@ type MilestoneData = {
   plannedDate: string | null
   actualDate: string | null
   isDelayed?: boolean
+  organizationId: string
+  tenantId: string
   updatedAt?: string | null
 }
 
@@ -118,6 +120,7 @@ export default function EditMilestonePage({ params }: { params?: { id?: string }
         <CrudForm
           title={t('projects.milestones.edit.title')}
           backHref="/backend/milestones"
+          entityId="projects.milestone"
           fields={[]}
           groups={groups}
           initialValues={{ ...row, updatedAt: row.updatedAt }}

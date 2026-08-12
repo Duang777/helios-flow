@@ -242,6 +242,17 @@ export default function InvoicePage() {
           pagination={{ page, pageSize: 50, total, totalPages, onPageChange: setPage }}
           isLoading={isLoading}
           perspective={{ tableId: 'commercial.invoices.list' }}
+          injectionContext={{
+            entityType: 'commercial.invoice',
+            projectId: projectId || undefined,
+            contractId: contractId || undefined,
+            customerEntityId: customerEntityId || undefined,
+            visibleFilters: {
+              ...(projectId ? { projectId } : {}),
+              ...(contractId ? { contractId } : {}),
+              ...(customerEntityId ? { customerEntityId } : {}),
+            },
+          }}
         />
       </PageBody>
       {ConfirmDialogElement}

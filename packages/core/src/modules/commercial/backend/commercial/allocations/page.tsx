@@ -231,6 +231,15 @@ export default function AllocationPage() {
           pagination={{ page, pageSize: 50, total, totalPages, onPageChange: setPage }}
           isLoading={isLoading}
           perspective={{ tableId: 'commercial.allocations.list' }}
+          injectionContext={{
+            entityType: 'commercial.payment_allocation',
+            invoiceId: invoiceId || undefined,
+            paymentId: paymentId || undefined,
+            visibleFilters: {
+              ...(invoiceId ? { invoiceId } : {}),
+              ...(paymentId ? { paymentId } : {}),
+            },
+          }}
         />
       </PageBody>
       {ConfirmDialogElement}
