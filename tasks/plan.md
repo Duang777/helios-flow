@@ -264,10 +264,40 @@ Move the operating advisor from “competition-stable demo” toward a productio
 - Focused tests passed: `yarn workspace @helios/core test -- operating-loop-page-context ai-agents --runInBand`, `yarn workspace @helios/ui test -- DataTable.extensions --runInBand`, and `yarn jest --config packages/ai-assistant/jest.config.cjs agent-runtime --runInBand --forceExit`.
 
 ### Phase 11D: Proactive Digest UI
-- [ ] Add or enhance a Today Operating Digest page/panel with grouped critical findings, overdue invoices, delayed projects, and KPI gaps.
-- [ ] Make notification actions deep-link to the digest and source records.
-- [ ] Add aggregation states: empty, partial source failure, and grouped-by-severity.
-- [ ] Cover with focused component/integration tests and a Playwright smoke path.
+- [x] Add or enhance a Today Operating Digest page/panel with grouped critical findings, overdue invoices, delayed projects, and KPI gaps.
+- [x] Make notification actions deep-link to the digest and source records.
+- [x] Add aggregation states: empty, partial source failure, and grouped-by-severity.
+- [x] Cover with focused component/integration tests and a Playwright smoke path.
+
+## Phase 13: Demo-Ready Operating Advisor Click Path
+
+### Goal
+Make the competition path executable through real product surfaces:
+login/home or notifications -> Today Operating Digest -> overdue receivables / delayed projects / KPI gaps -> source record or scoped Operating Loop Assistant -> disposition suggestion -> confirm-required mutation preview.
+
+### Architecture Decisions
+- Move the proactive digest notification from the AI Playground into a first-class Insights backend page.
+- Add a real Insights API for today's operating digest details; do not compute demo-only summaries in the browser.
+- Reuse existing project delay, commercial overdue AR, KPI completion, and governance finding口径 so numbers match tools and agent answers.
+- Every digest item carries `organizationId`, `entityType`, `recordId`, source href, formula source, and enough scoped ids for the assistant to choose the right tool.
+- The assistant sheet opens with context-specific Chinese prompt suggestions, including a confirm-required preview prompt that routes through existing write tools.
+- Keep source-record links separate from AI prompts so an operator can inspect evidence before asking the advisor to act.
+
+### Task List
+- [x] Add `GET /api/insights/operating-loop/today` returning grouped real records, metric counts, source statuses, formula sources, and hrefs.
+- [x] Change `insights.operating_loop.digest` notification links to `/backend/insights/operating-loop/today`.
+- [x] Add the Today Operating Digest backend page with grouped critical findings, overdue receivables, delayed projects, and KPI gaps.
+- [x] Add per-item source links and per-item Operating Loop Assistant buttons with page context.
+- [x] Add empty, loading, source-error, and partial-source states.
+- [x] Add i18n keys for Chinese default and English switching.
+- [x] Add focused tests for the digest API/detail builders, notification link, page context, and browser smoke path.
+
+### Verification Notes
+- `GET /api/insights/operating-loop/today` returns real grouped signals from governance findings, commercial invoices/payments, project milestones, and KPI completion.
+- Proactive operating-loop notification link now opens `/backend/insights/operating-loop/today`.
+- Browser smoke on local `http://localhost:3000/backend/insights/operating-loop/today` passed after logging in as the demo admin: the page rendered Chinese copy, 4 digest groups, real overdue receivables and delayed projects, formula sources, source-record links, and the Operating Advisor sheet.
+- Focused tests passed: `yarn workspace @helios/core test -- operatingLoopDigest operatingLoopToday operating-loop-page-context --runInBand`.
+- Build gates passed: `yarn i18n:check-sync`, `yarn generate`, `yarn workspace @helios/core build`, `yarn build:packages`, and `yarn build:app --force`.
 
 ### Phase 11E: Chinese Presentation Sweep
 - [ ] Use `yarn i18n:check` baseline to detect new advisory debt.

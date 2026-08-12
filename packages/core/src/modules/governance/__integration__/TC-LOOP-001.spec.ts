@@ -255,7 +255,7 @@ test.describe('TC-LOOP-001: Operating loop M5→M6→M7', () => {
       expect(operatingDigest).toMatchObject({
         sourceEntityType: 'insights.operating_loop',
         sourceEntityId: organizationId,
-        linkHref: '/backend/config/ai-assistant/playground?agent=insights.operating_loop_assistant',
+        linkHref: '/backend/insights/operating-loop/today',
       })
       const bodyVariables = operatingDigest?.bodyVariables as Record<string, string> | undefined
       expect(bodyVariables).toMatchObject({

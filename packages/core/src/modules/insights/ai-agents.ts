@@ -112,6 +112,10 @@ function resolvePageContextField(entityType: string | null): string {
       return 'allocationId'
     case 'insights.kpi_target':
       return 'kpiTargetId'
+    case 'insights.kpi_completion':
+      return 'kpiCompletionId'
+    case 'insights.operating_loop_digest':
+      return 'digestId'
     case 'governance.finding':
       return 'findingId'
     case 'governance.identity_map':

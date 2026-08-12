@@ -22,8 +22,7 @@ import {
 } from './completion'
 
 export const OPERATING_LOOP_DIGEST_NOTIFICATION_TYPE = 'insights.operating_loop.digest'
-export const OPERATING_LOOP_DIGEST_LINK =
-  '/backend/config/ai-assistant/playground?agent=insights.operating_loop_assistant'
+export const OPERATING_LOOP_DIGEST_LINK = '/backend/insights/operating-loop/today'
 export const OPERATING_LOOP_DIGEST_FORMULA_SOURCES =
   'governance.findings, projects.milestones, commercial.metrics, insights.kpi.completion'
 
@@ -91,7 +90,7 @@ export function buildOperatingLoopDigestNotification(input: {
   }
 }
 
-async function loadCommercialFacts(
+export async function loadOperatingLoopCommercialFacts(
   em: EntityManager,
   scope: OperatingLoopDigestScope,
 ): Promise<DatedCommercialFacts> {
@@ -203,7 +202,7 @@ export async function collectOperatingLoopDigestMetrics(
   scope: OperatingLoopDigestScope,
 ): Promise<OperatingLoopDigestMetrics> {
   const period = resolveOperatingLoopDigestPeriod(scope.asOf)
-  const facts = await loadCommercialFacts(em, scope)
+  const facts = await loadOperatingLoopCommercialFacts(em, scope)
 
   const [criticalFindingCount, delayedProjectCount, targets] = await Promise.all([
     em.count(GovernanceFinding, {

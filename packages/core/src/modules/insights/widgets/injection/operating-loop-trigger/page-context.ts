@@ -8,6 +8,7 @@ export type OperatingLoopEntityType =
   | 'commercial.payment_allocation'
   | 'insights.kpi_target'
   | 'insights.kpi_completion'
+  | 'insights.operating_loop_digest'
   | 'governance.finding'
   | 'governance.identity_map'
 
@@ -93,6 +94,7 @@ function isOperatingLoopEntityType(value: unknown): value is OperatingLoopEntity
     value === 'commercial.payment_allocation' ||
     value === 'insights.kpi_target' ||
     value === 'insights.kpi_completion' ||
+    value === 'insights.operating_loop_digest' ||
     value === 'governance.finding' ||
     value === 'governance.identity_map'
   )
@@ -122,6 +124,7 @@ const LIST_TABLE_ENTITY_TYPES: Record<string, OperatingLoopEntityType> = {
   'commercial.allocations.list': 'commercial.payment_allocation',
   'insights.kpi_targets.list': 'insights.kpi_target',
   'insights.kpi.completion': 'insights.kpi_completion',
+  'insights.operating_loop.today': 'insights.operating_loop_digest',
   'governance.findings.list': 'governance.finding',
   'governance.identity_maps.list': 'governance.identity_map',
 }

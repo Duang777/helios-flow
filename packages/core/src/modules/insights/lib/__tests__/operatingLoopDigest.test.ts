@@ -41,7 +41,7 @@ describe('operating loop digest', () => {
 
     expect(digest).toMatchObject({
       groupKey: 'insights.operating_loop:org-1:2026-08-31',
-      linkHref: '/backend/config/ai-assistant/playground?agent=insights.operating_loop_assistant',
+      linkHref: '/backend/insights/operating-loop/today',
       sourceEntityType: 'insights.operating_loop',
       sourceEntityId: 'org-1',
       bodyVariables: {

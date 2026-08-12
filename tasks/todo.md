@@ -56,3 +56,8 @@
 - [x] Mark AI Assistant standalone generated-registry filesystem probes as runtime-only.
 - [x] Mark example QA event persistence as runtime-only.
 - [x] Run focused queue/AI tests, package builds, app build, and commit/push the trace-warning fix.
+- [x] Add the Today Operating Digest API backed by real governance/project/commercial/KPI data.
+- [x] Point proactive operating-loop notifications at the Today Operating Digest page.
+- [x] Build the Today Operating Digest page with grouped异常、源记录跳转和经营参谋入口.
+- [x] Wire item-level Operating Loop Assistant page context and confirm-required preview suggestions.
+- [x] Add i18n, focused tests, browser smoke, generation/build gates, then commit and push.
