@@ -99,6 +99,8 @@
   "configs.moduleTelemetry.table.topOperationsBreakdown": "Top-Operationen in diesem Zeitraum",
   "configs.moduleTelemetry.table.worstP95": "Schlechtestes p95",
   "configs.moduleTelemetry.title": "Modultelemetrie",
+  "configs.nav.description": "Shared configuration storage and helpers for module settings.",
+  "configs.nav.title": "Configuration",
   "configs.systemStatus.actions.purgeCache": "Cache leeren",
   "configs.systemStatus.actions.purgeCacheConfirm": "Alle gecachten Daten jetzt leeren? Dies entfernt Cache-Einträge aller Mandanten.",
   "configs.systemStatus.actions.purgeCacheError": "Cache konnte nicht geleert werden.",

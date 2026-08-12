@@ -1181,6 +1181,7 @@
   "sales.module.title": "Sales Management",
   "sales.nav.channels": "Channels",
   "sales.nav.create": "Create sales document",
+  "sales.nav.description": "Quoting, ordering, fulfillment, and billing capabilities built on modular pricing and tax pipelines.",
   "sales.nav.group": "Sales",
   "sales.nav.orders": "Orders",
   "sales.nav.quotes": "Quotes",

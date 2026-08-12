@@ -1181,6 +1181,7 @@
   "sales.module.title": "销售管理",
   "sales.nav.channels": "销售渠道",
   "sales.nav.create": "创建销售单据",
+  "sales.nav.description": "基于模块化定价和税务流水线的报价、下单、履约与开票能力。",
   "sales.nav.group": "销售",
   "sales.nav.orders": "订单",
   "sales.nav.quotes": "报价",

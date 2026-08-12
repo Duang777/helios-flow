@@ -200,8 +200,10 @@ export type ModuleWorker = {
 export type ModuleInfo = {
   name?: string
   title?: string
+  titleKey?: string
   version?: string
   description?: string
+  descriptionKey?: string
   author?: string
   license?: string
   homepage?: string

@@ -38,5 +38,6 @@
   "api_keys.list.success.deleted": "Clave API eliminada",
   "api_keys.list.title": "Claves API",
   "api_keys.nav.apiKeys": "Claves API",
-  "api_keys.nav.apiKeys.create": "Crear clave API"
+  "api_keys.nav.apiKeys.create": "Crear clave API",
+  "api_keys.nav.description": "Manage access tokens for external API access."
 }

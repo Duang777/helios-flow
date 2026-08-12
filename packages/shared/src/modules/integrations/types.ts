@@ -47,6 +47,7 @@ export type CredentialFieldType =
 export interface CredentialFieldOption {
   value: string
   label: string
+  labelKey?: string
 }
 
 export interface CredentialFieldVisibleWhen {
@@ -57,24 +58,32 @@ export interface CredentialFieldVisibleWhen {
 export interface IntegrationCredentialWebhookHelp {
   kind: 'webhook_setup'
   title: string
+  titleKey?: string
   summary: string
+  summaryKey?: string
   endpointPath: string
   dashboardPathLabel: string
+  dashboardPathLabelKey?: string
   steps: string[]
+  stepKeys?: string[]
   events?: string[]
   localDevelopment?: {
     tunnelCommand: string
     publicUrlExample: string
     note?: string
+    noteKey?: string
   }
 }
 
 export interface IntegrationCredentialFieldBase {
   key: string
   label: string
+  labelKey?: string
   required?: boolean
   placeholder?: string
+  placeholderKey?: string
   helpText?: string
+  helpTextKey?: string
   helpDetails?: IntegrationCredentialWebhookHelp
   visibleWhen?: CredentialFieldVisibleWhen
 }
@@ -136,7 +145,9 @@ export interface ApiVersionDefinition {
 export interface IntegrationBundle {
   id: string
   title: string
+  titleKey?: string
   description: string
+  descriptionKey?: string
   icon?: string
   package?: string
   version?: string
@@ -173,11 +184,13 @@ export interface IntegrationDefaultStateConfig {
 export interface IntegrationDefinition {
   id: string
   title: string
+  titleKey?: string
   icon?: string
   buildExternalUrl?: (externalId: string) => string
   bundleId?: string
   apiVersions?: ApiVersionDefinition[]
   description?: string
+  descriptionKey?: string
   category?: IntegrationCategory | string
   hub?: IntegrationHubId
   providerKey?: string

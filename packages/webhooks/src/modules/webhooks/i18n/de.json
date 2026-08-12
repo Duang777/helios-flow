@@ -154,6 +154,7 @@
   "webhooks.list.status.inactive": "Inactive",
   "webhooks.list.title": "Webhooks",
   "webhooks.nav.create": "Create Webhook",
+  "webhooks.nav.description": "Standard Webhooks compliant outbound webhook delivery for platform events.",
   "webhooks.nav.group": "Integrations",
   "webhooks.nav.title": "Webhooks",
   "webhooks.notifications.delivery.failed.body": "Webhook {webhookName} konnte das Ereignis {eventType} nicht zustellen. {errorMessage}",
