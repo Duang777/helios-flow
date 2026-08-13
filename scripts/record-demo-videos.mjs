@@ -4,7 +4,6 @@ import { chromium } from 'playwright'
 import { config as loadDotenv } from 'dotenv'
 import { existsSync, mkdirSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve, relative } from 'node:path'
-
 import {
   DEFAULT_AI_WAIT_MS,
   DEFAULT_SCENE_DURATION_MS,
@@ -44,6 +43,7 @@ function parseArgs(argv) {
     generatedRoutesPath: DEFAULT_ROUTES_PATH,
     viewport: { ...DEFAULT_VIEWPORT },
     aiWaitMs: Number.parseInt(readEnv('DEMO_VIDEO_AI_WAIT_MS', String(DEFAULT_AI_WAIT_MS)), 10),
+    authMode: readEnv('DEMO_VIDEO_AUTH_MODE', 'login-api'),
     skipAi: readEnv('DEMO_VIDEO_SKIP_AI', 'false') === 'true',
     overlayCaptions: readEnv('DEMO_VIDEO_OVERLAY_CAPTIONS', 'true') !== 'false',
     continueOnError: true,
@@ -73,6 +73,7 @@ function parseArgs(argv) {
     else if (arg.startsWith('--output-dir=')) options.outputDir = resolve(ROOT, arg.slice('--output-dir='.length))
     else if (arg.startsWith('--duration-ms=')) options.durationMs = Number.parseInt(arg.slice('--duration-ms='.length), 10)
     else if (arg.startsWith('--ai-wait-ms=')) options.aiWaitMs = Number.parseInt(arg.slice('--ai-wait-ms='.length), 10)
+    else if (arg.startsWith('--auth-mode=')) options.authMode = arg.slice('--auth-mode='.length)
     else if (arg.startsWith('--routes=')) options.generatedRoutesPath = resolve(ROOT, arg.slice('--routes='.length))
     else if (arg.startsWith('--slow-mo=')) options.slowMo = Number.parseInt(arg.slice('--slow-mo='.length), 10)
     else if (arg.startsWith('--viewport=')) options.viewport = parseViewport(arg.slice('--viewport='.length))
@@ -87,6 +88,9 @@ function parseArgs(argv) {
   }
   if (!Number.isFinite(options.aiWaitMs) || options.aiWaitMs < 1_000) {
     throw new Error('[record-demo-videos] --ai-wait-ms must be at least 1000')
+  }
+  if (!['login-api'].includes(options.authMode)) {
+    throw new Error('[record-demo-videos] --auth-mode must be login-api')
   }
   return options
 }
@@ -112,13 +116,33 @@ Use --skip-ai only for camera/blocking checks, not final competition footage.`)
 }
 
 async function loginContext(context, options) {
+  if (Array.isArray(options.authCookies) && options.authCookies.length > 0) {
+    await context.addCookies(options.authCookies)
+    return options.authClaims ?? {}
+  }
+  const session = await createLoginSession(context.request, options)
+  await context.addCookies(session.cookies)
+  return session.claims
+}
+
+async function createLoginSession(request, options) {
   const form = new URLSearchParams()
   form.set('email', options.email)
   form.set('password', options.password)
-  const response = await context.request.post(`${options.appUrl}/api/auth/login`, {
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    data: form.toString(),
-  })
+  let response = null
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    response = await request.post(`${options.appUrl}/api/auth/login`, {
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      data: form.toString(),
+      timeout: 120_000,
+    }).catch((error) => {
+      if (attempt >= 3) throw error
+      return null
+    })
+    if (response) break
+    await new Promise((resolve) => setTimeout(resolve, attempt * 2_000))
+  }
+  if (!response) throw new Error('[record-demo-videos] Login failed before receiving a response')
   const raw = await response.text()
   let body = null
   try {
@@ -142,8 +166,7 @@ async function loginContext(context, options) {
   }
   if (claims.tenantId) cookies.push({ name: 'om_selected_tenant', value: claims.tenantId, url: options.appUrl, sameSite: 'Lax' })
   if (claims.orgId) cookies.push({ name: 'om_selected_org', value: claims.orgId, url: options.appUrl, sameSite: 'Lax' })
-  await context.addCookies(cookies)
-  return claims
+  return { cookies, claims }
 }
 
 async function recordScene(browser, scene, options) {
@@ -159,7 +182,7 @@ async function recordScene(browser, scene, options) {
   })
   await loginContext(context, options)
   const page = await context.newPage()
-  await page.goto(`${options.appUrl}${scene.path}`, { waitUntil: 'domcontentloaded', timeout: 45_000 })
+  await page.goto(`${options.appUrl}${scene.path}`, { waitUntil: 'domcontentloaded', timeout: 120_000 })
   await page.waitForLoadState('load', { timeout: 20_000 }).catch(() => null)
   await stabilizePage(page)
   const steps = buildSceneSteps(scene, {
@@ -259,6 +282,7 @@ async function scrollPage(page, durationMs) {
 }
 
 async function performAiStep(page, step) {
+  await page.waitForTimeout(1_500)
   await openAiAssistant(page, step.agentId)
   await sendAiPrompt(page, step.promptZh)
   await page.waitForTimeout(step.durationMs)
@@ -269,9 +293,7 @@ async function openAiAssistant(page, agentId) {
   if (await isVisible(dock)) return
 
   const trigger = page.locator('[data-ai-launcher-trigger], [data-ai-launcher-trigger-mobile]').first()
-  if (!(await isVisible(trigger))) {
-    throw new Error('AI launcher trigger is not visible')
-  }
+  await trigger.waitFor({ state: 'visible', timeout: 60_000 })
   await trigger.click()
 
   const picker = page.locator('[data-ai-launcher-picker]')
@@ -297,7 +319,7 @@ async function openAiAssistant(page, agentId) {
 }
 
 async function sendAiPrompt(page, prompt) {
-  const composer = page.locator('[aria-label="Message composer"], textarea#ai-chat-composer').last()
+  const composer = page.locator('[aria-label="Message composer"], textarea#ai-chat-composer, #ai-chat-composer').last()
   await composer.waitFor({ state: 'visible', timeout: 15_000 })
   await composer.fill(prompt)
   await composer.press('Enter')
@@ -508,6 +530,14 @@ async function main() {
   const browser = await chromium.launch({ headless: !options.headed, slowMo: options.slowMo })
   const recorded = []
   try {
+    const authContext = await browser.newContext({ viewport: options.viewport, locale: 'zh-CN' })
+    try {
+      const session = await createLoginSession(authContext.request, options)
+      options.authCookies = session.cookies
+      options.authClaims = session.claims
+    } finally {
+      await authContext.close()
+    }
     for (const scene of scenes) {
       console.log(`[record-demo-videos] Recording ${scene.id}: ${scene.titleZh} (${scene.path})`)
       try {
