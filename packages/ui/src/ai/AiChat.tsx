@@ -1555,6 +1555,7 @@ export function AiChat({
       aria-label={t('ai_assistant.chat.regionLabel', 'AI chat')}
       data-ai-chat-agent={agent}
       data-ai-chat-conversation-id={chat.conversationId}
+      data-ai-chat-status={chat.status}
     >
       <div className="flex min-w-0 items-center justify-between gap-2 border-b border-border pb-2">
         <div className="flex min-w-0 flex-1 items-center gap-2 text-xs text-muted-foreground">

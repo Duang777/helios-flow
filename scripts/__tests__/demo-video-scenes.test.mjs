@@ -13,6 +13,7 @@ import {
   resolveScenes,
 } from '../lib/demo-video-scenes.mjs'
 import { spawnSync } from 'node:child_process'
+import { isAiResponseSettled, isAiResponseStableEnoughForRecording } from '../record-demo-videos.mjs'
 
 test('formats SRT and VTT timestamps for caption files', () => {
   assert.equal(formatSrtTimestamp(3_723_045), '01:02:03,045')
@@ -114,4 +115,113 @@ test('record-demo-videos help tolerates yarn argument separator', () => {
   assert.equal(result.status, 0)
   assert.match(result.stdout, /demo:videos/)
   assert.match(result.stdout, /does\s+not mock AI replies/)
+})
+
+test('detects a settled ai response from the chat snapshot', () => {
+  assert.equal(
+    isAiResponseSettled({
+      status: 'idle',
+      thinkingVisible: false,
+      assistantText: '经营参谋已完成分析，建议优先处理逾期应收。',
+    }),
+    true,
+  )
+  assert.equal(
+    isAiResponseSettled({
+      status: 'streaming',
+      thinkingVisible: false,
+      assistantText: '经营参谋已完成分析，建议优先处理逾期应收。',
+    }),
+    false,
+  )
+  assert.equal(
+    isAiResponseSettled({
+      status: 'idle',
+      thinkingVisible: true,
+      assistantText: '经营参谋已完成分析，建议优先处理逾期应收。',
+    }),
+    false,
+  )
+  assert.equal(
+    isAiResponseSettled({
+      status: 'idle',
+      thinkingVisible: false,
+      assistantText: '经营参谋已完成分析，建议优先处理逾期应收。',
+      errorText: '模型供应商不可用',
+    }),
+    false,
+  )
+})
+
+test('accepts long stable streaming ai text as recordable footage', () => {
+  const longAnswer = '经营参谋已完成分析，包含数字、公式来源、证据链接和下一步动作。'.repeat(8)
+  assert.equal(
+    isAiResponseStableEnoughForRecording({
+      status: 'streaming',
+      thinkingVisible: false,
+      assistantText: longAnswer,
+      errorText: '',
+    }),
+    true,
+  )
+  assert.equal(
+    isAiResponseStableEnoughForRecording({
+      status: 'streaming',
+      thinkingVisible: true,
+      assistantText: longAnswer,
+      errorText: '',
+    }),
+    false,
+  )
+  assert.equal(
+    isAiResponseStableEnoughForRecording({
+      status: 'streaming',
+      thinkingVisible: false,
+      assistantText: longAnswer,
+      errorText: '模型错误',
+    }),
+    false,
+  )
+})
+
+test('accepts structured assistant output when a response has tool cards but little text', () => {
+  assert.equal(
+    isAiResponseSettled({
+      status: 'idle',
+      thinkingVisible: false,
+      assistantText: '',
+      errorText: '',
+      assistantRowCount: 1,
+      toolCallListCount: 1,
+      uiPartCount: 0,
+    }),
+    true,
+  )
+  assert.equal(
+    isAiResponseStableEnoughForRecording({
+      status: 'streaming',
+      thinkingVisible: false,
+      assistantText: '',
+      errorText: '',
+      assistantRowCount: 1,
+      toolCallListCount: 1,
+      uiPartCount: 0,
+    }),
+    true,
+  )
+})
+
+test('does not treat an empty assistant placeholder row as a stable streaming response', () => {
+  assert.equal(
+    isAiResponseStableEnoughForRecording({
+      status: 'streaming',
+      thinkingVisible: false,
+      assistantText: '',
+      errorText: '',
+      assistantRowCount: 1,
+      toolCallListCount: 0,
+      uiPartCount: 0,
+    }),
+    false,
+  )
 })

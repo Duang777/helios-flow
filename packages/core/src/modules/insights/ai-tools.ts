@@ -12,6 +12,9 @@ import writeAiTools from './ai-tools/write-pack'
 export type InsightsToolContext = {
   tenantId?: string
   organizationId?: string
+  pageContext?: {
+    visibleFilters?: Record<string, unknown> | null
+  } | null
 }
 
 export type InsightsAiToolDefinition = ReturnType<typeof defineApiBackedAiTool>
@@ -36,6 +39,40 @@ function decimalOrNull(value: unknown): number | null {
 
 function formatDecimal(value: number | null): string | null {
   return value === null ? null : value.toFixed(6)
+}
+
+function periodFromContext(
+  ctx: InsightsToolContext,
+  input: { periodType?: 'year' | 'quarter' | 'month'; periodKey?: string; asOf?: string },
+): { periodType: 'year' | 'quarter' | 'month'; periodKey: string; asOf?: string } {
+  const filters = ctx.pageContext?.visibleFilters ?? {}
+  const filterPeriodType = filters.periodType
+  const filterPeriodKey = filters.periodKey
+  const filterAsOf = filters.asOf
+  const asOf = input.asOf ?? (typeof filterAsOf === 'string' ? filterAsOf : undefined)
+  const periodType =
+    input.periodType ??
+    (filterPeriodType === 'year' || filterPeriodType === 'quarter' || filterPeriodType === 'month'
+      ? filterPeriodType
+      : undefined) ??
+    (typeof filterPeriodKey === 'string' && /^\d{4}-\d{2}$/.test(filterPeriodKey) ? 'month' : undefined) ??
+    'month'
+  const periodKey =
+    input.periodKey ??
+    (typeof filterPeriodKey === 'string' && filterPeriodKey.trim().length > 0
+      ? filterPeriodKey.trim()
+      : undefined) ??
+    defaultPeriodKey(periodType, asOf)
+  return { periodType, periodKey, asOf }
+}
+
+function defaultPeriodKey(periodType: 'year' | 'quarter' | 'month', asOf?: string): string {
+  const match = typeof asOf === 'string' ? asOf.match(/^(\d{4})-(\d{2})/) : null
+  const year = match?.[1] ?? String(new Date().getUTCFullYear())
+  const month = match?.[2] ? Number.parseInt(match[2], 10) : new Date().getUTCMonth() + 1
+  if (periodType === 'year') return year
+  if (periodType === 'quarter') return `${year}-Q${Math.min(4, Math.max(1, Math.ceil(month / 3)))}`
+  return `${year}-${String(month).padStart(2, '0')}`
 }
 
 const listKpiTargetsInput = z
@@ -88,8 +125,8 @@ const listKpiTargetsTool = defineApiBackedAiTool({
 
 const getKpiCompletionInput = z
   .object({
-    periodType: z.enum(['year', 'quarter', 'month']),
-    periodKey: z.string().min(1),
+    periodType: z.enum(['year', 'quarter', 'month']).optional(),
+    periodKey: z.string().min(1).optional(),
     asOf: z.string().optional(),
     includeDescendants: z.boolean().optional(),
   })
@@ -104,13 +141,14 @@ const getKpiCompletionTool = defineApiBackedAiTool({
   requiredFeatures: ['insights.view'],
   toOperation: (input, ctx) => {
     assertTenantScope(ctx as InsightsToolContext)
+    const period = periodFromContext(ctx as InsightsToolContext, input)
     const query: Record<string, string> = {
       organizationId: String((ctx as InsightsToolContext).organizationId),
-      periodType: input.periodType,
-      periodKey: input.periodKey,
+      periodType: period.periodType,
+      periodKey: period.periodKey,
       includeDescendants: input.includeDescendants ? 'true' : 'false',
     }
-    if (input.asOf) query.asOf = input.asOf
+    if (period.asOf) query.asOf = period.asOf
     const operation: AiApiOperationRequest = {
       method: 'GET',
       path: '/insights/kpi/completion',
@@ -124,8 +162,8 @@ const getKpiCompletionTool = defineApiBackedAiTool({
 const getKpiGapInput = z
   .object({
     organizationId: z.string().uuid().optional(),
-    periodType: z.enum(['year', 'quarter', 'month']),
-    periodKey: z.string().min(1),
+    periodType: z.enum(['year', 'quarter', 'month']).optional(),
+    periodKey: z.string().min(1).optional(),
     asOf: z.string().optional(),
     includeDescendants: z.boolean().optional(),
     metricKey: z.enum(['revenue', 'gross_profit', 'gross_margin', 'collection']).optional(),
@@ -161,13 +199,14 @@ const getKpiGapTool = defineApiBackedAiTool({
   requiredFeatures: ['insights.view'],
   toOperation: (input, ctx) => {
     const organizationId = input.organizationId ?? organizationIdFromContext(ctx as InsightsToolContext)
+    const period = periodFromContext(ctx as InsightsToolContext, input)
     const query: Record<string, string> = {
       organizationId,
-      periodType: input.periodType,
-      periodKey: input.periodKey,
+      periodType: period.periodType,
+      periodKey: period.periodKey,
       includeDescendants: input.includeDescendants ? 'true' : 'false',
     }
-    if (input.asOf) query.asOf = input.asOf
+    if (period.asOf) query.asOf = period.asOf
     return {
       method: 'GET',
       path: '/insights/kpi/completion',

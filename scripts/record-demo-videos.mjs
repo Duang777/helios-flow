@@ -4,6 +4,7 @@ import { chromium } from 'playwright'
 import { config as loadDotenv } from 'dotenv'
 import { existsSync, mkdirSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import {
   DEFAULT_AI_WAIT_MS,
   DEFAULT_SCENE_DURATION_MS,
@@ -43,6 +44,8 @@ function parseArgs(argv) {
     generatedRoutesPath: DEFAULT_ROUTES_PATH,
     viewport: { ...DEFAULT_VIEWPORT },
     aiWaitMs: Number.parseInt(readEnv('DEMO_VIDEO_AI_WAIT_MS', String(DEFAULT_AI_WAIT_MS)), 10),
+    aiProvider: readEnv('DEMO_VIDEO_AI_PROVIDER', readEnv('LIVE_AI_PROVIDER', readEnv('HELIOS_AI_PROVIDER', null))),
+    aiModel: readEnv('DEMO_VIDEO_AI_MODEL', readEnv('LIVE_AI_MODEL', readEnv('HELIOS_AI_MODEL', null))),
     authMode: readEnv('DEMO_VIDEO_AUTH_MODE', 'login-api'),
     skipAi: readEnv('DEMO_VIDEO_SKIP_AI', 'false') === 'true',
     overlayCaptions: readEnv('DEMO_VIDEO_OVERLAY_CAPTIONS', 'true') !== 'false',
@@ -73,6 +76,8 @@ function parseArgs(argv) {
     else if (arg.startsWith('--output-dir=')) options.outputDir = resolve(ROOT, arg.slice('--output-dir='.length))
     else if (arg.startsWith('--duration-ms=')) options.durationMs = Number.parseInt(arg.slice('--duration-ms='.length), 10)
     else if (arg.startsWith('--ai-wait-ms=')) options.aiWaitMs = Number.parseInt(arg.slice('--ai-wait-ms='.length), 10)
+    else if (arg.startsWith('--ai-provider=')) options.aiProvider = arg.slice('--ai-provider='.length)
+    else if (arg.startsWith('--ai-model=')) options.aiModel = arg.slice('--ai-model='.length)
     else if (arg.startsWith('--auth-mode=')) options.authMode = arg.slice('--auth-mode='.length)
     else if (arg.startsWith('--routes=')) options.generatedRoutesPath = resolve(ROOT, arg.slice('--routes='.length))
     else if (arg.startsWith('--slow-mo=')) options.slowMo = Number.parseInt(arg.slice('--slow-mo='.length), 10)
@@ -102,6 +107,7 @@ function printHelp() {
   yarn demo:videos -- --list-scenes
   yarn demo:videos -- --scene=02-today-digest --headed
   yarn demo:videos -- --scene=09-governance --ai-wait-ms=45000
+  yarn demo:videos -- --ai-model=gpt-5.4
 
 Records real Helios backend pages with Playwright and writes:
   videos/<scene>.webm
@@ -281,11 +287,11 @@ async function scrollPage(page, durationMs) {
   }, durationMs).catch(() => undefined)
 }
 
-async function performAiStep(page, step) {
+export async function performAiStep(page, step) {
   await page.waitForTimeout(1_500)
   await openAiAssistant(page, step.agentId)
   await sendAiPrompt(page, step.promptZh)
-  await page.waitForTimeout(step.durationMs)
+  await waitForAiResponseComplete(page, step.durationMs)
 }
 
 async function openAiAssistant(page, agentId) {
@@ -293,11 +299,22 @@ async function openAiAssistant(page, agentId) {
   if (await isVisible(dock)) return
 
   const trigger = page.locator('[data-ai-launcher-trigger], [data-ai-launcher-trigger-mobile]').first()
-  await trigger.waitFor({ state: 'visible', timeout: 60_000 })
-  await trigger.click()
+  if (await isVisible(trigger, 20_000)) {
+    await trigger.click()
+  } else {
+    await page.evaluate(() => {
+      window.dispatchEvent(new CustomEvent('om:open-ai-assistant-launcher'))
+    }).catch(() => undefined)
+    await page.waitForTimeout(750)
+    const pickerOpened = await isVisible(page.locator('[data-ai-launcher-picker]'), 5_000)
+    const sheetOpened = await isVisible(page.locator('[data-ai-launcher-sheet]'), 1_000)
+    if (!pickerOpened && !sheetOpened) {
+      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+L' : 'Control+L').catch(() => undefined)
+    }
+  }
 
   const picker = page.locator('[data-ai-launcher-picker]')
-  await picker.waitFor({ state: 'visible', timeout: 10_000 })
+  await picker.waitFor({ state: 'visible', timeout: 30_000 })
   const search = page.locator('[data-ai-launcher-search-input]')
   await search.fill(agentId)
   const option = page.locator(`[data-ai-launcher-agent-id="${cssEscape(agentId)}"]`).first()
@@ -333,6 +350,158 @@ async function sendAiPrompt(page, prompt) {
   } else {
     await composer.press(process.platform === 'darwin' ? 'Meta+Enter' : 'Control+Enter')
   }
+}
+
+export async function waitForAiResponseComplete(page, timeoutMs) {
+  const startedAt = Date.now()
+  const timeout = Math.max(180_000, timeoutMs)
+  const remaining = () => Math.max(1_000, timeout - (Date.now() - startedAt))
+
+  await page.waitForFunction(() => {
+    const isVisibleElement = (element) => {
+      if (!(element instanceof HTMLElement)) return false
+      const style = window.getComputedStyle(element)
+      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+        return false
+      }
+      return element.getClientRects().length > 0
+    }
+    const findVisibleAiChatRoot = () => {
+      const roots = Array.from(document.querySelectorAll('[data-ai-chat-status]'))
+      const visibleRoots = roots.filter((element) => isVisibleElement(element))
+      return visibleRoots.at(-1) ?? roots.at(-1) ?? null
+    }
+    return Boolean(findVisibleAiChatRoot())
+  }, null, { timeout: remaining() })
+
+  await page.waitForFunction(() => {
+    const isVisibleElement = (element) => {
+      if (!(element instanceof HTMLElement)) return false
+      const style = window.getComputedStyle(element)
+      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+        return false
+      }
+      return element.getClientRects().length > 0
+    }
+    const roots = Array.from(document.querySelectorAll('[data-ai-chat-status]'))
+    const visibleRoots = roots.filter((element) => isVisibleElement(element))
+    const chat = visibleRoots.at(-1) ?? roots.at(-1) ?? null
+    if (!chat) return false
+    return chat.getAttribute('data-ai-chat-status') !== 'idle' ||
+      !!chat.querySelector('[data-ai-chat-state="thinking"]')
+  }, null, { timeout: Math.min(10_000, remaining()) }).catch(() => undefined)
+
+  const terminalSnapshot = await waitForStableAssistantText(page, remaining())
+  if (terminalSnapshot.errorText) {
+    throw new Error(`[record-demo-videos] AI chat failed: ${terminalSnapshot.errorText}`)
+  }
+  await page.waitForTimeout(1_200)
+}
+
+export async function waitForStableAssistantText(page, timeoutMs) {
+  const timeout = Math.max(1_500, timeoutMs)
+  const stableForSettledMs = Math.min(5_000, Math.max(2_000, Math.floor(timeout / 2)))
+  const stableForStreamingMs = Math.min(20_000, Math.max(8_000, Math.floor(timeout / 4)))
+  const pollMs = 300
+  const deadline = Date.now() + timeout
+  let previous = ''
+  let stableSince = 0
+  let lastSnapshot = { status: null, thinkingVisible: false, assistantText: '', errorText: '' }
+
+  while (Date.now() < deadline) {
+    const current = await readAiChatSnapshot(page)
+    lastSnapshot = current
+    if (current.errorText) {
+      throw new Error(`[record-demo-videos] AI chat failed: ${current.errorText}`)
+    }
+
+    const isSettled = isAiResponseSettled(current)
+    const isStableStreaming = isAiResponseStableEnoughForRecording(current)
+    const requiredStableMs = isSettled ? stableForSettledMs : stableForStreamingMs
+    if ((isSettled || isStableStreaming) && current.assistantText === previous) {
+      if (stableSince === 0) stableSince = Date.now()
+      if (Date.now() - stableSince >= requiredStableMs) return current
+    } else {
+      previous = current.assistantText
+      stableSince = isSettled || isStableStreaming ? Date.now() : 0
+    }
+
+    await page.waitForTimeout(pollMs)
+  }
+  throw new Error(
+    `[record-demo-videos] AI chat did not produce a recordable response within ${timeout}ms ` +
+      `(status=${lastSnapshot.status ?? 'unknown'}, textLength=${lastSnapshot.assistantText.length}).`,
+  )
+}
+
+export async function readAiChatSnapshot(page) {
+  return page.evaluate(() => {
+    const isVisibleElement = (element) => {
+      if (!(element instanceof HTMLElement)) return false
+      const style = window.getComputedStyle(element)
+      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+        return false
+      }
+      return element.getClientRects().length > 0
+    }
+
+    const findVisibleAiChatRoot = () => {
+      const roots = Array.from(document.querySelectorAll('[data-ai-chat-status]'))
+      const visibleRoots = roots.filter((element) => isVisibleElement(element))
+      return visibleRoots.at(-1) ?? roots.at(-1) ?? null
+    }
+
+    const readSnapshot = () => {
+      const chat = findVisibleAiChatRoot()
+      const assistantRows = chat
+        ? Array.from(chat.querySelectorAll('[data-role="assistant"]'))
+        : []
+      const lastAssistant = assistantRows.at(-1)
+      const error = chat?.querySelector('[data-ai-chat-error]')
+      const toolCalls = chat ? Array.from(chat.querySelectorAll('[data-ai-chat-tool-call-count]')) : []
+      const uiParts = chat ? Array.from(chat.querySelectorAll('[data-ai-message-ui-parts]')) : []
+      return {
+        status: chat?.getAttribute('data-ai-chat-status') ?? null,
+        thinkingVisible: !!chat?.querySelector('[data-ai-chat-state="thinking"]'),
+        assistantRowCount: assistantRows.length,
+        toolCallListCount: toolCalls.length,
+        uiPartCount: uiParts.length,
+        assistantText: lastAssistant?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+        errorText: error?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+      }
+    }
+    window.__heliosDemoReadAiChatSnapshot = readSnapshot
+    return readSnapshot()
+  }).catch(() => ({ status: null, thinkingVisible: false, assistantText: '', errorText: '' }))
+}
+
+export function isAiResponseVisibleForRecording(snapshot) {
+  const hasVisibleAssistantSignal =
+    typeof snapshot?.assistantText === 'string' && snapshot.assistantText.trim().length >= 12
+  const hasStructuredAssistantSignal =
+    Number(snapshot?.toolCallListCount ?? 0) > 0 ||
+    Number(snapshot?.uiPartCount ?? 0) > 0
+  return (
+    snapshot?.status === 'idle' &&
+    snapshot?.thinkingVisible === false &&
+    !snapshot?.errorText &&
+    (hasVisibleAssistantSignal || hasStructuredAssistantSignal)
+  )
+}
+
+export function isAiResponseSettled(snapshot) {
+  return isAiResponseVisibleForRecording(snapshot)
+}
+
+export function isAiResponseStableEnoughForRecording(snapshot) {
+  return (
+    snapshot?.status === 'streaming' &&
+    snapshot?.thinkingVisible === false &&
+    !snapshot?.errorText &&
+    ((typeof snapshot?.assistantText === 'string' && snapshot.assistantText.trim().length >= 180) ||
+      Number(snapshot?.toolCallListCount ?? 0) > 0 ||
+      Number(snapshot?.uiPartCount ?? 0) > 0)
+  )
 }
 
 async function showStepOverlay(page, step, options) {
@@ -415,6 +584,8 @@ function writeManifest(options, scenes) {
     viewport: options.viewport,
     durationMs: options.durationMs,
     aiWaitMs: options.aiWaitMs,
+    aiProvider: options.aiProvider,
+    aiModel: options.aiModel,
     skipAi: options.skipAi,
     scenes,
   }
@@ -528,6 +699,9 @@ async function main() {
 
   mkdirSync(options.outputDir, { recursive: true })
   const browser = await chromium.launch({ headless: !options.headed, slowMo: options.slowMo })
+  if (!options.skipAi) {
+    console.log(`[record-demo-videos] AI provider/model: ${options.aiProvider ?? 'default'} / ${options.aiModel ?? 'default'}`)
+  }
   const recorded = []
   try {
     const authContext = await browser.newContext({ viewport: options.viewport, locale: 'zh-CN' })
@@ -566,7 +740,9 @@ async function main() {
   console.log(`[record-demo-videos] Preview: ${join(options.outputDir, 'index.html')}`)
 }
 
-main().catch((error) => {
-  console.error(error?.stack || error?.message || String(error))
-  process.exitCode = 1
-})
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error(error?.stack || error?.message || String(error))
+    process.exitCode = 1
+  })
+}

@@ -48,6 +48,7 @@ describe('insights.get_kpi_gap', () => {
     expect(tool.requiredFeatures).toEqual(['insights.view'])
     for (const feature of tool.requiredFeatures ?? []) expect(knownFeatureIds.has(feature)).toBe(true)
     expect(tool.inputSchema.safeParse({ periodType: 'year', periodKey: '2026' }).success).toBe(true)
+    expect(tool.inputSchema.safeParse({}).success).toBe(true)
     expect(tool.inputSchema.safeParse({ periodType: 'week', periodKey: '2026-W01' }).success).toBe(false)
   })
 
@@ -111,5 +112,38 @@ describe('insights.get_kpi_gap', () => {
     const dragged = result.draggedOrganizations as Array<Record<string, unknown>>
     expect(dragged.map((entry) => entry.organizationId)).toEqual(['org-child-a'])
     expect(result.formulaSource).toContain('completionRate = actualValue ÷ targetValue')
+  })
+
+  it('derives period defaults from operating-loop page context when the model omits them', async () => {
+    const tool = findTool('insights.get_kpi_gap')
+    runMock.mockResolvedValue({
+      success: true,
+      statusCode: 200,
+      data: { items: [], rollup: [], asOf: '2026-08-13', periodType: 'month', periodKey: '2026-08' },
+    })
+
+    await tool.handler(
+      { includeDescendants: true },
+      makeCtx({
+        pageContext: {
+          visibleFilters: {
+            asOf: '2026-08-13',
+            periodKey: '2026-08',
+          },
+        },
+      }) as never,
+    )
+
+    expect(runMock.mock.calls[0][0]).toMatchObject({
+      method: 'GET',
+      path: '/insights/kpi/completion',
+      query: {
+        organizationId: 'org-1',
+        periodType: 'month',
+        periodKey: '2026-08',
+        asOf: '2026-08-13',
+        includeDescendants: 'true',
+      },
+    })
   })
 })
