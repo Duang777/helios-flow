@@ -21,6 +21,7 @@ published-app/
 # next.js
 .next/
 /out/
+apps/*/out/
 
 # production
 build
