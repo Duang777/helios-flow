@@ -6,6 +6,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-24.x-brightgreen.svg)](https://nodejs.org/)
+[![Landing](https://img.shields.io/badge/landing-live-0c0b0a.svg)](https://duang777.github.io/helios-landing/)
+
+**Product landing:** [duang777.github.io/helios-landing](https://duang777.github.io/helios-landing/)
 
 Helios Flow is a modular business platform with a workflow engine and typed AI assistants. The product focus is turning natural language into runnable workflows, on top of multi-tenant CRM, sales, catalog, and admin building blocks that already ship in this monorepo.
 
@@ -111,6 +114,7 @@ yarn workspace helios-docs dev
 
 ## Docs and contribution
 
+- Product landing: [https://duang777.github.io/helios-landing/](https://duang777.github.io/helios-landing/)
 - Agent notes for this monorepo: [AGENTS.md](./AGENTS.md)
 - Specs and ADRs: [`.ai/specs/`](./.ai/specs/)
 - Security: [SECURITY.md](./SECURITY.md)
