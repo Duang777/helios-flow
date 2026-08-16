@@ -64,6 +64,8 @@
     "docker:install-skills": "node scripts/docker-exec.mjs install-skills",
     "docker:helios": "node scripts/docker-exec.mjs helios",
     "docs:dev": "turbo run dev --filter=@helios/docs",
+    "demo:dev": "yarn workspace @helios/demo dev",
+    "demo:build": "yarn workspace @helios/demo build",
     "clean:generated": "./scripts/clean-generated.sh",
     "clean:packages": "./scripts/clean-packages.sh",
     "clean": "yarn clean:generated && yarn clean:packages",

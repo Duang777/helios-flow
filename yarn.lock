@@ -5300,6 +5300,26 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@helios/demo@workspace:apps/demo":
+  version: 0.0.0-use.local
+  resolution: "@helios/demo@workspace:apps/demo"
+  dependencies:
+    "@helios/shared": "workspace:*"
+    "@helios/ui": "workspace:*"
+    "@tailwindcss/postcss": "npm:^4.3.2"
+    "@types/node": "npm:^26.0.1"
+    "@types/react": "npm:^19.2.17"
+    "@types/react-dom": "npm:^19.2.3"
+    lucide-react: "npm:^1.24.0"
+    next: "npm:16.2.11"
+    react: "npm:19.2.7"
+    react-dom: "npm:19.2.7"
+    tailwindcss: "npm:^4.3.2"
+    typescript: "npm:^6.0.3"
+    typescript-native: "npm:typescript@7.0.2"
+  languageName: unknown
+  linkType: soft
+
 "@helios/enterprise@workspace:*, @helios/enterprise@workspace:packages/enterprise":
   version: 0.0.0-use.local
   resolution: "@helios/enterprise@workspace:packages/enterprise"

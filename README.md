@@ -1,127 +1,148 @@
+# Helios Flow
+
 <p align="center">
   <img src="./apps/helios/public/helios.svg" alt="Helios Flow" width="96" />
 </p>
 
-# Helios Flow
+<p align="center">
+  A modular business platform for workflow automation, operating data, and governed AI assistants.
+</p>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Node](https://img.shields.io/badge/node-24.x-brightgreen.svg)](https://nodejs.org/)
+<p align="center">
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-green.svg" /></a>
+  <a href="https://nodejs.org/"><img alt="Node.js 24" src="https://img.shields.io/badge/node-24.x-brightgreen.svg" /></a>
+  <img alt="Yarn 4" src="https://img.shields.io/badge/yarn-4.17-blue.svg" />
+  <img alt="TypeScript" src="https://img.shields.io/badge/typescript-7-blue.svg" />
+</p>
 
-Helios Flow is a modular business platform with a workflow engine and typed AI assistants. The product focus is turning natural language into runnable workflows, on top of multi-tenant CRM, sales, catalog, and admin building blocks that already ship in this monorepo.
+Helios Flow is an open-source, multi-tenant operating platform that combines CRM, sales, catalog, workflow automation, and typed AI assistants in one modular monorepo. It is designed for teams that need auditable business operations: natural-language workflow drafting, human approval gates, tenant-aware data access, and reusable admin building blocks.
 
-You describe a process in plain language. The assistant drafts a workflow definition. You review it, then the engine can run it with steps, human tasks, timers, emails, webhooks, and API actions.
+The current product direction is simple: describe a business process in natural language, let the AI assistant draft or explain the workflow, review the proposed changes, then run the workflow with tasks, timers, notifications, webhooks, and API actions.
 
-## Product focus
+## Live Experience
 
-- Draft approval flows, handoffs, and multi-step ops processes from a short prompt
-- Create, update, and explain workflow definitions in the admin UI
-- Start workflow instances and track tasks under tenant and organization scope
-- Keep write actions behind mutation approval when the assistant changes data
+| Surface | URL | Purpose |
+|---------|-----|---------|
+| Dark landing page | [duang777.github.io/helios-landing](https://duang777.github.io/helios-landing/) | Public first impression and product positioning |
+| Helios layout page | [duang777.github.io/helios-landing/helios](https://duang777.github.io/helios-landing/helios/) | Alternate layout page for the Helios visual direction |
+| Static product demo | [duang777.github.io/helios-landing/demo](https://duang777.github.io/helios-landing/demo/) | GitHub Pages demo of the Helios workspace experience |
 
-## Platform capabilities
+The static demo lives in `apps/demo`. It is a pure frontend export that reuses the workspace UI conventions and showcases a NavInfo-style operating scenario with AI-assisted cross-module actions.
 
-These modules and platform features are already in the repo and usable while the natural language workflow path is being sharpened.
+## What Is Built
 
-### Domain modules
+### Platform Modules
 
-- **Customers / CRM**: people, companies, deals, timelines, and flexible custom fields
-- **Catalog**: products, categories, offers, and channel-oriented merchandising
-- **Sales / documents**: quotes, orders, and related document flows
-- **Workflows**: visual editor, code definitions, instances, user tasks, timers, and activity runners
-- **Directory**: tenants, organizations, and hierarchical org visibility
-- **Auth and RBAC**: users, roles, sessions, and feature-based access control
-- **Customer portals**: self-service pages gated by customer auth and features
-- **Integrations and data sync**: credentials, health, sync runs, and provider adapters
-- **Attachments, search, notifications, webhooks, scheduler, queue**: shared ops plumbing
+- **Customers and CRM**: companies, contacts, opportunities, timelines, and custom fields.
+- **Sales operations**: quotes, orders, documents, and related commercial flows.
+- **Catalog**: products, categories, offers, channels, and merchandising primitives.
+- **Workflows**: definitions, visual editing, instances, tasks, timers, and activity runners.
+- **Directory**: tenants, organizations, hierarchy-aware visibility, and user membership.
+- **Auth and RBAC**: sessions, roles, feature grants, and wildcard feature checks.
+- **Integrations and sync**: provider credentials, health state, sync runs, and adapters.
+- **Notifications, webhooks, scheduler, queue, search, cache**: shared runtime infrastructure.
+- **Customer portals**: self-service pages gated by customer authentication and feature access.
 
-### Platform foundations
+### AI Assistant Layer
 
-- **Modular architecture**: each feature lives in a module with auto-discovered pages, APIs, CLI, i18n, and DB entities
-- **Custom entities and dynamic forms**: declare fields and manage them from admin without hard-coding every UI
-- **Multi-tenant by default**: tenant and organization scoping on entities and APIs
-- **Feature-based RBAC**: role and user feature grants, including wildcard grants like `module.*`
-- **Command-based writes**: audit, undo hooks, cache invalidation, and events stay consistent
-- **Events and subscribers**: domain events with ephemeral or persistent handlers
-- **Query indexing and caching**: fast list and search paths across base and custom fields
-- **Encryption helpers**: tenant-scoped field encryption for sensitive data
-- **Typed AI framework**: `defineAiAgent` / `defineAiTool`, tool packs, and pending-action approvals
-- **Design-system admin UI**: shared tables, forms, shells, and injection spots for cross-module UI
+- Typed agent and tool definitions through `defineAiAgent` and `defineAiTool`.
+- Module-scoped assistants that can inspect and operate on business data.
+- Global AI launcher in the admin workspace.
+- Pending-action approval flow before AI-initiated mutations land.
+- Tool packs for schema-aware reads, workflow guidance, and controlled write actions.
 
-### AI surfaces today
+### GitHub Pages Demo
 
-- Module-scoped assistants (for example customers and catalog) with schema and API tools
-- Global assistant launcher in the admin chrome
-- Mutation approvals before data changes land
-- MCP / code-mode tooling for broader API exploration when enabled
+- Static Next.js app at `apps/demo`.
+- Helios-style intro animation before entering the product demo.
+- Simulated backend workspace with modules, records, filters, activity logs, and AI dock.
+- No backend dependency and no real login request.
+- Built with `NEXT_PUBLIC_DEMO_BASE_PATH=/helios-landing/demo yarn demo:build`.
 
-Workflow-specific agent tools (suggest definition, create or update definition, start instance, explain) are the active build target on top of this stack.
+## Current Development Status
 
-## Stack
+The project is currently on the `buddy/workflow-ai-draft` branch for the demo and workflow-AI presentation work.
 
-- App: Next.js (App Router), TypeScript
-- Data: PostgreSQL, MikroORM
-- Jobs and cache: Redis
-- Search (optional): Meilisearch
-- Packages managed with Yarn 4 workspaces
-- CLI: `helios`
+Ready to merge into `main`:
 
-## Quick start
+- `apps/demo`: standalone static demo app for GitHub Pages.
+- Root scripts: `yarn demo:dev` and `yarn demo:build`.
+- `.github/workflows/demo-pages.yml`: optional GitHub Pages workflow for deploying `apps/demo/out`.
+- README refresh: professional open-source project overview, live links, quick start, architecture, and roadmap.
 
-You need Node.js 24, Docker (for Postgres and Redis), and Yarn 4.
+Already deployed through the landing repository:
 
-### First-time setup
+- Dark landing page: `https://duang777.github.io/helios-landing/`
+- Helios layout page: `https://duang777.github.io/helios-landing/helios/`
+- Demo page: `https://duang777.github.io/helios-landing/demo/`
+
+Do not merge local temporary artifacts such as `.tmp/`, `.workbuddy/`, `deliverables/`, generated recordings, downloaded doc resources, or local `.env` backups unless a separate task explicitly promotes them.
+
+## Architecture
+
+Helios is organized as a Yarn workspace monorepo.
+
+| Path | Responsibility |
+|------|----------------|
+| `apps/helios` | Main Next.js admin and API application |
+| `apps/demo` | Static GitHub Pages demo app |
+| `apps/docs` | Documentation site |
+| `packages/core` | Domain modules and platform services |
+| `packages/ai-assistant` | Typed agents, tools, chat APIs, and AI runtime surfaces |
+| `packages/ui` | Shared admin, backend, and portal UI components |
+| `packages/shared` | Shared types, data helpers, i18n, and utility libraries |
+| `packages/cli` | `helios` command-line tooling |
+| `packages/cache`, `queue`, `events`, `search`, `webhooks`, `scheduler` | Runtime infrastructure packages |
+| `packages/enterprise` | Optional enterprise modules |
+
+Core platform features are implemented as modules. Modules own their entities, APIs, pages, setup hooks, events, permissions, and UI registrations. Generated registries wire those modules into the app.
+
+## Tech Stack
+
+- **Frontend**: Next.js App Router, React, TypeScript, Tailwind CSS
+- **Backend**: Next.js route handlers, modular service layer, Awilix DI
+- **Database**: PostgreSQL with MikroORM
+- **Jobs and cache**: Redis-backed queue and cache packages
+- **Search**: optional Meilisearch integration
+- **AI**: typed agent/tool runtime with approval-aware mutation flow
+- **Tooling**: Yarn 4 workspaces, Turbo, Jest, Playwright, project CLI
+
+## Quick Start
+
+Requirements:
+
+- Node.js 24.x
+- Yarn 4 via Corepack
+- Docker, for local PostgreSQL and Redis
 
 ```bash
 git clone git@github.com:Duang777/helios-flow.git
 cd helios-flow
-corepack enable && corepack prepare yarn@4.17.1 --activate
-docker compose up -d
-cp apps/helios/.env.example apps/helios/.env
-# Edit apps/helios/.env: DATABASE_URL, JWT secrets, and at least one LLM API key
+corepack enable
+corepack prepare yarn@4.17.1 --activate
 yarn install
-yarn dev:greenfield
 ```
 
-`yarn dev:greenfield` installs workspace packages, applies migrations, seeds the demo tenant, then starts the app. Prefer this only on a clean machine or when you intentionally want a reinstall-style boot.
-
-### Daily start (already initialized)
+Create the app environment:
 
 ```bash
-# Prefer only the services the app needs (avoids rebuilding OpenCode every time)
+cp apps/helios/.env.example apps/helios/.env
+```
+
+Update `apps/helios/.env` with database, Redis, JWT, and AI provider settings. For local development you can use the default Docker services:
+
+```bash
 docker compose up -d postgres redis
 yarn dev
 ```
 
-Open http://localhost:3000/login (or `/backend` after signing in). Press `d` in the `yarn dev` terminal for raw logs. If the UI looks stale after a big dependency or Next cache change, stop the process and run `yarn dev:reset`, then `yarn dev` again.
+Open the app:
 
-### Port conflicts with other local projects
+- Login: `http://localhost:3000/login`
+- Backend workspace: `http://localhost:3000/backend`
+- Start page: `http://localhost:3000/start`
 
-`docker compose` reads **repo-root** `.env`, not `apps/helios/.env`. If another project already owns `5432` / `6379`, do **not** stop that container. Give Helios its own host ports instead:
-
-1. Create a root `.env` (gitignored) with dedicated ports, for example:
-
-```bash
-POSTGRES_PORT=55432
-REDIS_PORT=56379
-POSTGRES_DB=helios
-```
-
-2. Point the app at the same ports in `apps/helios/.env`:
-
-```bash
-DATABASE_URL=postgres://postgres:postgres@localhost:55432/helios
-REDIS_URL=redis://localhost:56379
-```
-
-3. Recreate only Helios DB services:
-
-```bash
-docker compose up -d --force-recreate postgres redis
-```
-
-Helios data stays in the `helios-postgres-data` volume; other projects (for example a `didian` Postgres on `5432`) are left alone.
-
-Default local accounts (created by `yarn initialize` / `yarn dev:greenfield`):
+Default local accounts created by initialization:
 
 | Role | Email | Password |
 |------|-------|----------|
@@ -129,68 +150,148 @@ Default local accounts (created by `yarn initialize` / `yarn dev:greenfield`):
 | Admin | `admin@acme.com` | `secret` |
 | Employee | `employee@acme.com` | `secret` |
 
-You can also open http://localhost:3000/start and pick a role. If port `3000` is taken, the server may bind to another port (for example `3001`) — use the URL printed in the terminal.
-
-### After pulling schema or module ACL changes
+For a clean first boot that prepares the local app database and seed data:
 
 ```bash
-yarn db:migrate
-yarn helios auth sync-role-acls
-yarn helios configs cache structural --all-tenants   # optional; refreshes nav/feature caches
-yarn dev
+yarn dev:greenfield
 ```
 
-Ask before applying migrations on shared databases; local demo DBs are fine.
+Use this on a fresh local database, or when you intentionally want a reset-style setup.
 
-### Useful variants
+## Static Demo
 
-| Command | When to use |
+Run the demo locally:
+
+```bash
+yarn demo:dev
+```
+
+Build the demo as a standalone static export:
+
+```bash
+yarn demo:build
+```
+
+Build it for the deployed GitHub Pages subpath:
+
+```bash
+NEXT_PUBLIC_DEMO_BASE_PATH=/helios-landing/demo yarn demo:build
+```
+
+The output is written to `apps/demo/out` and can be copied to a Pages-hosted repository or uploaded by the demo workflow.
+
+## Common Commands
+
+| Command | Description |
 |---------|-------------|
-| `yarn dev` | Normal day-to-day development |
-| `yarn dev:verbose` | More detailed process logs |
-| `yarn dev:greenfield` | Clean/reinstall-style first boot |
-| `yarn initialize` | Seed/re-seed without the full greenfield path |
-| `yarn db:migrate` | Apply pending SQL migrations only |
-| `yarn generate` | Regenerate module discovery registries after adding module files |
+| `yarn dev` | Start the main Helios development server |
+| `yarn dev:greenfield` | Initialize and run a fresh local development environment |
+| `yarn build` | Build packages, generate registries, then build the app |
+| `yarn build:packages` | Build workspace packages |
+| `yarn build:app` | Build the main app |
+| `yarn typecheck` | Run workspace type checks |
+| `yarn lint` | Run workspace lint checks |
+| `yarn test` | Run unit tests |
+| `yarn test:integration` | Run Playwright integration tests |
+| `yarn generate` | Regenerate module discovery registries |
+| `yarn db:generate` | Generate database migrations from entity changes |
+| `yarn db:migrate` | Apply pending migrations |
+| `yarn initialize` | Seed or re-seed local defaults |
+| `yarn demo:dev` | Start the static demo app locally |
+| `yarn demo:build` | Build the static demo export |
+| `yarn docs:dev` | Start the documentation site |
 
-For AI chat features, set the LLM provider keys documented in `apps/helios/.env.example`.
+## Local Port Conflicts
 
-Local docs site:
+`docker compose` reads the repo-root `.env`, while the app reads `apps/helios/.env`. If another project already uses `5432` or `6379`, keep it running and give Helios its own ports.
+
+Repo-root `.env`:
 
 ```bash
-yarn workspace helios-docs dev
+POSTGRES_PORT=55432
+REDIS_PORT=56379
+POSTGRES_DB=helios
 ```
 
-## Repo layout
+`apps/helios/.env`:
 
-| Path | Role |
-|------|------|
-| `apps/helios` | Main admin and API app |
-| `apps/docs` | Documentation site |
-| `packages/core` | Domain modules (customers, sales, catalog, workflows, auth, …) |
-| `packages/ai-assistant` | Typed AI agents, tools, and chat APIs |
-| `packages/ui` | Shared admin and portal UI |
-| `packages/shared` | Shared libs, CRUD helpers, i18n |
-| `packages/cli` | `helios` CLI |
-| `packages/enterprise` | Optional enterprise modules |
-| `packages/queue` / `events` / `search` / `webhooks` / `scheduler` | Runtime services |
+```bash
+DATABASE_URL=postgres://postgres:postgres@localhost:55432/helios
+REDIS_URL=redis://localhost:56379
+```
 
-## Current build plan
+Recreate only the Helios services:
 
-1. Confirm local greenfield boot and LLM chat
-2. Add workflow AI tools: suggest, create or update definition, start instance, explain
-3. Wire suggestions into the visual workflow editor with an explicit accept step
+```bash
+docker compose up -d --force-recreate postgres redis
+```
 
-## Docs and contribution
+## Validation
 
-- Product requirements (PRD): [docs/PRD.md](./docs/PRD.md)
-- Module walkthroughs (8 core modules, with screenshots): [docs/module-walkthroughs/index.html](./docs/module-walkthroughs/index.html)（浏览器打开看图）
-- Operating loop walkthrough (M5–M7): [docs/operating-loop-walkthrough.html](./docs/operating-loop-walkthrough.html) · [Markdown](./docs/operating-loop-walkthrough.md)
-- Agent notes for this monorepo: [AGENTS.md](./AGENTS.md)
-- Specs and ADRs: [`.ai/specs/`](./.ai/specs/)
-- Security: [SECURITY.md](./SECURITY.md)
-- License: [LICENSE](./LICENSE)
+Choose the smallest relevant validation set for your change:
+
+```bash
+yarn generate
+yarn build:packages
+yarn typecheck
+yarn lint
+yarn test
+yarn build:app
+yarn demo:build
+```
+
+For browser-facing changes, verify with Playwright or a real browser. For module or contract changes, also review `BACKWARD_COMPATIBILITY.md` and the relevant `AGENTS.md` guide before merging.
+
+## Merge Plan for This Branch
+
+Recommended sequence for merging the current demo work into `main`:
+
+```bash
+git status --short
+git add README.md .gitignore package.json yarn.lock .github/workflows/demo-pages.yml apps/demo
+git restore --staged apps/demo/.next apps/demo/out apps/demo/node_modules apps/demo/next-env.d.ts 2>/dev/null || true
+git commit -m "feat: add static Helios demo"
+git fetch origin main
+git rebase origin/main
+yarn demo:build
+git push origin buddy/workflow-ai-draft
+```
+
+Then open a pull request from `buddy/workflow-ai-draft` into `main`. Keep unrelated local artifacts out of the PR.
+
+## Roadmap
+
+- Workflow AI tools for suggesting, explaining, creating, updating, and starting workflow definitions.
+- Tighter integration between the workflow visual editor and AI-generated draft review.
+- Broader tool coverage for CRM, sales, catalog, and operating-loop scenarios.
+- More production-grade demo datasets and guided walkthroughs.
+- GitHub Pages demo hardening and visual polish.
+
+## Documentation
+
+- Product requirements: [docs/PRD.md](./docs/PRD.md)
+- Module walkthroughs: [docs/module-walkthroughs/index.html](./docs/module-walkthroughs/index.html)
+- Operating loop walkthrough: [docs/operating-loop-walkthrough.md](./docs/operating-loop-walkthrough.md)
+- Agent guidelines: [AGENTS.md](./AGENTS.md)
+- Backward compatibility policy: [BACKWARD_COMPATIBILITY.md](./BACKWARD_COMPATIBILITY.md)
+- Security policy: [SECURITY.md](./SECURITY.md)
+- Changelog: [CHANGELOG.md](./CHANGELOG.md)
+
+## Contributing
+
+Contributions should preserve tenant isolation, module boundaries, generated registries, and optimistic locking rules. Before opening a pull request:
+
+1. Read [AGENTS.md](./AGENTS.md) and any package-level `AGENTS.md` files for the area you are changing.
+2. Keep changes focused and avoid unrelated cleanup.
+3. Run the smallest relevant validation set.
+4. Document user-facing changes, public contract changes, and migration notes.
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the broader contribution process.
+
+## Security
+
+Do not commit credentials, private keys, local `.env` files, provider tokens, or production data. Report security issues through [SECURITY.md](./SECURITY.md).
 
 ## License
 
-MIT
+MIT. See [LICENSE](./LICENSE).
