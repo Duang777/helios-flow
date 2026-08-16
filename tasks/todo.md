@@ -1,0 +1,81 @@
+# Todo
+
+- [x] Add operating-loop acceptance prompt contracts and assertions.
+- [x] Extend `scripts/ai-live-eval.mjs` to run prompt-level quality checks.
+- [x] Add an explicit API-backed operating-loop seed script.
+- [x] Add Operating Loop Assistant trigger widget with page context.
+- [x] Mount header injection spots on M5-M7 detail pages.
+- [x] Register widget injection table entries and regenerate registries.
+- [x] Update docs with seed/eval commands and expected env vars.
+- [x] Run focused unit/script tests and affected builds.
+- [x] Run real seed and live-model app acceptance.
+- [x] Run focused Playwright checks for the page-context widget and playground path.
+- [x] Add commercial overdue-invoice summary helper and tests.
+- [x] Add insights operating-loop digest collector and notification payload tests.
+- [x] Register proactive operating-loop notification type and i18n keys.
+- [x] Subscribe to governance rule runs and create the insights digest from real data.
+- [x] Extend full operating-loop integration coverage for the proactive digest.
+- [x] Run generation, focused tests, affected builds, and budget checks for proactive digest.
+- [x] Default the app to Chinese unless a locale cookie or forced locale is set.
+- [x] Keep browser locale detection opt-in via `HELIOS_DETECT_BROWSER_LOCALE=true`.
+- [x] Localize profile language labels and governance digest toasts.
+- [x] Translate visible example left-nav/page-title keys for the Chinese demo surface.
+- [x] Run focused i18n/UI/notification tests and affected package builds.
+- [x] Promote `yarn i18n:check-sync` to green by preserving used extra keys, sorting stale locale files, and creating missing module locale files.
+- [x] Fix release-build type errors in AI pending-action confirm, AI chat UI-part streaming, and Operating Loop page-context injection props.
+- [x] Clear blocking `yarn i18n:check` missing-key failures for UI phone fields, commercial audit labels, and AI playground tools.
+- [x] Translate the visible staff team/member/role/timesheet navigation keys for the Chinese demo surface.
+- [x] Convert staff example seed teams, roles, tags, member descriptions, notes, activities, and addresses to Chinese.
+- [x] Make staff example seeding match legacy English seed names and refresh those records in place.
+- [x] Re-run staff example seeding for the local Acme Corp demo organization.
+- [x] Run generation, i18n sync/check gates, focused staff tests, and browser verification after the staff Chinese closure.
+- [x] Translate catalog example products, variants, categories, fieldsets, channel labels, and offers for the Chinese demo surface.
+- [x] Make catalog example seeding refresh existing English rows by SKU or legacy handle.
+- [x] Localize the catalog SEO report, product bulk actions, and product-list price-kind label.
+- [x] Re-run catalog example seeding for the local Acme Corp demo organization.
+- [x] Browser-verify `/backend/catalog/products` against the reported English strings.
+- [x] Run generation, i18n sync/check, package build, app build, and final browser verification for the catalog Chinese closure.
+- [x] Add translation-key metadata to AI Agent definitions and the list API.
+- [x] Localize Agent labels/descriptions in the global launcher, AI Agents settings page, and AI Playground.
+- [x] Add Chinese metadata translations for catalog, commercial, customers, governance, insights, and projects Agents.
+- [x] Add a localized launcher regression that verifies Chinese Agent display and search.
+- [x] Run generation, i18n sync/check, package/app builds, and browser verification for the Agent metadata closure.
+- [x] Add Phase 11 production-closure plan for confirm-required writes, governance bulk disposition, page context, digest UI, Chinese sweep, and real-model prompt expansion.
+- [x] Implement `governance.update_findings_disposition` as a confirm-required bulk mutation with per-record status/owner/due/impact patches.
+- [x] Expose the governance bulk disposition tool through `governance.assistant` and `insights.operating_loop_assistant`.
+- [x] Extend linked mutation metadata from `governance.suggest_disposition` to advertise the new bulk disposition path.
+- [x] Expand fixed Chinese operating-loop real-model prompt cases beyond the initial 3 cases.
+- [x] Add/extend tests for governance bulk disposition and operating-loop acceptance prompt metadata.
+- [x] Run focused governance/operating-loop tests, `yarn generate`, `yarn i18n:check`, and affected builds for the first production-closure slice.
+- [x] Add M5-M7 list/detail Operating Loop page-context coverage for project, milestone, risk, contract, invoice, payment, allocation, KPI target/completion, governance finding, and identity map.
+- [x] Extend DataTable injection context with organization scope, visible filters, search, pagination, totals, and selection.
+- [x] Hydrate AI agent system prompts for list page contexts with `entityType + tableId`.
+- [x] Reproduce the Turbopack/NFT app-build trace warning for the local queue import chain.
+- [x] Add shared local queue base-dir resolution for strategy/probe paths.
+- [x] Add queue regression tests for cwd default storage and relative `QUEUE_BASE_DIR`.
+- [x] Mark AI Assistant standalone generated-registry filesystem probes as runtime-only.
+- [x] Mark example QA event persistence as runtime-only.
+- [x] Run focused queue/AI tests, package builds, app build, and commit/push the trace-warning fix.
+- [x] Add the Today Operating Digest API backed by real governance/project/commercial/KPI data.
+- [x] Point proactive operating-loop notifications at the Today Operating Digest page.
+- [x] Build the Today Operating Digest page with grouped异常、源记录跳转和经营参谋入口.
+- [x] Wire item-level Operating Loop Assistant page context and confirm-required preview suggestions.
+- [x] Add i18n, focused tests, browser smoke, generation/build gates, then commit and push.
+- [x] Add Feishu test package normalization with exact sheet-header validation.
+- [x] Validate Feishu source references and KPI source-org dimension safety.
+- [x] Add script tests for the Feishu package normalization layer and dry-run command boundary.
+- [x] Wire the Feishu package into an API-backed operating-loop importer.
+- [x] Make KPI completion and today digest respect each target's active month/quarter/year period and as-of cutoff.
+- [x] Add a read-only Feishu operating-loop verifier for duplicate customer, overdue invoice, delayed project/risk, KPI gap, and proactive digest.
+- [x] Run the Feishu API-backed import verification against the local Acme Corp organization.
+- [x] Add an API-backed Feishu competition branding command for the running Helios organization.
+- [x] Make Feishu verification fail when the organization name does not match `北京四维图新科技股份有限公司`.
+- [x] Document Feishu requirement coverage, current support, and deterministic gaps.
+- [x] Localize the visible WMS inventory console surface for Chinese default mode.
+- [x] Remove the generic Helios contact popup/floating feedback widget from the backend competition shell.
+- [x] Add a repeatable Playwright video recorder with Chinese/English subtitle output for competition and all-module showcases.
+- [x] Expand competition video scenes into detailed module walkthroughs with feature-tour narration, AI prompts, and per-step subtitles.
+- [x] Automate real AI launcher selection and prompt submission in the recording pipeline.
+- [x] Document WebReel as an optional finishing workflow while keeping Playwright as the real AI/business-data recorder.
+- [ ] Run focused script tests and one local smoke capture for the detailed walkthrough pipeline.
+- [ ] Commit and push the detailed walkthrough pipeline.

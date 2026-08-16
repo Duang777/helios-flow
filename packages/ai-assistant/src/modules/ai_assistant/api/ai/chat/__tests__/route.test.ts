@@ -13,6 +13,7 @@ const createRequestContainerMock = jest.fn()
 const runAiAgentTextMock = jest.fn()
 const createOrGetConversationMock = jest.fn()
 const appendConversationMessageMock = jest.fn()
+const ensureAllModuleToolsLoadedMock = jest.fn()
 
 jest.mock('@helios/shared/lib/auth/server', () => ({
   getAuthFromRequest: (...args: unknown[]) => authMock(...args),
@@ -35,6 +36,10 @@ jest.mock('../../../../lib/conversation-storage', () => ({
     createOrGet: (...args: unknown[]) => createOrGetConversationMock(...args),
     appendMessage: (...args: unknown[]) => appendConversationMessageMock(...args),
   })),
+}))
+
+jest.mock('../../../../lib/tool-loader', () => ({
+  ensureAllModuleToolsLoaded: (...args: unknown[]) => ensureAllModuleToolsLoadedMock(...args),
 }))
 
 const getMock = jest.fn()
@@ -139,6 +144,7 @@ describe('POST /api/ai/chat', () => {
     agentRuntimeOverrideGetExactMock.mockResolvedValue(null)
     createOrGetConversationMock.mockResolvedValue({})
     appendConversationMessageMock.mockResolvedValue({})
+    ensureAllModuleToolsLoadedMock.mockResolvedValue(undefined)
     runAiAgentTextMock.mockResolvedValue(
       new Response('data: {"type":"text","content":"ok"}\n\ndata: [DONE]\n\n', {
         status: 200,
@@ -298,6 +304,7 @@ describe('POST /api/ai/chat', () => {
     expect(response.status).toBe(200)
     expect(response.headers.get('content-type')).toContain('text/event-stream')
     expect(runAiAgentTextMock).toHaveBeenCalledTimes(1)
+    expect(ensureAllModuleToolsLoadedMock).toHaveBeenCalledTimes(1)
     const callArg = runAiAgentTextMock.mock.calls[0][0] as {
       agentId: string
       messages: unknown

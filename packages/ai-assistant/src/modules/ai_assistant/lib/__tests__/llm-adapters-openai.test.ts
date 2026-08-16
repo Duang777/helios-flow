@@ -60,6 +60,16 @@ describe('OpenAIAdapter (OpenAI-compatible provider factory)', () => {
     expect(provider.usesVendorPrefixedModelIds).toBe(true)
   })
 
+  it('uses the SDK OpenAI Responses model for GPT-style OpenAI-compatible requests', () => {
+    const provider = createOpenAICompatibleProvider(DEEPINFRA_PRESET)
+    const model = provider.createModel({
+      apiKey: 'test-key',
+      modelId: 'zai-org/GLM-5.1',
+    }) as { provider?: string }
+
+    expect(model.provider).toBe('openai.responses')
+  })
+
   it('flags exactly the gateway presets (openrouter/requesty/litellm) in the catalog', () => {
     const flagged = new Set(
       OPENAI_COMPATIBLE_PRESETS.filter((p) => p.usesVendorPrefixedModelIds).map((p) => p.id),

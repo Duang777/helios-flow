@@ -1,0 +1,306 @@
+@import "tailwindcss";
+
+@source "../**/*.{ts,tsx}";
+@source "../../../../packages/ui/src/**/*.{ts,tsx}";
+@source "../../../../packages/shared/src/**/*.{ts,tsx}";
+
+@custom-variant dark (&:is(.dark *));
+
+@utility text-overline {
+  font-size: var(--font-size-overline, 0.6875rem);
+  line-height: var(--font-size-overline--line-height, 1rem);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-brand-violet: var(--brand-violet);
+  --color-brand-violet-foreground: var(--brand-violet-foreground);
+  --color-brand-lime: var(--brand-lime);
+  --color-accent-indigo: var(--accent-indigo);
+  --color-accent-indigo-foreground: var(--accent-indigo-foreground);
+  --color-bg-disabled: var(--bg-disabled);
+  --color-text-disabled: var(--text-disabled);
+  --color-border-disabled: var(--border-disabled);
+  --color-status-error-bg: var(--status-error-bg);
+  --color-status-error-text: var(--status-error-text);
+  --color-status-error-border: var(--status-error-border);
+  --color-status-error-icon: var(--status-error-icon);
+  --color-status-success-bg: var(--status-success-bg);
+  --color-status-success-text: var(--status-success-text);
+  --color-status-success-border: var(--status-success-border);
+  --color-status-success-icon: var(--status-success-icon);
+  --color-status-warning-bg: var(--status-warning-bg);
+  --color-status-warning-text: var(--status-warning-text);
+  --color-status-warning-border: var(--status-warning-border);
+  --color-status-warning-icon: var(--status-warning-icon);
+  --color-status-info-bg: var(--status-info-bg);
+  --color-status-info-text: var(--status-info-text);
+  --color-status-info-border: var(--status-info-border);
+  --color-status-info-icon: var(--status-info-icon);
+  --color-status-neutral-bg: var(--status-neutral-bg);
+  --color-status-neutral-text: var(--status-neutral-text);
+  --color-status-neutral-border: var(--status-neutral-border);
+  --color-status-neutral-icon: var(--status-neutral-icon);
+  --color-status-pink-bg: var(--status-pink-bg);
+  --color-status-pink-text: var(--status-pink-text);
+  --color-status-pink-border: var(--status-pink-border);
+  --color-status-pink-icon: var(--status-pink-icon);
+  --color-chart-blue: var(--chart-blue);
+  --color-chart-emerald: var(--chart-emerald);
+  --color-chart-amber: var(--chart-amber);
+  --color-chart-rose: var(--chart-rose);
+  --color-chart-violet: var(--chart-violet);
+  --color-chart-cyan: var(--chart-cyan);
+  --color-chart-indigo: var(--chart-indigo);
+  --color-chart-pink: var(--chart-pink);
+  --color-chart-teal: var(--chart-teal);
+  --color-chart-orange: var(--chart-orange);
+  --color-rail: var(--rail);
+  --color-sidebar: var(--sidebar);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --font-size-overline: 0.6875rem;
+  --font-size-overline--line-height: 1rem;
+  --shadow-xs: 0 1px 2px rgb(16 24 40 / 0.05);
+  --shadow-sm: 0 1px 3px rgb(16 24 40 / 0.08), 0 1px 2px rgb(16 24 40 / 0.06);
+  --shadow-md: 0 4px 12px rgb(16 24 40 / 0.08);
+  --shadow-lg: 0 12px 32px rgb(16 24 40 / 0.10);
+  --shadow-xl: 0 20px 40px rgb(16 24 40 / 0.12);
+  --shadow-2xl: 0 25px 50px rgb(16 24 40 / 0.20);
+  --shadow-focus: 0 0 0 2px var(--focus-ring-inner), 0 0 0 4px var(--focus-ring-outer);
+}
+
+:root {
+  color-scheme: light;
+  --font-geist-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-geist-mono: ui-monospace, "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  --radius: 0.625rem;
+  --focus-ring-inner: rgb(255 255 255);
+  --focus-ring-outer: rgb(153 160 174 / 0.16);
+  --background: oklch(0.98 0.006 95);
+  --foreground: oklch(0.25 0.025 55);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.25 0.025 55);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.25 0.025 55);
+  --primary: oklch(0.32 0.035 55);
+  --primary-hover: oklch(0.25 0.04 52);
+  --primary-foreground: oklch(0.99 0.004 95);
+  --secondary: oklch(0.945 0.012 88);
+  --secondary-foreground: oklch(0.29 0.026 55);
+  --muted: oklch(0.945 0.010 90);
+  --muted-foreground: oklch(0.48 0.018 62);
+  --accent: oklch(0.92 0.015 84);
+  --accent-foreground: oklch(0.29 0.026 55);
+  --border: oklch(0.88 0.012 80);
+  --input: oklch(0.88 0.012 80);
+  --ring: oklch(0.62 0.03 55);
+  --destructive: oklch(0.577 0.245 27.325);
+  --brand-lime: #5EEAD4;
+  --brand-violet: #14B8A6;
+  --brand-violet-foreground: #042F2E;
+  --accent-indigo: #6366f1;
+  --accent-indigo-foreground: #ffffff;
+  --bg-disabled: oklch(0.94 0.01 85);
+  --text-disabled: oklch(0.78 0.015 75);
+  --border-disabled: oklch(0.90 0.012 80);
+  --status-error-bg: oklch(0.971 0.013 17.38);
+  --status-error-text: oklch(0.396 0.141 25.723);
+  --status-error-border: oklch(0.885 0.062 18.334);
+  --status-error-icon: oklch(0.577 0.245 27.325);
+  --status-success-bg: oklch(0.982 0.018 155.826);
+  --status-success-text: oklch(0.393 0.095 152.535);
+  --status-success-border: oklch(0.925 0.084 155.995);
+  --status-success-icon: oklch(0.627 0.194 149.214);
+  --status-warning-bg: oklch(0.987 0.022 95.277);
+  --status-warning-text: oklch(0.414 0.112 45.904);
+  --status-warning-border: oklch(0.924 0.12 95.746);
+  --status-warning-icon: oklch(0.666 0.179 58.318);
+  --status-info-bg: oklch(0.962 0.018 272.314);
+  --status-info-text: oklch(0.359 0.144 278.697);
+  --status-info-border: oklch(0.870 0.065 274.039);
+  --status-info-icon: oklch(0.511 0.262 276.966);
+  --status-neutral-bg: oklch(0.95 0.012 82);
+  --status-neutral-text: oklch(0.40 0.025 55);
+  --status-neutral-border: oklch(0.88 0.016 75);
+  --status-neutral-icon: oklch(0.52 0.02 60);
+  --status-pink-bg: oklch(0.965 0.020 340);
+  --status-pink-text: oklch(0.388 0.180 340);
+  --status-pink-border: oklch(0.840 0.090 340);
+  --status-pink-icon: oklch(0.633 0.238 340);
+  --chart-blue: oklch(0.546 0.245 262.881);
+  --chart-emerald: oklch(0.596 0.145 163.225);
+  --chart-amber: oklch(0.769 0.188 70.08);
+  --chart-rose: oklch(0.645 0.246 16.439);
+  --chart-violet: oklch(0.606 0.25 292.717);
+  --chart-cyan: oklch(0.715 0.143 215.221);
+  --chart-indigo: oklch(0.511 0.262 276.966);
+  --chart-pink: oklch(0.656 0.241 354.308);
+  --chart-teal: oklch(0.627 0.134 175.001);
+  --chart-orange: oklch(0.705 0.213 47.604);
+  --rail: oklch(0.905 0.026 128);
+  --sidebar: oklch(0.965 0.012 84);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer components {
+  .demo-intro {
+    isolation: isolate;
+  }
+
+  .demo-intro-grid {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+      linear-gradient(to right, color-mix(in oklch, var(--border) 62%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in oklch, var(--border) 62%, transparent) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(circle at center, black, transparent 72%);
+    opacity: 0.55;
+  }
+
+  .demo-intro-orbit {
+    position: absolute;
+    width: min(78vw, 720px);
+    aspect-ratio: 1;
+    border: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
+    border-radius: 9999px;
+    animation: demo-intro-spin 18s linear infinite;
+  }
+
+  .demo-intro-orbit::before,
+  .demo-intro-orbit::after {
+    content: "";
+    position: absolute;
+    inset: 12%;
+    border: 1px solid color-mix(in oklch, var(--border) 62%, transparent);
+    border-radius: inherit;
+  }
+
+  .demo-intro-orbit::after {
+    inset: 27%;
+  }
+
+  .demo-intro-orbit span {
+    position: absolute;
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 9999px;
+    background: var(--primary);
+    box-shadow: 0 0 0 0.45rem color-mix(in oklch, var(--primary) 12%, transparent);
+  }
+
+  .demo-intro-orbit span:nth-child(1) {
+    left: 50%;
+    top: -0.35rem;
+  }
+
+  .demo-intro-orbit span:nth-child(2) {
+    right: 10%;
+    top: 21%;
+  }
+
+  .demo-intro-orbit span:nth-child(3) {
+    bottom: 8%;
+    left: 22%;
+  }
+
+  .demo-intro-orbit span:nth-child(4) {
+    bottom: 30%;
+    right: -0.2rem;
+  }
+
+  .demo-intro-mark {
+    display: grid;
+    place-items: center;
+    width: 5.5rem;
+    height: 5.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: color-mix(in oklch, var(--card) 92%, transparent);
+    box-shadow: var(--shadow-xl);
+    animation: demo-intro-rise 680ms ease-out both;
+  }
+
+  .demo-intro-progress {
+    transform-origin: left;
+    animation: demo-intro-progress 2500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes demo-intro-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes demo-intro-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.92);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes demo-intro-progress {
+  from {
+    transform: scaleX(0.08);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-intro-orbit,
+  .demo-intro-mark,
+  .demo-intro-progress {
+    animation-duration: 1ms;
+    animation-iteration-count: 1;
+  }
+}

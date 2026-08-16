@@ -129,7 +129,12 @@ function renderOffers(offers: OfferInfo[] | undefined): React.ReactNode {
   )
 }
 
-function renderPrice(pricing: PricingInfo | undefined, currency?: string | null, fallback = '—'): React.ReactNode {
+function renderPrice(
+  pricing: PricingInfo | undefined,
+  currency: string | null | undefined,
+  t: (key: string, fallback: string) => string,
+  fallback = '—',
+): React.ReactNode {
   if (!pricing) return <span className="text-xs text-muted-foreground">{fallback}</span>
   const unit = pricing.unit_price_net ?? pricing.unit_price_gross
   if (unit == null) return <span className="text-xs text-muted-foreground">{fallback}</span>
@@ -138,7 +143,7 @@ function renderPrice(pricing: PricingInfo | undefined, currency?: string | null,
   return (
     <div className="flex flex-col">
       <span className="font-medium">{formatted.trim()}</span>
-      <span className="text-xs text-muted-foreground">{kind}</span>
+      <span className="text-xs text-muted-foreground">{t(`catalog.products.pricing.kind.${kind}`, kind)}</span>
     </div>
   )
 }
@@ -453,7 +458,7 @@ export default function ProductsDataTable({
       {
         accessorKey: 'pricing',
         header: t('catalog.products.table.price'),
-        cell: ({ row }) => renderPrice(row.original.pricing, row.original.primary_currency_code),
+        cell: ({ row }) => renderPrice(row.original.pricing, row.original.primary_currency_code, t),
       },
       {
         accessorKey: 'offers',

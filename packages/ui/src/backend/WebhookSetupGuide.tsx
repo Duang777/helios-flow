@@ -31,6 +31,17 @@ export function WebhookSetupGuide({
   }, [])
 
   const endpointUrl = `${appOrigin}${guide.endpointPath}`
+  const title = guide.titleKey ? t(guide.titleKey, guide.title) : guide.title
+  const summary = guide.summaryKey ? t(guide.summaryKey, guide.summary) : guide.summary
+  const dashboardPathLabel = guide.dashboardPathLabelKey
+    ? t(guide.dashboardPathLabelKey, guide.dashboardPathLabel)
+    : guide.dashboardPathLabel
+  const steps = guide.steps.map((step, index) => (
+    guide.stepKeys?.[index] ? t(guide.stepKeys[index], step) : step
+  ))
+  const localDevelopmentNote = guide.localDevelopment?.noteKey
+    ? t(guide.localDevelopment.noteKey, guide.localDevelopment.note ?? '')
+    : guide.localDevelopment?.note
 
   return (
     <div className={cn('space-y-3', className)}>
@@ -50,9 +61,9 @@ export function WebhookSetupGuide({
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <Webhook className="h-4 w-4 text-muted-foreground" />
-              <p className="text-sm font-semibold">{guide.title}</p>
+              <p className="text-sm font-semibold">{title}</p>
             </div>
-            <p className="text-sm text-muted-foreground">{guide.summary}</p>
+            <p className="text-sm text-muted-foreground">{summary}</p>
           </div>
 
           <div className="space-y-2">
@@ -60,7 +71,7 @@ export function WebhookSetupGuide({
               {t('ui.webhookGuide.dashboardPath', 'Dashboard path')}
             </p>
             <div className="rounded-md border bg-background/80 px-3 py-2 text-sm">
-              {guide.dashboardPathLabel}
+              {dashboardPathLabel}
             </div>
           </div>
 
@@ -69,7 +80,7 @@ export function WebhookSetupGuide({
               {t('ui.webhookGuide.steps', 'Setup steps')}
             </p>
             <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
-              {guide.steps.map((step) => (
+              {steps.map((step) => (
                 <li key={step}>{step}</li>
               ))}
             </ol>
@@ -104,8 +115,8 @@ export function WebhookSetupGuide({
               <p className="text-overline font-medium uppercase tracking-wide text-muted-foreground">
                 {t('ui.webhookGuide.localDevelopment', 'Local development')}
               </p>
-              {guide.localDevelopment.note ? (
-                <p className="text-sm text-muted-foreground">{guide.localDevelopment.note}</p>
+              {localDevelopmentNote ? (
+                <p className="text-sm text-muted-foreground">{localDevelopmentNote}</p>
               ) : null}
               <div className="rounded-md border bg-background/80 px-3 py-2 font-mono text-xs">
                 {guide.localDevelopment.tunnelCommand}

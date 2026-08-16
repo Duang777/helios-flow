@@ -318,8 +318,10 @@ const agent: AiAgentDefinition = {
   id: AGENT_ID,
   moduleId: MODULE_ID,
   label: 'Catalog Assistant',
+  labelKey: 'catalog.ai_agents.catalog_assistant.label',
   description:
     'Read-only assistant for exploring catalog data: products, categories, variants, prices, offers, product media, tags, option schemas, and unit conversions.',
+  descriptionKey: 'catalog.ai_agents.catalog_assistant.description',
   systemPrompt: compilePromptTemplate(promptTemplate),
   allowedTools: [...ALLOWED_TOOLS],
   executionMode: 'chat',
@@ -511,8 +513,10 @@ const merchandisingAgent: AiAgentDefinition = {
   id: MERCHANDISING_AGENT_ID,
   moduleId: MODULE_ID,
   label: 'Catalog Merchandising Assistant',
+  labelKey: 'catalog.ai_agents.merchandising_assistant.label',
   description:
     'Merchandising assistant: proposes product descriptions, attribute extractions, title variants, and price adjustments for the current selection on the products list page. Can apply changes — every write goes through the approval card.',
+  descriptionKey: 'catalog.ai_agents.merchandising_assistant.description',
   systemPrompt: compilePromptTemplate(merchandisingPromptTemplate),
   allowedTools: [...MERCHANDISING_ALLOWED_TOOLS],
   executionMode: 'chat',

@@ -6,7 +6,9 @@ export const webhookCustomDetailWidgetSpotId = buildIntegrationDetailWidgetSpotI
 export const integration: IntegrationDefinition = {
   id: webhookCustomIntegrationId,
   title: 'Custom Webhooks',
+  titleKey: 'integrations.providers.webhook_custom.title',
   description: 'Send and receive webhooks using the Standard Webhooks specification.',
+  descriptionKey: 'integrations.providers.webhook_custom.description',
   category: 'webhook',
   hub: 'webhook_endpoints',
   providerKey: webhookCustomIntegrationId,
@@ -29,8 +31,10 @@ export const integration: IntegrationDefinition = {
       {
         key: 'notifyOnFailedDelivery',
         label: 'Notify Admins On Failed Delivery',
+        labelKey: 'integrations.providers.webhook_custom.credentials.notifyOnFailedDelivery.label',
         type: 'boolean',
         helpText: 'Send an in-app notification to admin users when a webhook delivery finally fails after retries are exhausted.',
+        helpTextKey: 'integrations.providers.webhook_custom.credentials.notifyOnFailedDelivery.help',
       },
     ],
   },

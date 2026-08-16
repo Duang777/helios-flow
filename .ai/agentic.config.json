@@ -10,8 +10,7 @@
       "yarn build:packages",
       "yarn generate",
       "yarn build:packages",
-      "yarn i18n:check-sync",
-      "yarn i18n:check-usage",
+      "yarn i18n:check",
       "yarn typecheck",
       "yarn test",
       "yarn build:app"

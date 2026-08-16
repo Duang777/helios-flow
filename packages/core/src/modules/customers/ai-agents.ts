@@ -274,8 +274,10 @@ const agent: AiAgentDefinition = {
   id: AGENT_ID,
   moduleId: MODULE_ID,
   label: 'Customers Account Assistant',
+  labelKey: 'customers.ai_agents.account_assistant.label',
   description:
     'Assistant for exploring customers: people, companies, deals, activities, tasks, addresses, tags, and settings. Can move deals between stages — every write goes through the approval card.',
+  descriptionKey: 'customers.ai_agents.account_assistant.description',
   systemPrompt: compilePromptTemplate(promptTemplate),
   allowedTools: [...ALLOWED_TOOLS],
   executionMode: 'chat',
@@ -471,8 +473,10 @@ const dealAnalyzer: AiAgentDefinition = {
   id: 'customers.deal_analyzer',
   moduleId: 'customers',
   label: 'Deal Analyzer',
+  labelKey: 'customers.ai_agents.deal_analyzer.label',
   description:
     'Multi-step CRM agent that analyzes deals, surfaces stalled opportunities, and proposes stage transitions for operator approval.',
+  descriptionKey: 'customers.ai_agents.deal_analyzer.description',
   systemPrompt: compileDealAnalyzerPrompt(),
   allowedTools: [...DEAL_ANALYZER_ALLOWED_TOOLS],
   executionMode: 'chat',
@@ -519,8 +523,10 @@ const dealAnalyzerToolLoop: AiAgentDefinition = {
   ...dealAnalyzer,
   id: 'customers.deal_analyzer_tool_loop',
   label: 'Deal Analyzer (ToolLoopAgent)',
+  labelKey: 'customers.ai_agents.deal_analyzer_tool_loop.label',
   description:
     'Same as customers.deal_analyzer but dispatched via the ToolLoopAgent engine. Used by TC-AI-AGENT-LOOP-006 mutation-gate proof scenario.',
+  descriptionKey: 'customers.ai_agents.deal_analyzer_tool_loop.description',
   executionEngine: 'tool-loop-agent',
 }
 

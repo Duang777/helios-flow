@@ -5,8 +5,10 @@ export const channelGmailDetailWidgetSpotId = buildIntegrationDetailWidgetSpotId
 export const integration: IntegrationDefinition = {
   id: 'channel_gmail',
   title: 'Gmail',
+  titleKey: 'integrations.providers.channel_gmail.title',
   description:
     'Connect per-user Gmail accounts via OAuth2. Outbound via gmail.users.messages.send; inbound via History API polling (5-min default).',
+  descriptionKey: 'integrations.providers.channel_gmail.description',
   category: 'communication',
   hub: 'communication_channels',
   providerKey: 'gmail',
@@ -35,27 +37,33 @@ export const integration: IntegrationDefinition = {
       {
         key: 'clientId',
         label: 'OAuth Client ID',
+        labelKey: 'integrations.providers.channel_gmail.credentials.clientId.label',
         type: 'text',
         required: true,
         placeholder: '1234567890-abcdef.apps.googleusercontent.com',
         helpText:
           'Google Cloud Console -> APIs & Services -> Credentials -> OAuth 2.0 Client ID. Configure Authorized Redirect URI to <yourdomain>/api/communication_channels/oauth/gmail/callback.',
+        helpTextKey: 'integrations.providers.channel_gmail.credentials.clientId.help',
       },
       {
         key: 'clientSecret',
         label: 'OAuth Client Secret',
+        labelKey: 'integrations.providers.channel_gmail.credentials.clientSecret.label',
         type: 'secret',
         required: true,
         helpText: 'Paired with the Client ID above. Stored encrypted at rest.',
+        helpTextKey: 'integrations.providers.channel_gmail.credentials.clientSecret.help',
       },
       {
         key: 'scopes',
         label: 'OAuth Scopes (comma-separated)',
+        labelKey: 'integrations.providers.channel_gmail.credentials.scopes.label',
         type: 'text',
         required: false,
         placeholder: 'https://www.googleapis.com/auth/gmail.modify,https://www.googleapis.com/auth/userinfo.email',
         helpText:
           'Defaults to gmail.modify + userinfo.email which is enough for send + receive + label management. Leave blank to use defaults.',
+        helpTextKey: 'integrations.providers.channel_gmail.credentials.scopes.help',
       },
     ],
   },

@@ -129,38 +129,36 @@ async function attachMediaFromExamples(
 const PRODUCT_FIELDSETS = [
   {
     code: "fashion_mens_footwear",
-    label: "Fashion · Men · Footwear",
+    label: "服饰 · 男装 · 鞋履",
     icon: "carbon:sneaker",
-    description:
-      "Material, construction, and care metadata for men’s performance footwear.",
+    description: "男士性能鞋履的材质、结构与护理信息。",
     groups: [
-      { code: "identity", title: "Identity" },
-      { code: "materials", title: "Materials & Build" },
-      { code: "care", title: "Care instructions" },
+      { code: "identity", title: "基础信息" },
+      { code: "materials", title: "材质与结构" },
+      { code: "care", title: "护理说明" },
     ],
   },
   {
     code: "fashion_womens_dresses",
-    label: "Fashion · Women · Dresses & Jumpsuits",
+    label: "服饰 · 女装 · 连衣裙",
     icon: "solar:dress-linear",
-    description: "Silhouette, fabric, and care metadata for womenswear.",
+    description: "女装廓形、面料与护理信息。",
     groups: [
-      { code: "identity", title: "Identity" },
-      { code: "materials", title: "Materials" },
-      { code: "fit", title: "Fit & Length" },
-      { code: "care", title: "Care instructions" },
+      { code: "identity", title: "基础信息" },
+      { code: "materials", title: "面料" },
+      { code: "fit", title: "版型与长度" },
+      { code: "care", title: "护理说明" },
     ],
   },
   {
     code: "service_schedule",
-    label: "Services · Scheduling",
+    label: "服务 · 预约排期",
     icon: "solar:calendar-linear",
-    description:
-      "Scheduling, preparation, and delivery metadata for service offerings.",
+    description: "服务商品的预约、准备与交付信息。",
     groups: [
-      { code: "identity", title: "Identity" },
-      { code: "timing", title: "Timing rules" },
-      { code: "resources", title: "Resources & Delivery" },
+      { code: "identity", title: "基础信息" },
+      { code: "timing", title: "时间规则" },
+      { code: "resources", title: "资源与交付" },
     ],
   },
 ] as const;
@@ -168,33 +166,32 @@ const PRODUCT_FIELDSETS = [
 const VARIANT_FIELDSETS = [
   {
     code: "fashion_mens_footwear",
-    label: "Fashion · Men · Footwear",
+    label: "服饰 · 男装 · 鞋履",
     icon: "carbon:sneaker",
-    description: "Variant-level sizing metadata for men’s footwear.",
+    description: "男士鞋履变体的尺码信息。",
     groups: [
-      { code: "fit", title: "Fit" },
-      { code: "finish", title: "Finish" },
+      { code: "fit", title: "尺码" },
+      { code: "finish", title: "颜色与外观" },
     ],
   },
   {
     code: "fashion_womens_dresses",
-    label: "Fashion · Women · Dresses & Jumpsuits",
+    label: "服饰 · 女装 · 连衣裙",
     icon: "solar:dress-linear",
-    description: "Variant-level sizing metadata for womenswear.",
+    description: "女装变体的尺码信息。",
     groups: [
-      { code: "fit", title: "Fit" },
-      { code: "finish", title: "Finish" },
+      { code: "fit", title: "尺码" },
+      { code: "finish", title: "颜色与外观" },
     ],
   },
   {
     code: "service_schedule",
-    label: "Services · Scheduling",
+    label: "服务 · 预约排期",
     icon: "solar:calendar-linear",
-    description:
-      "Provider, duration, and environment metadata for service slots.",
+    description: "服务时段的服务人员、时长和环境信息。",
     groups: [
-      { code: "provider", title: "Provider" },
-      { code: "environment", title: "Environment" },
+      { code: "provider", title: "服务人员" },
+      { code: "environment", title: "服务环境" },
     ],
   },
 ] as const;
@@ -202,8 +199,8 @@ const VARIANT_FIELDSETS = [
 const CUSTHELIOS_FIELD_SETS: FieldSetInput[] = [
   defineFields(E.catalog.catalog_product, [
     cf.text("style_code", {
-      label: "Style code",
-      description: "Reference code shared with merchandising teams.",
+      label: "款式编码",
+      description: "供商品运营团队共用的款式参考码。",
       filterable: true,
       fieldset: "fashion_mens_footwear",
       group: { code: "identity" },
@@ -212,19 +209,19 @@ const CUSTHELIOS_FIELD_SETS: FieldSetInput[] = [
       "upper_material",
       ["engineered_knit", "full_grain_leather", "recycled_mesh"],
       {
-        label: "Upper material",
+        label: "鞋面材质",
         fieldset: "fashion_mens_footwear",
         group: { code: "materials" },
         filterable: true,
       },
     ),
     cf.select("cushioning_profile", ["responsive", "plush", "stability"], {
-      label: "Cushioning profile",
+      label: "缓震类型",
       fieldset: "fashion_mens_footwear",
       group: { code: "materials" },
     }),
     cf.multiline("care_notes", {
-      label: "Care notes",
+      label: "护理备注",
       editor: "markdown",
       fieldset: "fashion_mens_footwear",
       group: { code: "care" },
@@ -232,23 +229,23 @@ const CUSTHELIOS_FIELD_SETS: FieldSetInput[] = [
   ]),
   defineFields(E.catalog.catalog_product, [
     cf.select("silhouette", ["wrap", "column", "fit_and_flare", "jumpsuit"], {
-      label: "Silhouette",
+      label: "廓形",
       fieldset: "fashion_womens_dresses",
       group: { code: "identity" },
       filterable: true,
     }),
     cf.select("fabric_mix", ["silk_blend", "recycled_poly", "linen", "cupro"], {
-      label: "Fabric mix",
+      label: "面料组合",
       fieldset: "fashion_womens_dresses",
       group: { code: "materials" },
     }),
     cf.select("occasion_ready", ["daytime", "evening", "resort"], {
-      label: "Occasion",
+      label: "适用场景",
       fieldset: "fashion_womens_dresses",
       group: { code: "fit" },
     }),
     cf.multiline("finishing_details", {
-      label: "Finishing details",
+      label: "工艺细节",
       editor: "markdown",
       fieldset: "fashion_womens_dresses",
       group: { code: "care" },
@@ -256,58 +253,57 @@ const CUSTHELIOS_FIELD_SETS: FieldSetInput[] = [
   ]),
   defineFields(E.catalog.catalog_product_variant, [
     cf.integer("shoe_size", {
-      label: "US size",
+      label: "美码尺码",
       fieldset: "fashion_mens_footwear",
       group: { code: "fit" },
       filterable: true,
     }),
     cf.select("shoe_width", ["B", "D", "EE"], {
-      label: "Width",
+      label: "鞋楦宽度",
       fieldset: "fashion_mens_footwear",
       group: { code: "fit" },
     }),
     cf.text("colorway", {
-      label: "Colorway",
+      label: "配色",
       fieldset: "fashion_mens_footwear",
       group: { code: "finish" },
     }),
   ]),
   defineFields(E.catalog.catalog_product_variant, [
     cf.integer("numeric_size", {
-      label: "Numeric size",
+      label: "数字尺码",
       fieldset: "fashion_womens_dresses",
       group: { code: "fit" },
     }),
     cf.select("length_profile", ["mini", "midi", "maxi"], {
-      label: "Length",
+      label: "裙长",
       fieldset: "fashion_womens_dresses",
       group: { code: "fit" },
     }),
     cf.text("color_story", {
-      label: "Color story",
+      label: "色彩故事",
       fieldset: "fashion_womens_dresses",
       group: { code: "finish" },
     }),
   ]),
   defineFields(E.catalog.catalog_product, [
     cf.integer("service_duration_minutes", {
-      label: "Duration (minutes)",
-      description: "Length of a single service slot.",
+      label: "服务时长（分钟）",
+      description: "单次服务预约的时长。",
       fieldset: "service_schedule",
       group: { code: "timing" },
       filterable: true,
       required: true,
     }),
     cf.integer("service_buffer_minutes", {
-      label: "Buffer between appointments",
-      description:
-        "Minimum downtime between consecutive service slots (minutes).",
+      label: "预约间隔",
+      description: "连续服务时段之间的最短整理时间（分钟）。",
       fieldset: "service_schedule",
       group: { code: "timing" },
     }),
     cf.text("service_location", {
-      label: "Location / Room",
-      description: "Where the service is delivered.",
+      label: "服务地点 / 房间",
+      description: "服务交付的地点。",
       fieldset: "service_schedule",
       group: { code: "identity" },
     }),
@@ -315,17 +311,16 @@ const CUSTHELIOS_FIELD_SETS: FieldSetInput[] = [
       "service_resources",
       ["stylist", "therapist", "treatment_room", "wash_station", "steam_room"],
       {
-        label: "Required resources",
-        description: "Staff or rooms required to perform the service.",
+        label: "所需资源",
+        description: "完成服务所需的人员或房间。",
         fieldset: "service_schedule",
         group: { code: "resources" },
         multi: true,
       },
     ),
     cf.boolean("service_remote_available", {
-      label: "Remote session available",
-      description:
-        "Indicates whether the service can be performed remotely or virtually.",
+      label: "支持远程服务",
+      description: "标记该服务是否可远程或线上完成。",
       fieldset: "service_schedule",
       group: { code: "resources" },
       defaultValue: false,
@@ -333,22 +328,21 @@ const CUSTHELIOS_FIELD_SETS: FieldSetInput[] = [
   ]),
   defineFields(E.catalog.catalog_product_variant, [
     cf.select("provider_level", ["junior", "senior", "master"], {
-      label: "Provider level",
-      description: "Seniority of the assigned specialist.",
+      label: "服务人员级别",
+      description: "指定服务人员的资历级别。",
       fieldset: "service_schedule",
       group: { code: "provider" },
       filterable: true,
     }),
     cf.text("staff_member", {
-      label: "Staff member",
-      description:
-        "Optional name of the staff member who usually delivers this variant.",
+      label: "服务人员",
+      description: "通常交付该服务变体的员工姓名。",
       fieldset: "service_schedule",
       group: { code: "provider" },
     }),
     cf.select("environment_type", ["studio", "suite", "on_site"], {
-      label: "Environment",
-      description: "Where the session is hosted.",
+      label: "服务环境",
+      description: "该服务时段的承接环境。",
       fieldset: "service_schedule",
       group: { code: "environment" },
     }),
@@ -365,28 +359,28 @@ type CategorySeed = {
 const CATEGORY_TREE: CategorySeed[] = [
   {
     slug: "fashion",
-    name: "Fashion",
-    description: "Seasonal assortments and vertical-specific collections.",
+    name: "服饰",
+    description: "季节性商品组合与垂直品类集合。",
     children: [
       {
         slug: "fashion-men",
-        name: "Men",
+        name: "男装",
         children: [
           {
             slug: "fashion-men-footwear",
-            name: "Footwear",
-            description: "Premium sneakers, boots, and sandals.",
+            name: "鞋履",
+            description: "高端运动鞋、靴履和凉鞋。",
           },
         ],
       },
       {
         slug: "fashion-women",
-        name: "Women",
+        name: "女装",
         children: [
           {
             slug: "fashion-women-dresses-jumpsuits",
-            name: "Dresses & Jumpsuits",
-            description: "Occasion-ready dresses and tailored jumpsuits.",
+            name: "连衣裙与连体裤",
+            description: "适合多种场景的连衣裙与剪裁连体裤。",
           },
         ],
       },
@@ -394,19 +388,18 @@ const CATEGORY_TREE: CategorySeed[] = [
   },
   {
     slug: "services",
-    name: "Services",
-    description: "Bookable in-person and virtual experiences.",
+    name: "服务",
+    description: "可预约的到店和线上体验服务。",
     children: [
       {
         slug: "services-hairdresser",
-        name: "Hairdresser",
-        description:
-          "Salon services ranging from quick trims to signature looks.",
+        name: "美发",
+        description: "从快速修剪到造型设计的沙龙服务。",
       },
       {
         slug: "services-massage",
-        name: "Massage",
-        description: "Wellness treatments and bodywork sessions.",
+        name: "按摩",
+        description: "身体护理与放松疗愈服务。",
       },
     ],
   },
@@ -432,7 +425,8 @@ type VariantSeed = {
 
 type ProductSeed = {
   title: string;
-  handle: string;
+  handle: string | null;
+  legacyHandles?: string[];
   sku?: string;
   description: string;
   categorySlug: string;
@@ -447,11 +441,12 @@ type ProductSeed = {
 
 const PRODUCT_SEEDS: ProductSeed[] = [
   {
-    title: "Atlas Runner Sneaker",
-    handle: "atlas-runner-sneaker",
+    title: "阿特拉斯轻量缓震跑鞋",
+    handle: null,
+    legacyHandles: ["atlas-runner-sneaker"],
     sku: "ATLAS-RUNNER",
     description:
-      "Lightweight road sneaker engineered with a breathable knit upper, recycled TPU overlays, and a decoupled heel for smooth transitions.",
+      "轻量公路跑鞋，采用透气针织鞋面、再生 TPU 覆片和分离式后跟结构，适合日常训练、通勤慢跑和门店陈列讲解。",
     categorySlug: "fashion-men-footwear",
     customFieldsetCode: "fashion_mens_footwear",
     variantFieldsetCode: "fashion_mens_footwear",
@@ -461,21 +456,20 @@ const PRODUCT_SEEDS: ProductSeed[] = [
       style_code: "AR-2025",
       upper_material: "engineered_knit",
       cushioning_profile: "responsive",
-      care_notes:
-        "Spot clean after each run and air dry. Avoid machine drying.",
+      care_notes: "每次跑步后局部清洁并自然晾干，避免机器烘干。",
     },
     media: [{ file: "atlas-runner-midnight-1.png" }],
     variants: [
       {
-        name: "Midnight Navy · US 8",
+        name: "午夜蓝 · 美码 8",
         sku: "ATLAS-RUN-NAVY-8",
         isDefault: true,
-        optionValues: { color: "Midnight Navy", size: "US 8" },
+        optionValues: { color: "午夜蓝", size: "美码 8" },
         prices: { regular: 168, sale: 148 },
         customFields: {
           shoe_size: 8,
           shoe_width: "D",
-          colorway: "Midnight Navy",
+          colorway: "午夜蓝",
         },
         media: [
           { file: "atlas-runner-midnight-1.png" },
@@ -483,14 +477,14 @@ const PRODUCT_SEEDS: ProductSeed[] = [
         ],
       },
       {
-        name: "Glacier Grey · US 10",
+        name: "冰川灰 · 美码 10",
         sku: "ATLAS-RUN-GLACIER-10",
-        optionValues: { color: "Glacier Grey", size: "US 10" },
+        optionValues: { color: "冰川灰", size: "美码 10" },
         prices: { regular: 168, sale: 138 },
         customFields: {
           shoe_size: 10,
           shoe_width: "EE",
-          colorway: "Glacier Grey",
+          colorway: "冰川灰",
         },
         media: [
           { file: "atlas-runner-glacier-1.png" },
@@ -500,58 +494,59 @@ const PRODUCT_SEEDS: ProductSeed[] = [
     ],
   },
   {
-    title: "Aurora Wrap Dress",
-    handle: "aurora-wrap-dress",
+    title: "极光真丝裹身礼服连衣裙",
+    handle: null,
+    legacyHandles: ["aurora-wrap-dress"],
     sku: "AURORA-WRAP",
     description:
-      "Bias-cut wrap dress with blouson sleeves, matte silk blend, and hidden interior snaps so the placket stays put at events.",
+      "斜裁裹身连衣裙，配灯笼袖、哑光真丝混纺面料与隐藏内扣，适合晚宴、发布会、度假场景、搭配陈列和会员造型推荐。",
     categorySlug: "fashion-women-dresses-jumpsuits",
     customFieldsetCode: "fashion_womens_dresses",
     variantFieldsetCode: "fashion_womens_dresses",
     unit: "unit",
-    metadata: { capsule: "Evening Atelier", season: "Resort 25" },
+    metadata: { capsule: "晚宴工坊", season: "Resort 25" },
     customFields: {
       silhouette: "wrap",
       fabric_mix: "silk_blend",
       occasion_ready: "evening",
-      finishing_details:
-        "Hand-finished hem with subtle tonal beading along the wrap edge.",
+      finishing_details: "手工收边，并在裹身边缘加入同色细珠装饰。",
     },
     media: [{ file: "aurora-wrap-rosewood.png" }],
     variants: [
       {
-        name: "Rosewood · Medium",
+        name: "玫瑰木色 · M",
         sku: "AURORA-ROSE-M",
         isDefault: true,
-        optionValues: { color: "Rosewood", size: "Medium" },
+        optionValues: { color: "玫瑰木色", size: "M" },
         prices: { regular: 248, sale: 212 },
         customFields: {
           numeric_size: 6,
           length_profile: "midi",
-          color_story: "Rosewood",
+          color_story: "玫瑰木色",
         },
         media: [{ file: "aurora-wrap-rosewood.png" }],
       },
       {
-        name: "Celestial · Large",
+        name: "星空蓝 · L",
         sku: "AURORA-CELESTIAL-L",
-        optionValues: { color: "Celestial", size: "Large" },
+        optionValues: { color: "星空蓝", size: "L" },
         prices: { regular: 248, sale: 198 },
         customFields: {
           numeric_size: 8,
           length_profile: "maxi",
-          color_story: "Celestial blue",
+          color_story: "星空蓝",
         },
         media: [{ file: "aurora-wrap-celestial.png" }],
       },
     ],
   },
   {
-    title: "Signature Haircut & Finish",
-    handle: "signature-haircut-service",
+    title: "招牌洗剪护理造型服务",
+    handle: null,
+    legacyHandles: ["signature-haircut-service"],
     sku: "SERV-HAIR-60",
     description:
-      "Tailored haircut with relaxing wash, scalp massage, and styling finish. Designed for repeat visits in the demo portal.",
+      "包含个性化修剪、放松洗护、头皮按摩和最终造型，适合在演示门户中展示可预约服务、员工排班、门店交付和复购提醒。",
     categorySlug: "services-hairdresser",
     customFieldsetCode: "service_schedule",
     variantFieldsetCode: "service_schedule",
@@ -560,21 +555,21 @@ const PRODUCT_SEEDS: ProductSeed[] = [
     customFields: {
       service_duration_minutes: 60,
       service_buffer_minutes: 15,
-      service_location: "Salon Studio 3",
+      service_location: "沙龙 3 号造型间",
       service_resources: "stylist,wash_station",
       service_remote_available: false,
     },
     media: [{ file: "hairdresser-service.png" }],
     variants: [
       {
-        name: "Senior Stylist · 60 min",
+        name: "资深造型师 · 60 分钟",
         sku: "SERV-HAIR-60-SENIOR",
         isDefault: true,
-        optionValues: { stylist: "Senior", duration: "60" },
+        optionValues: { stylist: "资深", duration: "60 分钟" },
         prices: { regular: 95, sale: 85 },
         customFields: {
           provider_level: "senior",
-          staff_member: "Amelia Hart",
+          staff_member: "安然",
           environment_type: "studio",
         },
         media: [{ file: "hairdresser-service.png" }],
@@ -582,11 +577,12 @@ const PRODUCT_SEEDS: ProductSeed[] = [
     ],
   },
   {
-    title: "Restorative Massage Session",
-    handle: "restorative-massage-service",
+    title: "舒缓修复芳疗按摩疗程",
+    handle: null,
+    legacyHandles: ["restorative-massage-service"],
     sku: "SERV-MASSAGE-90",
     description:
-      "Full-body massage with aromatherapy oils and guided breathing. Includes complimentary refreshments and studio amenities.",
+      "全身按摩搭配芳疗精油和呼吸引导，包含欢迎饮品与护理室配套服务，适合展示预约型服务商品、复购运营和会员护理套餐。",
     categorySlug: "services-massage",
     customFieldsetCode: "service_schedule",
     variantFieldsetCode: "service_schedule",
@@ -595,21 +591,21 @@ const PRODUCT_SEEDS: ProductSeed[] = [
     customFields: {
       service_duration_minutes: 90,
       service_buffer_minutes: 20,
-      service_location: "Wellness Suite B",
+      service_location: "康养 B 套间",
       service_resources: "therapist,treatment_room,steam_room",
       service_remote_available: false,
     },
     media: [{ file: "massage-service.png" }],
     variants: [
       {
-        name: "Master Therapist · 90 min",
+        name: "首席理疗师 · 90 分钟",
         sku: "SERV-MASSAGE-90-MASTER",
         isDefault: true,
-        optionValues: { therapist: "Master", duration: "90" },
+        optionValues: { therapist: "首席", duration: "90 分钟" },
         prices: { regular: 140, sale: 120 },
         customFields: {
           provider_level: "master",
-          staff_member: "Noah Li",
+          staff_member: "李诺",
           environment_type: "suite",
         },
         media: [{ file: "massage-service.png" }],
@@ -620,14 +616,22 @@ const PRODUCT_SEEDS: ProductSeed[] = [
 
 const CHANNEL_DEFINITION = {
   code: "fashion-online",
-  name: "Helios Fashion Online",
-  description: "Direct-to-consumer storefront showcasing premium demos.",
+  name: "Helios 精品线上商城",
+  description: "面向消费者的线上门店，用于展示高质量演示商品。",
   websiteUrl: "https://demo.helios.com",
   contactEmail: "store@helios.com",
 };
 
 function formatMoney(value: number): string {
   return value.toFixed(2);
+}
+
+function normalizeSeedKey(value: string | null | undefined): string {
+  return (value ?? "").trim().toLowerCase();
+}
+
+function compactSeedStrings(values: Array<string | null | undefined>): string[] {
+  return Array.from(new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value))));
 }
 
 async function resolveDefaultTaxRate(
@@ -798,14 +802,100 @@ async function ensureChannel(
       contactEmail: CHANNEL_DEFINITION.contactEmail,
       status: "active",
       isActive: true,
-      metadata: { locale: "en-US" },
+      metadata: { locale: "zh-CN" },
       createdAt: now,
       updatedAt: now,
     });
     em.persist(channel);
     await em.flush();
+  } else {
+    channel.name = CHANNEL_DEFINITION.name;
+    channel.description = CHANNEL_DEFINITION.description;
+    channel.websiteUrl = CHANNEL_DEFINITION.websiteUrl;
+    channel.contactEmail = CHANNEL_DEFINITION.contactEmail;
+    channel.status = "active";
+    channel.isActive = true;
+    channel.metadata = { locale: "zh-CN" };
+    channel.updatedAt = now;
+    em.persist(channel);
   }
   return channel;
+}
+
+async function ensureVariantPrice(
+  em: EntityManager,
+  scope: SeedScope,
+  input: {
+    product: CatalogProduct;
+    variant: CatalogProductVariant;
+    offer: CatalogOffer;
+    priceKind: CatalogPriceKind;
+    channelId: string;
+    taxRate: string | null;
+    amount: number;
+  },
+): Promise<boolean> {
+  const now = new Date();
+  const amount = formatMoney(input.amount);
+  let price = await em.findOne(CatalogProductPrice, {
+    tenantId: scope.tenantId,
+    organizationId: scope.organizationId,
+    product: input.product,
+    variant: input.variant,
+    offer: input.offer,
+    priceKind: input.priceKind,
+    channelId: input.channelId,
+    kind: input.priceKind.code,
+  });
+  if (!price) {
+    price = em.create(CatalogProductPrice, {
+      id: randomUUID(),
+      organizationId: scope.organizationId,
+      tenantId: scope.tenantId,
+      product: input.product,
+      variant: input.variant,
+      offer: input.offer,
+      priceKind: input.priceKind,
+      currencyCode: "USD",
+      kind: input.priceKind.code,
+      minQuantity: 1,
+      taxRate: input.taxRate,
+      unitPriceGross: amount,
+      unitPriceNet: amount,
+      channelId: input.channelId,
+      createdAt: now,
+      updatedAt: now,
+    });
+    em.persist(price);
+    return true;
+  }
+
+  let changed = false;
+  if (price.currencyCode !== "USD") {
+    price.currencyCode = "USD";
+    changed = true;
+  }
+  if (price.minQuantity !== 1) {
+    price.minQuantity = 1;
+    changed = true;
+  }
+  if (price.taxRate !== input.taxRate) {
+    price.taxRate = input.taxRate;
+    changed = true;
+  }
+  if (price.unitPriceGross !== amount) {
+    price.unitPriceGross = amount;
+    changed = true;
+  }
+  if (price.unitPriceNet !== amount) {
+    price.unitPriceNet = amount;
+    changed = true;
+  }
+  if (changed) {
+    price.updatedAt = now;
+    em.persist(price);
+  }
+  return changed;
 }
 
 async function loadPriceKinds(
@@ -832,14 +922,27 @@ export async function seedCatalogExamples(
   await ensureFieldsetsAndDefinitions(em, scope);
   await ensureDefaultPartitions(em);
 
-  const handles = PRODUCT_SEEDS.map((seed) => seed.handle);
+  const handles = compactSeedStrings(
+    PRODUCT_SEEDS.flatMap((seed) => [seed.handle, ...(seed.legacyHandles ?? [])]),
+  );
+  const skus = compactSeedStrings(PRODUCT_SEEDS.map((seed) => seed.sku));
   const existingProducts = await em.find(CatalogProduct, {
     tenantId: scope.tenantId,
     organizationId: scope.organizationId,
-    handle: { $in: [...handles] },
+    $or: [
+      ...(handles.length ? [{ handle: { $in: handles } }] : []),
+      ...(skus.length ? [{ sku: { $in: skus } }] : []),
+    ],
   });
   const existingByHandle = new Map(
-    existingProducts.map((product) => [product.handle?.toLowerCase(), product]),
+    existingProducts
+      .filter((product) => product.handle)
+      .map((product) => [normalizeSeedKey(product.handle), product]),
+  );
+  const existingBySku = new Map(
+    existingProducts
+      .filter((product) => product.sku)
+      .map((product) => [normalizeSeedKey(product.sku), product]),
   );
 
   const categoryMap = await ensureCategories(em, scope);
@@ -858,65 +961,162 @@ export async function seedCatalogExamples(
 
   const dataEngine = new DefaultDataEngine(em, container);
   const customFieldAssignments: Array<() => Promise<void>> = [];
-  let createdAny = false;
+  let changedAny = false;
 
   for (const productSeed of PRODUCT_SEEDS) {
-    const existing = existingByHandle.get(productSeed.handle.toLowerCase());
-    if (existing) {
-      continue;
+    const lookupHandles = compactSeedStrings([productSeed.handle, ...(productSeed.legacyHandles ?? [])]);
+    let product =
+      lookupHandles.map((handle) => existingByHandle.get(normalizeSeedKey(handle))).find(Boolean) ??
+      (productSeed.sku ? existingBySku.get(normalizeSeedKey(productSeed.sku)) : undefined);
+    const defaultUnit = canonicalizeUnitCode(productSeed.unit) ?? productSeed.unit;
+    if (!product) {
+      changedAny = true;
+      product = em.create(CatalogProduct, {
+        id: randomUUID(),
+        organizationId: scope.organizationId,
+        tenantId: scope.tenantId,
+        title: productSeed.title,
+        description: productSeed.description,
+        sku: productSeed.sku ?? null,
+        handle: productSeed.handle,
+        productType: "configurable",
+        primaryCurrencyCode: "USD",
+        defaultUnit,
+        customFieldsetCode: productSeed.customFieldsetCode,
+        metadata: productSeed.metadata ?? null,
+        taxRateId: defaultTaxRateId,
+        taxRate: defaultTaxRateValue,
+        isConfigurable: true,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      em.persist(product);
+    } else {
+      let productChanged = false;
+      const nextMetadata = productSeed.metadata ?? null;
+      if (product.title !== productSeed.title) {
+        product.title = productSeed.title;
+        productChanged = true;
+      }
+      if (product.description !== productSeed.description) {
+        product.description = productSeed.description;
+        productChanged = true;
+      }
+      if (product.sku !== (productSeed.sku ?? null)) {
+        product.sku = productSeed.sku ?? null;
+        productChanged = true;
+      }
+      if (product.handle !== productSeed.handle) {
+        product.handle = productSeed.handle;
+        productChanged = true;
+      }
+      if (product.productType !== "configurable") {
+        product.productType = "configurable";
+        productChanged = true;
+      }
+      if (product.primaryCurrencyCode !== "USD") {
+        product.primaryCurrencyCode = "USD";
+        productChanged = true;
+      }
+      if (product.defaultUnit !== defaultUnit) {
+        product.defaultUnit = defaultUnit;
+        productChanged = true;
+      }
+      if (product.customFieldsetCode !== productSeed.customFieldsetCode) {
+        product.customFieldsetCode = productSeed.customFieldsetCode;
+        productChanged = true;
+      }
+      if (JSON.stringify(product.metadata ?? null) !== JSON.stringify(nextMetadata)) {
+        product.metadata = nextMetadata;
+        productChanged = true;
+      }
+      if (product.taxRateId !== defaultTaxRateId) {
+        product.taxRateId = defaultTaxRateId;
+        productChanged = true;
+      }
+      if (product.taxRate !== defaultTaxRateValue) {
+        product.taxRate = defaultTaxRateValue;
+        productChanged = true;
+      }
+      if (product.isConfigurable !== true) {
+        product.isConfigurable = true;
+        productChanged = true;
+      }
+      if (product.isActive !== true) {
+        product.isActive = true;
+        productChanged = true;
+      }
+      if (productChanged) {
+        changedAny = true;
+        product.updatedAt = new Date();
+        em.persist(product);
+      }
     }
-    createdAny = true;
-    const product = em.create(CatalogProduct, {
-      id: randomUUID(),
-      organizationId: scope.organizationId,
-      tenantId: scope.tenantId,
-      title: productSeed.title,
-      description: productSeed.description,
-      sku: productSeed.sku ?? null,
-      handle: productSeed.handle,
-      productType: "configurable",
-      primaryCurrencyCode: "USD",
-      defaultUnit: canonicalizeUnitCode(productSeed.unit) ?? productSeed.unit,
-      customFieldsetCode: productSeed.customFieldsetCode,
-      metadata: productSeed.metadata ?? null,
-      taxRateId: defaultTaxRateId,
-      taxRate: defaultTaxRateValue,
-      isConfigurable: true,
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    em.persist(product);
 
     const category = categoryMap.get(productSeed.categorySlug);
     if (category) {
-      const assignment = em.create(CatalogProductCategoryAssignment, {
+      const existingAssignment = await em.findOne(CatalogProductCategoryAssignment, {
+        tenantId: scope.tenantId,
+        organizationId: scope.organizationId,
+        product,
+        category,
+      });
+      if (!existingAssignment) {
+        changedAny = true;
+        const assignment = em.create(CatalogProductCategoryAssignment, {
+          id: randomUUID(),
+          organizationId: scope.organizationId,
+          tenantId: scope.tenantId,
+          product,
+          category,
+          position: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        em.persist(assignment);
+      }
+    }
+
+    let offer = await em.findOne(CatalogOffer, {
+      tenantId: scope.tenantId,
+      organizationId: scope.organizationId,
+      product,
+      channelId: channel.id,
+      deletedAt: null,
+    });
+    const offerTitle = `${productSeed.title} · 线上`;
+    const offerDescription = "为演示线上门店配置的精选报价。";
+    if (!offer) {
+      changedAny = true;
+      offer = em.create(CatalogOffer, {
         id: randomUUID(),
         organizationId: scope.organizationId,
         tenantId: scope.tenantId,
         product,
-        category,
-        position: 0,
+        channelId: channel.id,
+        title: offerTitle,
+        description: offerDescription,
+        metadata: { channelCode: CHANNEL_DEFINITION.code },
+        isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      em.persist(assignment);
+      em.persist(offer);
+    } else {
+      if (offer.title !== offerTitle) {
+        offer.title = offerTitle;
+        changedAny = true;
+      }
+      if (offer.description !== offerDescription) {
+        offer.description = offerDescription;
+        changedAny = true;
+      }
+      offer.metadata = { channelCode: CHANNEL_DEFINITION.code };
+      offer.isActive = true;
+      offer.updatedAt = new Date();
+      em.persist(offer);
     }
-
-    const offer = em.create(CatalogOffer, {
-      id: randomUUID(),
-      organizationId: scope.organizationId,
-      tenantId: scope.tenantId,
-      product,
-      channelId: channel.id,
-      title: `${productSeed.title} · Online`,
-      description: "Offer curated for the demo storefront channel.",
-      metadata: { channelCode: CHANNEL_DEFINITION.code },
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    em.persist(offer);
 
     if (
       productSeed.customFields &&
@@ -934,88 +1134,109 @@ export async function seedCatalogExamples(
       );
     }
 
-    const productMedia = await attachMediaFromExamples(
-      em,
-      scope,
-      E.catalog.catalog_product,
-      product.id,
-      productSeed.media,
-    );
-    if (productMedia.length) {
-      const hero = productMedia[0];
-      product.defaultMediaId = hero.id;
-      product.defaultMediaUrl = hero.imageUrl;
-      offer.defaultMediaId = hero.id;
-      offer.defaultMediaUrl = hero.imageUrl;
-    }
-
-    for (const variantSeed of productSeed.variants) {
-      const variant = em.create(CatalogProductVariant, {
-        id: randomUUID(),
-        organizationId: scope.organizationId,
-        tenantId: scope.tenantId,
-        product,
-        name: variantSeed.name,
-        sku: variantSeed.sku,
-        isDefault: variantSeed.isDefault ?? false,
-        optionValues: variantSeed.optionValues ?? null,
-        customFieldsetCode: productSeed.variantFieldsetCode,
-        metadata: null,
-        taxRateId: defaultTaxRateId,
-        taxRate: defaultTaxRateValue,
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      em.persist(variant);
-
-      const variantMedia = await attachMediaFromExamples(
+    if (!product.defaultMediaId) {
+      const productMedia = await attachMediaFromExamples(
         em,
         scope,
-        E.catalog.catalog_product_variant,
-        variant.id,
-        variantSeed.media,
+        E.catalog.catalog_product,
+        product.id,
+        productSeed.media,
       );
-      const regularPrice = em.create(CatalogProductPrice, {
-        id: randomUUID(),
-        organizationId: scope.organizationId,
-        tenantId: scope.tenantId,
-        product,
-        variant,
-        offer,
-        priceKind: regularKind,
-        currencyCode: "USD",
-        kind: regularKind.code,
-        minQuantity: 1,
-        taxRate: defaultTaxRateValue,
-        unitPriceGross: formatMoney(variantSeed.prices.regular),
-        unitPriceNet: formatMoney(variantSeed.prices.regular),
-        channelId: channel.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      em.persist(regularPrice);
+      if (productMedia.length) {
+        changedAny = true;
+        const hero = productMedia[0];
+        product.defaultMediaId = hero.id;
+        product.defaultMediaUrl = hero.imageUrl;
+        offer.defaultMediaId = hero.id;
+        offer.defaultMediaUrl = hero.imageUrl;
+      }
+    }
 
-      if (variantSeed.prices.sale !== undefined) {
-        const salePrice = em.create(CatalogProductPrice, {
+    const existingVariants = await em.find(CatalogProductVariant, {
+      tenantId: scope.tenantId,
+      organizationId: scope.organizationId,
+      product,
+      sku: { $in: productSeed.variants.map((variant) => variant.sku) },
+      deletedAt: null,
+    });
+    const variantBySku = new Map(existingVariants.map((variant) => [normalizeSeedKey(variant.sku), variant]));
+
+    for (const variantSeed of productSeed.variants) {
+      let variant = variantBySku.get(normalizeSeedKey(variantSeed.sku));
+      if (!variant) {
+        changedAny = true;
+        variant = em.create(CatalogProductVariant, {
           id: randomUUID(),
           organizationId: scope.organizationId,
           tenantId: scope.tenantId,
           product,
-          variant,
-          offer,
-          priceKind: saleKind,
-          currencyCode: "USD",
-          kind: saleKind.code,
-          minQuantity: 1,
+          name: variantSeed.name,
+          sku: variantSeed.sku,
+          isDefault: variantSeed.isDefault ?? false,
+          optionValues: variantSeed.optionValues ?? null,
+          customFieldsetCode: productSeed.variantFieldsetCode,
+          metadata: null,
+          taxRateId: defaultTaxRateId,
           taxRate: defaultTaxRateValue,
-          unitPriceGross: formatMoney(variantSeed.prices.sale),
-          unitPriceNet: formatMoney(variantSeed.prices.sale),
-          channelId: channel.id,
+          isActive: true,
           createdAt: new Date(),
           updatedAt: new Date(),
         });
-        em.persist(salePrice);
+        em.persist(variant);
+      } else {
+        const nextOptionValues = variantSeed.optionValues ?? null;
+        if (variant.name !== variantSeed.name) {
+          variant.name = variantSeed.name;
+          changedAny = true;
+        }
+        if (variant.isDefault !== (variantSeed.isDefault ?? false)) {
+          variant.isDefault = variantSeed.isDefault ?? false;
+          changedAny = true;
+        }
+        if (JSON.stringify(variant.optionValues ?? null) !== JSON.stringify(nextOptionValues)) {
+          variant.optionValues = nextOptionValues;
+          changedAny = true;
+        }
+        if (variant.customFieldsetCode !== productSeed.variantFieldsetCode) {
+          variant.customFieldsetCode = productSeed.variantFieldsetCode;
+          changedAny = true;
+        }
+        variant.taxRateId = defaultTaxRateId;
+        variant.taxRate = defaultTaxRateValue;
+        variant.isActive = true;
+        variant.updatedAt = new Date();
+        em.persist(variant);
+      }
+
+      if (!variant.defaultMediaId) {
+        await attachMediaFromExamples(
+          em,
+          scope,
+          E.catalog.catalog_product_variant,
+          variant.id,
+          variantSeed.media,
+        );
+      }
+      changedAny = (await ensureVariantPrice(em, scope, {
+        product,
+        variant,
+        offer,
+        priceKind: regularKind,
+        channelId: channel.id,
+        taxRate: defaultTaxRateValue,
+        amount: variantSeed.prices.regular,
+      })) || changedAny;
+
+      if (variantSeed.prices.sale !== undefined) {
+        changedAny = (await ensureVariantPrice(em, scope, {
+          product,
+          variant,
+          offer,
+          priceKind: saleKind,
+          channelId: channel.id,
+          taxRate: defaultTaxRateValue,
+          amount: variantSeed.prices.sale,
+        })) || changedAny;
       }
 
       if (
@@ -1036,10 +1257,6 @@ export async function seedCatalogExamples(
     }
   }
 
-  if (!createdAny) {
-    return false;
-  }
-
   await em.flush();
 
   for (const assign of customFieldAssignments) {
@@ -1050,5 +1267,5 @@ export async function seedCatalogExamples(
     }
   }
 
-  return true;
+  return changedAny || customFieldAssignments.length > 0;
 }

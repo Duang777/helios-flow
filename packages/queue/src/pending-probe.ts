@@ -16,6 +16,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import type { QueueStrategyType, RedisConnectionOptions } from './types'
+import { resolveLocalQueueBaseDir } from './local-base-dir'
 
 export type QueuePendingProbeOptions = {
   /** Async strategy: Redis connection override (mirrors `AsyncQueueOptions['connection']`). */
@@ -41,8 +42,6 @@ export type QueuePendingProbeResult = {
   error: boolean
   errorMessage?: string
 }
-
-const DEFAULT_LOCAL_QUEUE_BASE_DIR = '.helios/queue'
 
 const fsp = fs.promises
 
@@ -73,8 +72,7 @@ async function probeLocalQueue(
 ): Promise<QueuePendingProbeResult> {
   const nodeProcess = (globalThis as typeof globalThis & { process?: NodeJS.Process }).process
   const envBaseDir = nodeProcess?.env?.QUEUE_BASE_DIR
-  const baseDir = options?.baseDir
-    ?? path.resolve(envBaseDir || DEFAULT_LOCAL_QUEUE_BASE_DIR)
+  const baseDir = resolveLocalQueueBaseDir(options?.baseDir ?? envBaseDir)
   const queueFile = path.join(baseDir, queueName, 'queue.json')
 
   let raw: string

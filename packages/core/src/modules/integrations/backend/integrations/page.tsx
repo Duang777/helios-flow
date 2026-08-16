@@ -34,7 +34,9 @@ type IntegrationAnalytics = {
 type IntegrationItem = {
   id: string
   title: string
+  titleKey?: string | null
   description?: string
+  descriptionKey?: string | null
   category?: string
   tags?: string[]
   bundleId?: string
@@ -51,7 +53,9 @@ type IntegrationItem = {
 type BundleItem = {
   id: string
   title: string
+  titleKey?: string | null
   description?: string
+  descriptionKey?: string | null
   icon?: string
   integrationCount: number
   enabledCount: number
@@ -82,6 +86,14 @@ const HEALTH_BADGE_CLASS: Record<string, string> = {
   degraded: 'bg-amber-500/15 text-amber-900 dark:text-amber-300',
   unhealthy: 'bg-destructive/15 text-destructive',
   unconfigured: 'bg-muted text-muted-foreground',
+}
+
+function translateMetadata(
+  t: ReturnType<typeof useT>,
+  key: string | null | undefined,
+  fallback: string | null | undefined,
+): string {
+  return key ? t(key, fallback ?? key) : (fallback ?? '')
 }
 
 function buildListQueryString(input: {
@@ -174,8 +186,11 @@ export default function IntegrationsMarketplacePage() {
   }, [debouncedSearch, filterValues, page, selectedCategory, sortField, sortOrder])
 
   const bundleFilterOptions = React.useMemo(
-    () => (data?.bundles ?? []).map((bundle) => ({ id: bundle.id, title: bundle.title })),
-    [data?.bundles],
+    () => (data?.bundles ?? []).map((bundle) => ({
+      id: bundle.id,
+      title: translateMetadata(t, bundle.titleKey, bundle.title),
+    })),
+    [data?.bundles, t],
   )
 
   const categoryFilters = React.useMemo(
@@ -424,9 +439,11 @@ export default function IntegrationsMarketplacePage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>{bundle.title}</CardTitle>
+                    <CardTitle>{translateMetadata(t, bundle.titleKey, bundle.title)}</CardTitle>
                     {bundle.description && (
-                      <p className="text-muted-foreground text-sm mt-1">{bundle.description}</p>
+                      <p className="text-muted-foreground text-sm mt-1">
+                        {translateMetadata(t, bundle.descriptionKey, bundle.description)}
+                      </p>
                     )}
                     <p className="text-muted-foreground text-xs mt-1">
                       {t('integrations.marketplace.integrations', { count: bundle.integrations.length })}
@@ -455,7 +472,7 @@ export default function IntegrationsMarketplacePage() {
                               href={`/backend/integrations/${encodeURIComponent(item.id)}`}
                               className="truncate text-sm font-medium hover:underline"
                             >
-                              {item.title}
+                              {translateMetadata(t, item.titleKey, item.title)}
                             </Link>
                             {renderHealthBadge(item.healthStatus)}
                           </div>
@@ -500,7 +517,7 @@ export default function IntegrationsMarketplacePage() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex min-w-0 flex-wrap items-center gap-2">
                         {renderCategoryIcon(item.category, 'h-4 w-4 text-muted-foreground shrink-0')}
-                        <CardTitle className="text-base">{item.title}</CardTitle>
+                        <CardTitle className="text-base">{translateMetadata(t, item.titleKey, item.title)}</CardTitle>
                         {renderHealthBadge(item.healthStatus)}
                       </div>
                       <Switch
@@ -513,7 +530,9 @@ export default function IntegrationsMarketplacePage() {
                   </CardHeader>
                   <CardContent className="flex-1 space-y-2">
                     {item.description && (
-                      <p className="text-muted-foreground text-sm">{item.description}</p>
+                      <p className="text-muted-foreground text-sm">
+                        {translateMetadata(t, item.descriptionKey, item.description)}
+                      </p>
                     )}
                     {(item.company || item.author || item.version) && (
                       <p className="text-muted-foreground text-xs">

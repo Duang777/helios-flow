@@ -24,14 +24,6 @@ export type ProfileDropdownProps = {
 
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? React.useLayoutEffect : React.useEffect
 
-const localeLabels: Record<Locale, string> = {
-  en: 'English',
-  zh: '中文',
-  de: 'Deutsch',
-  es: 'Español',
-  pl: 'Polski',
-}
-
 export function ProfileDropdown({
   email,
   displayName,
@@ -181,6 +173,17 @@ export function ProfileDropdown({
       locale: currentLocale,
     }),
     [currentLocale, displayName, email],
+  )
+
+  const localeLabels = React.useMemo<Record<Locale, string>>(
+    () => ({
+      en: t('common.languages.english', 'English'),
+      zh: t('common.languages.chinese', '中文'),
+      de: t('common.languages.german', 'Deutsch'),
+      es: t('common.languages.spanish', 'Español'),
+      pl: t('common.languages.polish', 'Polski'),
+    }),
+    [t],
   )
 
   const renderInjectedItem = React.useCallback(

@@ -8,7 +8,7 @@
   "payment_gateways.feature.view": "查看 payment gateway transactions",
   "payment_gateways.field.captureMethod": "Gateway capture method",
   "payment_gateways.field.paymentTypes": "Gateway payment types",
-  "payment_gateways.nav.transactions": "支付 Transactions",
+  "payment_gateways.nav.transactions": "支付交易",
   "payment_gateways.status.authorized": "Authorized",
   "payment_gateways.status.cancelled": "取消led",
   "payment_gateways.status.captured": "Captured",
@@ -75,6 +75,6 @@
   "payment_gateways.transactions.searchPlaceholder": "搜索 by payment, transaction, session, or gateway id",
   "payment_gateways.transactions.success.capture": "支付 captured",
   "payment_gateways.transactions.success.refreshStatus": "Transaction status refreshed",
-  "payment_gateways.transactions.tableTitle": "Transactions",
-  "payment_gateways.transactions.title": "支付 Transactions"
+  "payment_gateways.transactions.tableTitle": "交易",
+  "payment_gateways.transactions.title": "支付交易"
 }

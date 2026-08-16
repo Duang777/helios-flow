@@ -39,7 +39,7 @@
   "communication_channels.infoPanel.type": "Type",
   "communication_channels.infoPanel.unassigned": "Unassigned",
   "communication_channels.nav.group": "集成",
-  "communication_channels.nav.title": "Communication Channels",
+  "communication_channels.nav.title": "通信渠道",
   "communication_channels.notifications.channel_requires_reauth.body": "Authentication expired. Reconnect this channel to resume sending 和 receiving messages.",
   "communication_channels.notifications.channel_requires_reauth.reconnect": "Reconnect",
   "communication_channels.notifications.channel_requires_reauth.title": "Channel needs reconnection",

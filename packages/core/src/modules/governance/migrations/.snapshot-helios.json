@@ -1,0 +1,28 @@
+{
+  "name": "public",
+  "namespaces": ["public"],
+  "tables": [
+    {
+      "name": "customer_identity_maps",
+      "schema": "public",
+      "indexes": [
+        { "name": "customer_identity_maps_scope_idx", "properties": ["organization_id", "tenant_id"] },
+        { "name": "customer_identity_maps_source_idx", "properties": ["source_entity_id"] },
+        { "name": "customer_identity_maps_canonical_idx", "properties": ["canonical_entity_id"] }
+      ]
+    },
+    {
+      "name": "governance_findings",
+      "schema": "public",
+      "indexes": [
+        { "name": "governance_findings_scope_idx", "properties": ["organization_id", "tenant_id"] },
+        { "name": "governance_findings_status_idx", "properties": ["status", "rule_id"] },
+        { "name": "governance_findings_subject_idx", "properties": ["subject_type", "subject_id"] },
+        {
+          "name": "governance_findings_natural_key_uniq",
+          "properties": ["tenant_id", "organization_id", "rule_id", "subject_type", "subject_id", "as_of"]
+        }
+      ]
+    }
+  ]
+}

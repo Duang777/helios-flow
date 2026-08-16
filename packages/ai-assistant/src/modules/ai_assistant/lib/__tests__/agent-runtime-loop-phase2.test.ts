@@ -40,11 +40,12 @@ const createModelMock = jest.fn(
   (options: { modelId: string; apiKey: string }) => ({ id: options.modelId, apiKey: options.apiKey }),
 )
 const resolveApiKeyMock = jest.fn(() => 'test-api-key')
+let mockResolvedProviderId = 'test-provider'
 
 jest.mock('@helios/shared/lib/ai/llm-provider-registry', () => ({
   llmProviderRegistry: {
     resolveFirstConfigured: () => ({
-      id: 'test-provider',
+      id: mockResolvedProviderId,
       defaultModel: 'provider-default-model',
       resolveApiKey: resolveApiKeyMock,
       createModel: createModelMock,
@@ -105,6 +106,8 @@ describe('Phase 2: generateText callback on runAiAgentText', () => {
     resetAgentRegistryForTests()
     toolRegistry.clear()
     streamTextMock.mockImplementation(() => fakeStreamResult())
+    mockResolvedProviderId = 'test-provider'
+    delete process.env.HELIOS_AI_OPENAI_RESPONSES_STORE
   })
 
   afterAll(() => {
@@ -188,6 +191,117 @@ describe('Phase 2: generateText callback on runAiAgentText', () => {
     expect(callArg.stopWhen.length).toBeGreaterThanOrEqual(1)
     expect(typeof callArg.prepareStep).toBe('function')
     expect(callArg.abortSignal).toBeInstanceOf(AbortSignal)
+  })
+
+  it('forwards OpenAI Responses store providerOptions when explicitly enabled', async () => {
+    mockResolvedProviderId = 'openai'
+    process.env.HELIOS_AI_OPENAI_RESPONSES_STORE = 'true'
+    seedAgentRegistryForTests([
+      makeAgent({
+        id: 'mod.agent',
+        moduleId: 'mod',
+        loop: { maxSteps: 4 },
+      }),
+    ])
+
+    await runAiAgentText({
+      agentId: 'mod.agent',
+      messages: baseMessages as never,
+      authContext: baseAuth,
+    })
+
+    const callArg = streamTextMock.mock.calls[0][0] as {
+      providerOptions?: unknown
+    }
+    expect(callArg.providerOptions).toEqual({ openai: { store: true } })
+  })
+
+  it('strips OpenAI item ids from prepared step messages before the next Responses call', async () => {
+    mockResolvedProviderId = 'openai'
+    process.env.HELIOS_AI_OPENAI_RESPONSES_STORE = 'true'
+    seedAgentRegistryForTests([
+      makeAgent({
+        id: 'mod.agent',
+        moduleId: 'mod',
+        loop: { maxSteps: 4 },
+      }),
+    ])
+
+    await runAiAgentText({
+      agentId: 'mod.agent',
+      messages: baseMessages as never,
+      authContext: baseAuth,
+    })
+
+    const callArg = streamTextMock.mock.calls[0][0] as {
+      prepareStep: (state: unknown) => Promise<{
+        messages?: Array<Record<string, unknown>>
+      }>
+    }
+    const stepMessages = [
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call_1',
+            toolName: 'mod__lookup',
+            input: {},
+            providerMetadata: { openai: { itemId: 'item_from_metadata', namespace: 'keep-me' } },
+            providerOptions: { openai: { itemId: 'item_from_options', phase: 'keep-phase' } },
+          },
+        ],
+      },
+    ]
+
+    const result = await callArg.prepareStep({
+      steps: [],
+      stepNumber: 1,
+      model: {},
+      instructions: undefined,
+      initialInstructions: undefined,
+      messages: stepMessages,
+      initialMessages: [],
+      responseMessages: [],
+      toolsContext: {},
+      runtimeContext: {},
+    })
+
+    const sanitizedPart = result.messages?.[0].content as Array<{
+      providerMetadata?: { openai?: Record<string, unknown> }
+      providerOptions?: { openai?: Record<string, unknown> }
+    }>
+    expect(sanitizedPart[0].providerMetadata?.openai).toEqual({ namespace: 'keep-me' })
+    expect(sanitizedPart[0].providerOptions?.openai).toEqual({ phase: 'keep-phase' })
+    expect(
+      (
+        stepMessages[0].content[0] as {
+          providerMetadata: { openai: { itemId: string } }
+        }
+      ).providerMetadata.openai.itemId,
+    ).toBe('item_from_metadata')
+  })
+
+  it('does not forward OpenAI Responses store providerOptions for non-OpenAI providers', async () => {
+    mockResolvedProviderId = 'test-provider'
+    process.env.HELIOS_AI_OPENAI_RESPONSES_STORE = 'true'
+    seedAgentRegistryForTests([
+      makeAgent({
+        id: 'mod.agent',
+        moduleId: 'mod',
+      }),
+    ])
+
+    await runAiAgentText({
+      agentId: 'mod.agent',
+      messages: baseMessages as never,
+      authContext: baseAuth,
+    })
+
+    const callArg = streamTextMock.mock.calls[0][0] as {
+      providerOptions?: unknown
+    }
+    expect(callArg.providerOptions).toBeUndefined()
   })
 
   it('forwards per-call loop overrides into the prepared-options bag', async () => {

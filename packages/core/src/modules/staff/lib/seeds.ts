@@ -33,6 +33,7 @@ type DictionarySeedEntry = {
 type StaffTeamRoleSeed = {
   key: string
   name: string
+  legacyNames?: string[]
   teamKey?: string | null
   description?: string | null
   appearanceIcon?: string | null
@@ -42,6 +43,7 @@ type StaffTeamRoleSeed = {
 type StaffTeamMemberSeed = {
   key: string
   displayName: string
+  legacyDisplayNames?: string[]
   teamKey?: string | null
   description?: string | null
   roleKeys: string[]
@@ -53,6 +55,7 @@ type StaffTeamMemberSeed = {
 type StaffTeamSeed = {
   key: string
   name: string
+  legacyNames?: string[]
   description?: string | null
 }
 
@@ -98,41 +101,46 @@ type StaffTeamMemberAddressSeed = {
 const TEAM_ROLE_SEEDS: StaffTeamRoleSeed[] = [
   {
     key: 'backend_engineer',
-    name: 'Backend engineer',
+    name: '后端工程师',
+    legacyNames: ['Backend engineer'],
     teamKey: 'engineering',
-    description: 'Builds core services, APIs, and integrations.',
+    description: '负责核心服务、API 和集成能力建设。',
     appearanceIcon: 'lucide:server',
     appearanceColor: '#2563eb',
   },
   {
     key: 'frontend_engineer',
-    name: 'Frontend engineer',
+    name: '前端工程师',
+    legacyNames: ['Frontend engineer'],
     teamKey: 'engineering',
-    description: 'Owns UI delivery and design system updates.',
+    description: '负责界面交付和设计系统维护。',
     appearanceIcon: 'lucide:monitor',
     appearanceColor: '#0ea5e9',
   },
   {
     key: 'product_manager',
-    name: 'Product manager',
+    name: '产品经理',
+    legacyNames: ['Product manager'],
     teamKey: 'product',
-    description: 'Drives product discovery and roadmap delivery.',
+    description: '推进产品发现、路线图和交付节奏。',
     appearanceIcon: 'lucide:layout-grid',
     appearanceColor: '#14b8a6',
   },
   {
     key: 'ux_designer',
-    name: 'UX designer',
+    name: '体验设计师',
+    legacyNames: ['UX designer'],
     teamKey: 'product',
-    description: 'Designs user flows and interface patterns.',
+    description: '设计用户流程和界面交互模式。',
     appearanceIcon: 'lucide:pen-tool',
     appearanceColor: '#f97316',
   },
   {
     key: 'devops_engineer',
-    name: 'DevOps engineer',
+    name: '运维工程师',
+    legacyNames: ['DevOps engineer'],
     teamKey: 'operations',
-    description: 'Maintains infrastructure and delivery tooling.',
+    description: '维护基础设施、发布链路和交付工具。',
     appearanceIcon: 'lucide:cloud',
     appearanceColor: '#7c3aed',
   },
@@ -141,29 +149,33 @@ const TEAM_ROLE_SEEDS: StaffTeamRoleSeed[] = [
 const TEAM_SEEDS: StaffTeamSeed[] = [
   {
     key: 'engineering',
-    name: 'Engineering',
-    description: 'Backend and frontend delivery squad.',
+    name: '工程',
+    legacyNames: ['Engineering'],
+    description: '负责后端、前端和平台交付。',
   },
   {
     key: 'product',
-    name: 'Product',
-    description: 'Product management and design leadership.',
+    name: '产品',
+    legacyNames: ['Product'],
+    description: '负责产品管理、用户研究和设计协作。',
   },
   {
     key: 'operations',
-    name: 'Operations',
-    description: 'Infrastructure, IT, and internal tooling.',
+    name: '运营',
+    legacyNames: ['Operations'],
+    description: '负责基础设施、IT 和内部工具。',
   },
 ]
 
 const TEAM_MEMBER_SEEDS: StaffTeamMemberSeed[] = [
   {
     key: 'alex_chen',
-    displayName: 'Alex Chen',
+    displayName: '陈立',
+    legacyDisplayNames: ['Alex Chen'],
     teamKey: 'engineering',
-    description: 'Backend lead focused on platform reliability.',
+    description: '负责平台可靠性的后端负责人。',
     roleKeys: ['backend_engineer'],
-    tags: ['backend', 'platform'],
+    tags: ['后端', '平台'],
     userIndex: 0,
     customFields: {
       years_of_experience: 9,
@@ -172,18 +184,19 @@ const TEAM_MEMBER_SEEDS: StaffTeamMemberSeed[] = [
       employment_date: '2021-03-15',
       employment_type: 'full_time',
       onboarded: true,
-      bio: 'Platform-focused engineer who owns core service reliability.',
+      bio: '专注平台工程，负责核心服务稳定性。',
       work_mode: 'hybrid',
-      focus_areas: ['APIs', 'observability', 'infra'],
+      focus_areas: ['API', '可观测性', '基础设施'],
     },
   },
   {
     key: 'priya_nair',
-    displayName: 'Priya Nair',
+    displayName: '林佳',
+    legacyDisplayNames: ['Priya Nair'],
     teamKey: 'engineering',
-    description: 'Frontend specialist pairing with design systems.',
+    description: '负责设计系统协作和前端体验交付。',
     roleKeys: ['frontend_engineer'],
-    tags: ['frontend', 'design-system'],
+    tags: ['前端', '设计系统'],
     userIndex: 1,
     customFields: {
       years_of_experience: 7,
@@ -192,18 +205,19 @@ const TEAM_MEMBER_SEEDS: StaffTeamMemberSeed[] = [
       employment_date: '2020-11-02',
       employment_type: 'full_time',
       onboarded: true,
-      bio: 'Partners closely with design to ship crisp UI experiences.',
+      bio: '与设计紧密协作，交付清晰顺手的界面体验。',
       work_mode: 'remote',
-      focus_areas: ['design systems', 'accessibility'],
+      focus_areas: ['设计系统', '无障碍'],
     },
   },
   {
     key: 'marta_lopez',
-    displayName: 'Marta Lopez',
+    displayName: '罗明',
+    legacyDisplayNames: ['Marta Lopez'],
     teamKey: 'product',
-    description: 'Keeps roadmap aligned with customer outcomes.',
+    description: '负责让产品路线图对齐客户结果。',
     roleKeys: ['product_manager'],
-    tags: ['product', 'strategy'],
+    tags: ['产品', '策略'],
     userIndex: 2,
     customFields: {
       years_of_experience: 10,
@@ -212,18 +226,19 @@ const TEAM_MEMBER_SEEDS: StaffTeamMemberSeed[] = [
       employment_date: '2019-06-10',
       employment_type: 'full_time',
       onboarded: true,
-      bio: 'Translates customer feedback into clear product priorities.',
+      bio: '把客户反馈转化为清晰的产品优先级。',
       work_mode: 'hybrid',
-      focus_areas: ['roadmap', 'customer discovery'],
+      focus_areas: ['路线图', '客户发现'],
     },
   },
   {
     key: 'samir_haddad',
-    displayName: 'Samir Haddad',
+    displayName: '何思远',
+    legacyDisplayNames: ['Samir Haddad'],
     teamKey: 'product',
-    description: 'Designs workflows and UX patterns for admins.',
+    description: '为后台用户设计工作流和体验模式。',
     roleKeys: ['ux_designer'],
-    tags: ['design', 'ux'],
+    tags: ['设计', '用户体验'],
     customFields: {
       years_of_experience: 8,
       hourly_rate: 130,
@@ -231,18 +246,19 @@ const TEAM_MEMBER_SEEDS: StaffTeamMemberSeed[] = [
       employment_date: '2022-02-01',
       employment_type: 'contract',
       onboarded: true,
-      bio: 'Turns complex workflows into approachable UI patterns.',
+      bio: '把复杂流程转化为易理解、易操作的界面模式。',
       work_mode: 'remote',
-      focus_areas: ['flows', 'prototyping'],
+      focus_areas: ['流程设计', '原型验证'],
     },
   },
   {
     key: 'jordan_kim',
-    displayName: 'Jordan Kim',
+    displayName: '金周',
+    legacyDisplayNames: ['Jordan Kim'],
     teamKey: 'operations',
-    description: 'Keeps environments stable and deployments smooth.',
+    description: '保障环境稳定和发布顺畅。',
     roleKeys: ['devops_engineer'],
-    tags: ['devops', 'infra'],
+    tags: ['运维', '基础设施'],
     customFields: {
       years_of_experience: 6,
       hourly_rate: 150,
@@ -250,9 +266,9 @@ const TEAM_MEMBER_SEEDS: StaffTeamMemberSeed[] = [
       employment_date: '2023-05-08',
       employment_type: 'full_time',
       onboarded: false,
-      bio: 'Owns CI/CD pipelines and monitoring dashboards.',
+      bio: '负责 CI/CD 流水线和监控看板。',
       work_mode: 'onsite',
-      focus_areas: ['ci/cd', 'security'],
+      focus_areas: ['持续交付', '安全'],
     },
   },
 ]
@@ -260,35 +276,35 @@ const TEAM_MEMBER_SEEDS: StaffTeamMemberSeed[] = [
 const TEAM_MEMBER_NOTE_SEEDS: StaffTeamMemberNoteSeed[] = [
   {
     memberKey: 'alex_chen',
-    body: 'Reviewed API latency metrics and flagged two services for cache tuning.',
+    body: '复盘 API 延迟指标，并标记两个服务需要做缓存调优。',
     appearanceIcon: 'lucide:message-circle',
     appearanceColor: '#2563eb',
     daysAgo: 14,
   },
   {
     memberKey: 'priya_nair',
-    body: 'Partnered with design to refresh the admin UI spacing scale.',
+    body: '与设计协作刷新后台界面的间距规范。',
     appearanceIcon: 'lucide:pen-tool',
     appearanceColor: '#0ea5e9',
     daysAgo: 9,
   },
   {
     memberKey: 'marta_lopez',
-    body: 'Prepared Q2 roadmap review and surfaced three customer retention risks.',
+    body: '准备 Q2 路线图评审，并暴露三个客户留存风险。',
     appearanceIcon: 'lucide:clipboard-list',
     appearanceColor: '#14b8a6',
     daysAgo: 21,
   },
   {
     memberKey: 'samir_haddad',
-    body: 'Shared updated journey map for onboarding and handoff to support.',
+    body: '同步新版入职旅程图，并交接给支持团队。',
     appearanceIcon: 'lucide:map',
     appearanceColor: '#f97316',
     daysAgo: 6,
   },
   {
     memberKey: 'jordan_kim',
-    body: 'Reviewed incident playbooks and scheduled a backup drill.',
+    body: '复盘事故预案，并安排备份演练。',
     appearanceIcon: 'lucide:shield-check',
     appearanceColor: '#7c3aed',
     daysAgo: 3,
@@ -298,71 +314,71 @@ const TEAM_MEMBER_NOTE_SEEDS: StaffTeamMemberNoteSeed[] = [
 const TEAM_MEMBER_ACTIVITY_SEEDS: StaffTeamMemberActivitySeed[] = [
   {
     memberKey: 'alex_chen',
-    activityType: 'Performance review',
-    subject: 'Q1 performance review complete',
-    body: 'Aligned on scaling priorities for platform observability.',
+    activityType: '绩效复盘',
+    subject: 'Q1 绩效复盘已完成',
+    body: '对齐平台可观测性的扩展优先级。',
     appearanceIcon: 'lucide:clipboard-check',
     appearanceColor: '#2563eb',
     daysAgo: 30,
     customFields: {
       activity_outcome: 'completed',
-      follow_up_owner: 'Alex Chen',
+      follow_up_owner: '陈立',
       requires_follow_up: false,
     },
   },
   {
     memberKey: 'priya_nair',
-    activityType: 'Training',
-    subject: 'Completed accessibility refresher',
-    body: 'Focused on color contrast and keyboard navigation.',
+    activityType: '培训',
+    subject: '已完成无障碍能力刷新培训',
+    body: '重点覆盖色彩对比度和键盘导航。',
     appearanceIcon: 'lucide:graduation-cap',
     appearanceColor: '#0ea5e9',
     daysAgo: 18,
     customFields: {
       activity_outcome: 'completed',
-      follow_up_owner: 'Priya Nair',
+      follow_up_owner: '林佳',
       requires_follow_up: false,
     },
   },
   {
     memberKey: 'marta_lopez',
-    activityType: 'Certification',
-    subject: 'Product strategy certification',
-    body: 'Covered outcome-driven roadmapping practices.',
+    activityType: '认证',
+    subject: '产品策略认证',
+    body: '覆盖结果导向的路线图实践。',
     appearanceIcon: 'lucide:badge-check',
     appearanceColor: '#16a34a',
     daysAgo: 40,
     customFields: {
       activity_outcome: 'completed',
-      follow_up_owner: 'Marta Lopez',
+      follow_up_owner: '罗明',
       requires_follow_up: false,
     },
   },
   {
     memberKey: 'samir_haddad',
-    activityType: 'Onboarding',
-    subject: 'New design tooling walkthrough',
-    body: 'Introduced shared component library workflows.',
+    activityType: '入职',
+    subject: '新版设计工具走查',
+    body: '介绍共享组件库的协作流程。',
     appearanceIcon: 'lucide:user-plus',
     appearanceColor: '#f97316',
     daysAgo: 12,
     customFields: {
       activity_outcome: 'completed',
-      follow_up_owner: 'Samir Haddad',
+      follow_up_owner: '何思远',
       requires_follow_up: false,
     },
   },
   {
     memberKey: 'jordan_kim',
-    activityType: 'Shift change',
-    subject: 'On-call rotation update',
-    body: 'Moved primary on-call to midweek coverage.',
+    activityType: '排班调整',
+    subject: '值班轮换更新',
+    body: '将主值班调整到周中覆盖。',
     appearanceIcon: 'lucide:clock-3',
     appearanceColor: '#7c3aed',
     daysAgo: 7,
     customFields: {
       activity_outcome: 'rescheduled',
-      follow_up_owner: 'Jordan Kim',
+      follow_up_owner: '金周',
       requires_follow_up: true,
     },
   },
@@ -371,59 +387,59 @@ const TEAM_MEMBER_ACTIVITY_SEEDS: StaffTeamMemberActivitySeed[] = [
 const TEAM_MEMBER_ADDRESS_SEEDS: StaffTeamMemberAddressSeed[] = [
   {
     memberKey: 'alex_chen',
-    name: 'HQ workspace',
-    purpose: 'job address',
+    name: '总部工位',
+    purpose: '办公地址',
     companyName: 'Helios',
     addressLine1: '120 Market Street',
     city: 'San Francisco',
     region: 'CA',
     postalCode: '94105',
-    country: 'United States',
+    country: '美国',
     isPrimary: true,
   },
   {
     memberKey: 'priya_nair',
-    name: 'Home office',
-    purpose: 'home address',
+    name: '家庭办公室',
+    purpose: '家庭地址',
     addressLine1: '48 Maple Avenue',
     city: 'Austin',
     region: 'TX',
     postalCode: '78701',
-    country: 'United States',
+    country: '美国',
     isPrimary: true,
   },
   {
     memberKey: 'marta_lopez',
-    name: 'Primary residence',
-    purpose: 'home address',
+    name: '主要住所',
+    purpose: '家庭地址',
     addressLine1: '19 Calle del Prado',
     city: 'Madrid',
     region: 'Community of Madrid',
     postalCode: '28014',
-    country: 'Spain',
+    country: '西班牙',
     isPrimary: true,
   },
   {
     memberKey: 'samir_haddad',
-    name: 'Remote workspace',
-    purpose: 'mailing address',
+    name: '远程工作点',
+    purpose: '邮寄地址',
     addressLine1: '77 Cedar Lane',
     city: 'Manchester',
     region: 'Greater Manchester',
     postalCode: 'M1 1AA',
-    country: 'United Kingdom',
+    country: '英国',
     isPrimary: true,
   },
   {
     memberKey: 'jordan_kim',
-    name: 'Operations hub',
-    purpose: 'job address',
+    name: '运营中心',
+    purpose: '办公地址',
     companyName: 'Helios',
     addressLine1: '350 Harbor Drive',
     city: 'Seattle',
     region: 'WA',
     postalCode: '98101',
-    country: 'United States',
+    country: '美国',
     isPrimary: true,
   },
 ]
@@ -432,20 +448,47 @@ const STAFF_ACTIVITY_TYPE_DICTIONARY_KEY = 'staff-activity-types'
 const STAFF_ADDRESS_TYPE_DICTIONARY_KEY = 'staff-address-types'
 
 const STAFF_ACTIVITY_TYPE_DEFAULTS: DictionarySeedEntry[] = [
-  { value: 'Onboarding', label: 'Onboarding', icon: 'lucide:user-plus', color: '#2563eb' },
-  { value: 'Training', label: 'Training', icon: 'lucide:graduation-cap', color: '#0ea5e9' },
-  { value: 'Performance review', label: 'Performance review', icon: 'lucide:clipboard-list', color: '#8b5cf6' },
-  { value: 'Certification', label: 'Certification', icon: 'lucide:badge-check', color: '#16a34a' },
-  { value: 'Time off', label: 'Time off', icon: 'lucide:calendar-minus', color: '#f59e0b' },
-  { value: 'Shift change', label: 'Shift change', icon: 'lucide:clock-3', color: '#22c55e' },
-  { value: 'Role change', label: 'Role change', icon: 'lucide:shuffle', color: '#f97316' },
+  { value: '入职', label: '入职', icon: 'lucide:user-plus', color: '#2563eb' },
+  { value: '培训', label: '培训', icon: 'lucide:graduation-cap', color: '#0ea5e9' },
+  { value: '绩效复盘', label: '绩效复盘', icon: 'lucide:clipboard-list', color: '#8b5cf6' },
+  { value: '认证', label: '认证', icon: 'lucide:badge-check', color: '#16a34a' },
+  { value: '休假', label: '休假', icon: 'lucide:calendar-minus', color: '#f59e0b' },
+  { value: '排班调整', label: '排班调整', icon: 'lucide:clock-3', color: '#22c55e' },
+  { value: '角色变更', label: '角色变更', icon: 'lucide:shuffle', color: '#f97316' },
 ]
 
 const STAFF_ADDRESS_TYPE_DEFAULTS: DictionarySeedEntry[] = [
-  { value: 'home address', label: 'Home address' },
-  { value: 'mailing address', label: 'Mailing address' },
-  { value: 'job address', label: 'Job address' },
+  { value: '家庭地址', label: '家庭地址' },
+  { value: '邮寄地址', label: '邮寄地址' },
+  { value: '办公地址', label: '办公地址' },
 ]
+
+function uniqueSeedNames(...groups: Array<Array<string | undefined> | undefined>): string[] {
+  return Array.from(
+    new Set(
+      groups
+        .flatMap((group) => group ?? [])
+        .map((value) => value?.trim())
+        .filter((value): value is string => Boolean(value)),
+    ),
+  )
+}
+
+function normalizeSeedLookupName(value: string | null | undefined): string {
+  return (value ?? '').trim().toLowerCase()
+}
+
+function findSeededRecordByName<T>(
+  byName: Map<string, T>,
+  currentName: string,
+  legacyNames: string[] | undefined,
+): T | undefined {
+  for (const candidate of uniqueSeedNames([currentName], legacyNames)) {
+    const found = byName.get(normalizeSeedLookupName(candidate))
+    if (found) return found
+  }
+  return undefined
+}
 
 async function ensureStaffTeamMemberCustomFields(em: EntityManager, scope: StaffSeedScope) {
   const now = new Date()
@@ -519,8 +562,8 @@ export async function seedStaffActivityTypes(
 ) {
   const dictionary = await ensureStaffDictionary(em, scope, {
     key: STAFF_ACTIVITY_TYPE_DICTIONARY_KEY,
-    name: 'Staff activity types',
-    description: 'Activity types for team member timelines (training, reviews, etc.).',
+    name: '员工活动类型',
+    description: '用于员工时间线的活动类型，如培训、复盘和认证。',
   })
   const existingEntries = await em.find(DictionaryEntry, {
     dictionary,
@@ -579,8 +622,8 @@ export async function seedStaffAddressTypes(
 ) {
   const dictionary = await ensureStaffDictionary(em, scope, {
     key: STAFF_ADDRESS_TYPE_DICTIONARY_KEY,
-    name: 'Staff address types',
-    description: 'Address types for team member profiles (home, mailing, job).',
+    name: '员工地址类型',
+    description: '用于员工档案的地址类型，如家庭、邮寄和办公地址。',
   })
   const existingEntries = await em.find(DictionaryEntry, {
     dictionary,
@@ -691,7 +734,10 @@ export async function seedStaffTeamExamples(
   await seedStaffAddressTypes(em, scope)
   await ensureStaffTeamMemberCustomFields(em, scope)
   const now = new Date()
-  const teamNames = TEAM_SEEDS.map((seed) => seed.name)
+  const teamNames = uniqueSeedNames(
+    TEAM_SEEDS.map((seed) => seed.name),
+    TEAM_SEEDS.flatMap((seed) => seed.legacyNames ?? []),
+  )
   const existingTeams = await findWithDecryption(
     em,
     StaffTeam,
@@ -704,14 +750,18 @@ export async function seedStaffTeamExamples(
     undefined,
     scope,
   )
-  const teamByName = new Map(existingTeams.map((team) => [team.name.toLowerCase(), team]))
+  const teamByName = new Map(existingTeams.map((team) => [normalizeSeedLookupName(team.name), team]))
   const teamByKey = new Map<string, StaffTeam>()
   for (const seed of TEAM_SEEDS) {
-    const existing = teamByName.get(seed.name.toLowerCase())
+    const existing = findSeededRecordByName(teamByName, seed.name, seed.legacyNames)
     if (existing) {
       let updated = false
-      if (!existing.description && seed.description) {
-        existing.description = seed.description
+      if (existing.name !== seed.name) {
+        existing.name = seed.name
+        updated = true
+      }
+      if (existing.description !== (seed.description ?? null)) {
+        existing.description = seed.description ?? null
         updated = true
       }
       if (updated) {
@@ -735,7 +785,10 @@ export async function seedStaffTeamExamples(
   }
   await em.flush()
 
-  const roleNames = TEAM_ROLE_SEEDS.map((seed) => seed.name)
+  const roleNames = uniqueSeedNames(
+    TEAM_ROLE_SEEDS.map((seed) => seed.name),
+    TEAM_ROLE_SEEDS.flatMap((seed) => seed.legacyNames ?? []),
+  )
   const existingRoles = await findWithDecryption(
     em,
     StaffTeamRole,
@@ -748,27 +801,31 @@ export async function seedStaffTeamExamples(
     undefined,
     scope,
   )
-  const roleByName = new Map(existingRoles.map((role) => [role.name.toLowerCase(), role]))
+  const roleByName = new Map(existingRoles.map((role) => [normalizeSeedLookupName(role.name), role]))
   const roleByKey = new Map<string, StaffTeamRole>()
   for (const seed of TEAM_ROLE_SEEDS) {
-    const existing = roleByName.get(seed.name.toLowerCase())
+    const existing = findSeededRecordByName(roleByName, seed.name, seed.legacyNames)
     const teamId = seed.teamKey ? teamByKey.get(seed.teamKey)?.id ?? null : null
     if (existing) {
       let updated = false
-      if (!existing.teamId && teamId) {
+      if (existing.name !== seed.name) {
+        existing.name = seed.name
+        updated = true
+      }
+      if (existing.teamId !== teamId) {
         existing.teamId = teamId
         updated = true
       }
-      if (!existing.appearanceIcon && seed.appearanceIcon) {
-        existing.appearanceIcon = seed.appearanceIcon
+      if (existing.appearanceIcon !== (seed.appearanceIcon ?? null)) {
+        existing.appearanceIcon = seed.appearanceIcon ?? null
         updated = true
       }
-      if (!existing.appearanceColor && seed.appearanceColor) {
-        existing.appearanceColor = seed.appearanceColor
+      if (existing.appearanceColor !== (seed.appearanceColor ?? null)) {
+        existing.appearanceColor = seed.appearanceColor ?? null
         updated = true
       }
-      if (!existing.description && seed.description) {
-        existing.description = seed.description
+      if (existing.description !== (seed.description ?? null)) {
+        existing.description = seed.description ?? null
         updated = true
       }
       if (updated) {
@@ -811,7 +868,10 @@ export async function seedStaffTeamExamples(
     return left.localeCompare(right)
   })
 
-  const memberNames = TEAM_MEMBER_SEEDS.map((seed) => seed.displayName)
+  const memberNames = uniqueSeedNames(
+    TEAM_MEMBER_SEEDS.map((seed) => seed.displayName),
+    TEAM_MEMBER_SEEDS.flatMap((seed) => seed.legacyDisplayNames ?? []),
+  )
   const existingMembers = await findWithDecryption(
     em,
     StaffTeamMember,
@@ -824,7 +884,7 @@ export async function seedStaffTeamExamples(
     undefined,
     scope,
   )
-  const memberByName = new Map(existingMembers.map((member) => [member.displayName.toLowerCase(), member]))
+  const memberByName = new Map(existingMembers.map((member) => [normalizeSeedLookupName(member.displayName), member]))
 
   const memberByKey = new Map<string, StaffTeamMember>()
   for (const seed of TEAM_MEMBER_SEEDS) {
@@ -835,23 +895,27 @@ export async function seedStaffTeamExamples(
       ? sortedUsers[seed.userIndex]?.id ?? null
       : null
     const teamId = seed.teamKey ? teamByKey.get(seed.teamKey)?.id ?? null : null
-    const existing = memberByName.get(seed.displayName.toLowerCase())
+    const existing = findSeededRecordByName(memberByName, seed.displayName, seed.legacyDisplayNames)
     if (existing) {
       let updated = false
-      if (!existing.teamId && teamId) {
+      if (existing.displayName !== seed.displayName) {
+        existing.displayName = seed.displayName
+        updated = true
+      }
+      if (existing.teamId !== teamId) {
         existing.teamId = teamId
         updated = true
       }
-      if (!existing.description && seed.description) {
-        existing.description = seed.description
+      if (existing.description !== (seed.description ?? null)) {
+        existing.description = seed.description ?? null
         updated = true
       }
-      if ((!existing.roleIds || existing.roleIds.length === 0) && roleIds.length) {
+      if (JSON.stringify(existing.roleIds ?? []) !== JSON.stringify(roleIds)) {
         existing.roleIds = roleIds
         updated = true
       }
       const seedTags = seed.tags ?? []
-      if ((!existing.tags || existing.tags.length === 0) && seedTags.length) {
+      if (JSON.stringify(existing.tags ?? []) !== JSON.stringify(seedTags)) {
         existing.tags = seedTags
         updated = true
       }

@@ -46,6 +46,38 @@ When a tenant has flipped the **Disable agentic loop** kill switch from [Setting
 
 Use the panel to confirm that a newly-saved prompt or loop override reached the runtime without restarting anything.
 
+## Tools tab
+
+The playground also includes a **Tools** tab with demo presets, search, and module grouping. It lists every AI tool visible to the caller, marks which ones are whitelisted on the selected agent, and labels read/write, bulk, and destructive tools for quick review before a demo.
+
+Use the preset row to jump between common review cuts:
+
+- **Overview**: all visible tools grouped by module.
+- **Bulk review**: tools tagged or named for bulk operations.
+- **Write ops**: mutation tools.
+- **Whitelist**: tools the selected agent is allowed to call.
+- **Risk check**: destructive or conditionally destructive tools.
+
+## Operating-loop acceptance
+
+For the M5-M7 operating advisor, use real app data and real model calls rather than mocked assistant replies:
+
+```bash
+yarn operating-loop:seed
+yarn ai:live-eval
+```
+
+`yarn operating-loop:seed` logs the seeded `organizationId`, `projectId`, and related record IDs. Reuse those values for page-context-aware live evaluation:
+
+```bash
+LIVE_AI_APP_URL=http://localhost:3000 \
+LIVE_AI_ORGANIZATION_ID=<organizationId> \
+LIVE_AI_PROJECT_ID=<projectId> \
+yarn ai:live-eval
+```
+
+The live eval uses fixed Chinese prompts and fails when the model response omits required tool calls, numbers, formula/source wording, evidence markers, or `/backend/...` links. Provider configuration comes from the normal model env (`LIVE_AI_API_KEY`, `LIVE_AI_BASE_URL`, `LIVE_AI_MODEL`, or the matching OpenAI/Helios aliases).
+
 ## Shortcuts
 
 The playground reuses the shared `<AiChat>` shortcut set:
@@ -67,5 +99,6 @@ Use this route after changing task plans, tool streaming, or prompt guidance:
 
 1. Open `/backend/config/ai-assistant/playground` and pick `customers.account_assistant` or `customers.deal_analyzer`.
 2. Ask: `Find deals assigned to Joe and summarize the useful matches.`
-3. Verify the visible plan appears before the CRM tool result finishes, the matching step advances from `pending` or `running` to `done`, and the raw `meta.update_task_plan` tool row is not shown as an operator task. Catalog agents stay quiet by default unless you opt them in with `taskPlan: { enabled: true }`.
-4. To cover the error path, temporarily remove a required CRM tool from the picked agent via a local prompt/tool override or use a test provider stub that returns a tool error. Send the same prompt and verify the matching plan row becomes `failed` while the final assistant text still renders.
+3. Switch to the **Tools** tab and use **Bulk review**, **Write ops**, and **Whitelist** to confirm the inventory stays grouped by module and the currently selected agent's whitelist is marked `Allowed`, while the rest stay `Not allowed`.
+4. Switch back to Chat and verify the visible plan appears before the CRM tool result finishes, the matching step advances from `pending` or `running` to `done`, and the raw `meta.update_task_plan` tool row is not shown as an operator task. Catalog agents stay quiet by default unless you opt them in with `taskPlan: { enabled: true }`.
+5. To cover the error path, temporarily remove a required CRM tool from the picked agent via a local prompt/tool override or use a test provider stub that returns a tool error. Send the same prompt and verify the matching plan row becomes `failed` while the final assistant text still renders.

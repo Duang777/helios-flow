@@ -1,4 +1,5 @@
 import type { NotificationDto, NotificationSeverity } from './types'
+import type { TranslateFn } from '../../lib/i18n/context'
 
 export type NotificationHandlerPopupAction = {
   label: string
@@ -36,7 +37,7 @@ export type NotificationHandlerContext = {
    * that emit user-facing copy (e.g. a toast action label) MUST localize via
    * this when available and fall back to an English literal only when absent.
    */
-  t?: (key: string, fallback?: string) => string
+  t?: TranslateFn
   toast: (options: NotificationHandlerToastOptions) => void
   popup: (options: NotificationHandlerPopupOptions) => void
   emitEvent: (eventName: string, detail?: unknown) => void

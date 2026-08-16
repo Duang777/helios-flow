@@ -51,6 +51,7 @@
   "feature_toggles.list.headers.name": "Name",
   "feature_toggles.list.headers.type": "Typ",
   "feature_toggles.list.table.refresh": "Aktualisieren",
+  "feature_toggles.nav.description": "Global feature flags with tenant-level overrides.",
   "feature_toggles.nav.global": "Global",
   "feature_toggles.nav.group": "Feature-Schalter",
   "feature_toggles.nav.overrides": "Überschreibungen",

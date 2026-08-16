@@ -11,6 +11,7 @@ import { DataTable } from '../DataTable'
 import { APP_EVENT_DHELIOS_NAME } from '../injection/useAppEvent'
 
 const mockRouterRefresh = jest.fn()
+const mockInjectionSpotRender = jest.fn()
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn(), replace: jest.fn(), prefetch: jest.fn(), refresh: mockRouterRefresh }),
@@ -20,6 +21,17 @@ const useInjectionDataWidgetsMock = jest.fn()
 const flashMock = jest.fn()
 jest.mock('../injection/useInjectionDataWidgets', () => ({
   useInjectionDataWidgets: (spotId: string) => useInjectionDataWidgetsMock(spotId),
+}))
+jest.mock('../injection/InjectionSpot', () => ({
+  ...jest.requireActual('../injection/InjectionSpot'),
+  useInjectionSpotEvents: () => ({ triggerEvent: jest.fn(async () => undefined) }),
+  InjectionSpot: (props: { spotId: string; context?: unknown }) => {
+    const ReactRuntime = jest.requireActual('react') as typeof React
+    mockInjectionSpotRender(props)
+    return ReactRuntime.createElement('span', {
+      'data-testid': `injection-spot-${props.spotId}`,
+    })
+  },
 }))
 // InjectionSpot/useInjectionSpotEvents (rendered whenever injectionSpotId is
 // set) load spot widgets through the real async registry loader; unmocked it
@@ -76,6 +88,7 @@ describe('DataTable extensions', () => {
     useInjectionDataWidgetsMock.mockImplementation(() => ({ widgets: [], isLoading: false, error: null }))
     flashMock.mockReset()
     mockRouterRefresh.mockReset()
+    mockInjectionSpotRender.mockReset()
   })
 
   it('renders injected columns from data-table extension surface', () => {
@@ -214,12 +227,67 @@ describe('DataTable extensions', () => {
         [],
         expect.objectContaining({
           tableId: 'customers.people',
-          injectionContext: { search: 'alice', filters: { isActive: true } },
+          injectionContext: expect.objectContaining({
+            search: 'alice',
+            filters: { isActive: true },
+            tableId: 'customers.people',
+            rowCount: 1,
+            totalMatching: 1,
+          }),
           confirm: expect.any(Function),
           translate: expect.any(Function),
         }),
       )
       expect(flashMock).toHaveBeenCalledWith('Bulk action completed.', 'success')
+    } finally {
+      rendered.cleanupQueryClient()
+    }
+  })
+
+  it('forwards visible table state to search-trailing widgets', async () => {
+    const rendered = renderTable({
+      columns: [{ accessorKey: 'name', header: 'Name' }],
+      data: [
+        { id: 'r1', name: 'Alice' },
+        { id: 'r2', name: 'Bob' },
+      ],
+      searchValue: 'alice',
+      onSearchChange: jest.fn(),
+      filterValues: { status: 'active' },
+      pagination: { page: 2, pageSize: 50, total: 125, totalPages: 3, onPageChange: jest.fn() },
+      perspective: { tableId: 'projects.list' },
+      injectionContext: {
+        organizationId: 'org-1',
+        entityType: 'projects.project',
+      },
+      bulkActions: [{ id: 'bulk', label: 'Bulk', onExecute: jest.fn() }],
+    })
+
+    try {
+      fireEvent.click(screen.getAllByRole('checkbox', { name: 'Select row' })[0])
+
+      await waitFor(() =>
+        expect(mockInjectionSpotRender.mock.calls.map(([props]) => props)).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              spotId: 'data-table:projects.list:search-trailing',
+              context: expect.objectContaining({
+                tableId: 'projects.list',
+                organizationId: 'org-1',
+                entityType: 'projects.project',
+                searchValue: 'alice',
+                visibleFilters: { status: 'active' },
+                page: 2,
+                pageSize: 50,
+                totalMatching: 125,
+                selectedRowIds: ['r1'],
+                selectedCount: 1,
+                rowCount: 2,
+              }),
+            }),
+          ]),
+        ),
+      )
     } finally {
       rendered.cleanupQueryClient()
     }

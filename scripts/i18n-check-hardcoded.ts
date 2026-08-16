@@ -19,6 +19,7 @@
  *   tsx scripts/i18n-check-hardcoded.ts --quiet         # totals only
  *   tsx scripts/i18n-check-hardcoded.ts --path <glob>   # narrow the scan
  *   tsx scripts/i18n-check-hardcoded.ts --json          # machine output
+ *   tsx scripts/i18n-check-hardcoded.ts --json-summary  # machine output without finding rows
  *
  * Exit code: always 0 in Phase 1 (advisory). Switching to a hard gate is
  * deferred to the Phase 6 baseline-file rollout.
@@ -90,6 +91,7 @@ const DEFAULT_IGNORE = [
 interface CliOptions {
   quiet: boolean
   json: boolean
+  jsonSummary: boolean
   paths: string[]
   showFindingLimit: number
 }
@@ -98,6 +100,7 @@ function parseArgs(argv: string[]): CliOptions {
   const opts: CliOptions = {
     quiet: false,
     json: false,
+    jsonSummary: false,
     paths: [],
     showFindingLimit: 12,
   }
@@ -105,6 +108,7 @@ function parseArgs(argv: string[]): CliOptions {
     const arg = argv[i]
     if (arg === '--quiet') opts.quiet = true
     else if (arg === '--json') opts.json = true
+    else if (arg === '--json-summary') opts.jsonSummary = true
     else if (arg === '--path' && argv[i + 1]) {
       opts.paths.push(argv[i + 1])
       i++
@@ -220,7 +224,7 @@ function main() {
   const totalFiles = reports.reduce((acc, r) => acc + r.files, 0)
   const elapsedMs = Date.now() - startedAt
 
-  if (opts.json) {
+  if (opts.json || opts.jsonSummary) {
     const payload = {
       totalFindings,
       totalAllowlisted,
@@ -229,7 +233,8 @@ function main() {
       modules: reports.map((r) => ({
         moduleKey: r.moduleKey,
         files: r.files,
-        findings: r.findings,
+        findings: opts.jsonSummary ? undefined : r.findings,
+        findingsCount: r.findings.length,
         allowlisted: r.allowlisted,
       })),
     }

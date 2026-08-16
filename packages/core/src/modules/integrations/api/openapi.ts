@@ -17,7 +17,9 @@ export const integrationAnalyticsSchema = z.object({
 export const integrationInfoSchema = z.object({
   id: z.string(),
   title: z.string(),
+  titleKey: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
+  descriptionKey: z.string().nullable().optional(),
   category: z.string().nullable(),
   tags: z.array(z.string()),
   hub: z.string().nullable(),
@@ -39,7 +41,9 @@ export const integrationInfoSchema = z.object({
 export const integrationBundleSummarySchema = z.object({
   id: z.string(),
   title: z.string(),
+  titleKey: z.string().nullable().optional(),
   description: z.string(),
+  descriptionKey: z.string().nullable().optional(),
   icon: z.string().nullable(),
   integrationCount: z.number(),
   enabledCount: z.number(),

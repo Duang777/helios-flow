@@ -39,7 +39,6 @@
   "auth.email.resetPassword.subject": "Passwort zurücksetzen",
   "auth.email.resetPassword.title": "Passwort zurücksetzen",
   "auth.login.brandName": "Helios",
-  "auth.login.panelHeadline": "Führen Sie Ihr Unternehmen mit ruhiger Klarheit.",
   "auth.login.errors.generic": "Es ist ein Fehler aufgetreten. Bitte versuche es erneut.",
   "auth.login.errors.invalidCredentials": "Ungültige E-Mail oder ungültiges Passwort",
   "auth.login.errors.permissionDenied": "Du hast keine Berechtigung, auf diesen Bereich zuzugreifen. Bitte wende dich an deine Administration.",
@@ -48,6 +47,7 @@
   "auth.login.forgotPassword": "Passwort vergessen?",
   "auth.login.loading": "Wird geladen ...",
   "auth.login.logoAlt": "Helios Logo",
+  "auth.login.panelHeadline": "Führen Sie Ihr Unternehmen mit ruhiger Klarheit.",
   "auth.login.rememberMe": "Angemeldet bleiben",
   "auth.login.requireRoleMessage": "Für den Zugriff ist die folgende Rolle erforderlich: {roles}",
   "auth.login.requireRolesMessage": "Für den Zugriff ist eine der folgenden Rollen erforderlich: {roles}",
@@ -247,12 +247,12 @@
   "ui.profileMenu.changePassword": "Passwort ändern",
   "ui.profileMenu.language": "Sprache",
   "ui.profileMenu.notifications": "Benachrichtigungseinstellungen",
+  "ui.profileMenu.palette": "Erscheinungsbild",
+  "ui.profileMenu.palette.classic": "Weiß",
+  "ui.profileMenu.palette.warm": "Warm",
   "ui.profileMenu.profile": "Mein Profil",
   "ui.profileMenu.settings": "Einstellungen",
   "ui.profileMenu.theme": "Design",
   "ui.profileMenu.theme.dark": "Dunkel",
-  "ui.profileMenu.theme.light": "Hell",
-  "ui.profileMenu.palette": "Erscheinungsbild",
-  "ui.profileMenu.palette.warm": "Warm",
-  "ui.profileMenu.palette.classic": "Weiß"
+  "ui.profileMenu.theme.light": "Hell"
 }

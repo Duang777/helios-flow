@@ -31,7 +31,7 @@ export function isIgnorableSetupEnvNoticeLine(line) {
 
 export function isIgnorableHeliosCliBannerLine(line) {
   if (typeof line !== 'string') return false
-  return /^Helios CLI$/i.test(normalize(line))
+  return /^(Helios CLI|open helios cli)$/i.test(normalize(line))
 }
 
 export function isIgnorableTurboBannerLine(line) {

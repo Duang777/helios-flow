@@ -3,6 +3,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import { createLogger } from '@helios/shared/lib/logger'
 import type { Queue, QueuedJob, JobHandler, LocalQueueOptions, ProcessOptions, ProcessResult, EnqueueOptions, QueueJobScope } from '../types'
+import { resolveLocalQueueBaseDir } from '../local-base-dir'
 
 const packageLogger = createLogger('queue')
 
@@ -32,7 +33,6 @@ function payloadMatchesScope(payload: unknown, scope: QueueJobScope): boolean {
 
 /** Default polling interval in milliseconds */
 const DEFAULT_POLL_INTERVAL = 1000
-const DEFAULT_LOCAL_QUEUE_BASE_DIR = '.helios/queue'
 const DEFAULT_MAX_ATTEMPTS = 3
 const RETRY_BACKOFF_BASE_MS = 1000
 
@@ -68,8 +68,7 @@ export function createLocalQueue<T = unknown>(
 ): Queue<T> {
   const nodeProcess = (globalThis as typeof globalThis & { process?: NodeJS.Process }).process
   const queueBaseDirFromEnv = nodeProcess?.env?.QUEUE_BASE_DIR
-  const baseDir = options?.baseDir
-    ?? path.resolve(queueBaseDirFromEnv || DEFAULT_LOCAL_QUEUE_BASE_DIR)
+  const baseDir = resolveLocalQueueBaseDir(options?.baseDir ?? queueBaseDirFromEnv)
   const queueDir = path.join(baseDir, name)
   const queueFile = path.join(queueDir, 'queue.json')
   const stateFile = path.join(queueDir, 'state.json')

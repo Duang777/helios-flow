@@ -232,6 +232,18 @@ describe('Queue - local strategy', () => {
     await queue.close()
   })
 
+  test('default local queue base directory resolves under the runtime cwd', async () => {
+    const queue = createQueue('runtime-cwd-queue', 'local')
+    const queueDir = path.join(tmp, '.helios', 'queue', 'runtime-cwd-queue')
+
+    await queue.enqueue({ data: 'test' })
+
+    expect(fs.existsSync(path.join(queueDir, 'queue.json'))).toBe(true)
+    expect(fs.existsSync(path.join(queueDir, 'state.json'))).toBe(true)
+
+    await queue.close()
+  })
+
   test('custom baseDir option is respected', async () => {
     const customDir = path.join(tmp, 'custom-queue-dir')
     const queue = createQueue('test', 'local', { baseDir: customDir })

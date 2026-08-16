@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>项目交付 模块走查</title>
+  <style>
+    :root { --bg:#f7f4ef; --card:#fff; --text:#1f1a17; --muted:#5c534c; --border:#e4ddd4; --accent:#3d2b1f; }
+    body { margin:0; font-family:"PingFang SC","Hiragino Sans GB","Noto Sans SC",system-ui,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+    main { max-width:960px; margin:0 auto; padding:32px 20px 64px; }
+    h1 { font-size:1.7rem; margin:0 0 8px; }
+    h2 { font-size:1.2rem; margin:36px 0 10px; }
+    .muted { color:var(--muted); }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin:12px 0 24px; }
+    .card img { display:block; width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+    .card figcaption { margin-top:10px; color:var(--muted); font-size:.95rem; }
+    table { width:100%; border-collapse:collapse; background:var(--card); margin:12px 0 20px; }
+    th,td { border:1px solid var(--border); padding:8px 10px; text-align:left; }
+    th { background:#efe8df; }
+    a { color:var(--accent); }
+    code { font-family:ui-monospace,Menlo,monospace; font-size:.9rem; }
+    nav a { margin-right:12px; }
+  </style>
+</head>
+<body>
+  <main>
+    <nav>
+      <a href="./index.html">模块索引</a>
+      <a href="../operating-loop-walkthrough.html">经营闭环总览</a>
+      <a href="./projects.md">Markdown</a>
+    </nav>
+    <h1>项目交付（<code>projects</code>）</h1>
+    <p>交付主档（M5）。从商机/客户立项，维护里程碑与风险。</p>
+    <p class="muted">演示环境 http://localhost:3000 · admin@acme.com · 2026-08-08</p>
+    <h2>后台入口</h2>
+    <table>
+      <thead><tr><th>页面</th><th>路径</th></tr></thead>
+      <tbody>
+<tr><td>项目</td><td><code>/backend/projects</code></td></tr>
+<tr><td>里程碑</td><td><code>/backend/milestones</code></td></tr>
+<tr><td>风险</td><td><code>/backend/risks</code></td></tr>
+      </tbody>
+    </table>
+    <h2>要点</h2>
+    <ul>
+<li>项目详情可「创建合同」进入经营结算。</li>
+<li>延期里程碑会被治理规则检出。</li>
+    </ul>
+    <h2>界面截图</h2>
+
+    <h2>项目列表</h2>
+    <p>入口：<code>/backend/projects</code></p>
+    <figure class="card">
+      <img src="../assets/module-walkthroughs/projects/list.png" alt="项目列表" />
+      <figcaption>项目列表</figcaption>
+    </figure>
+
+    <h2>里程碑列表</h2>
+    <p>入口：<code>/backend/milestones</code></p>
+    <figure class="card">
+      <img src="../assets/module-walkthroughs/projects/milestones.png" alt="里程碑列表" />
+      <figcaption>里程碑列表</figcaption>
+    </figure>
+
+    <h2>风险列表</h2>
+    <p>入口：<code>/backend/risks</code></p>
+    <figure class="card">
+      <img src="../assets/module-walkthroughs/projects/risks.png" alt="风险列表" />
+      <figcaption>风险列表</figcaption>
+    </figure>
+  </main>
+</body>
+</html>

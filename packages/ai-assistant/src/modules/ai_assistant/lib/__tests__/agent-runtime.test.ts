@@ -278,6 +278,41 @@ describe('runAiAgentText', () => {
     expect(callArg.system).toBe('System prompt base.')
   })
 
+  it('appends resolvePageContext output for list page contexts with entityType and tableId', async () => {
+    const resolvePageContext = jest.fn(async (_input: AiAgentPageContextInput) => 'Hydrated list context.')
+    seedAgentRegistryForTests([
+      makeAgent({
+        id: 'customers.assistant',
+        moduleId: 'customers',
+        resolvePageContext,
+      }),
+    ])
+
+    await runAiAgentText({
+      agentId: 'customers.assistant',
+      messages: baseMessages as never,
+      authContext: baseAuth,
+      pageContext: {
+        entityType: 'customers:person',
+        recordId: null,
+        tableId: 'customers.people.list',
+        visibleFilters: { status: 'active' },
+      },
+      container: {} as never,
+    })
+
+    expect(resolvePageContext).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityType: 'customers:person',
+        recordId: '',
+        tableId: 'customers.people.list',
+        visibleFilters: { status: 'active' },
+      }),
+    )
+    const callArg = streamTextMock.mock.calls[0][0] as { system: string }
+    expect(callArg.system).toBe('System prompt base.\n\nHydrated list context.')
+  })
+
   it('does not fail the request if resolvePageContext throws', async () => {
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
     const resolvePageContext = jest.fn(async () => {

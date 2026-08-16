@@ -5,7 +5,9 @@ export const syncExcelDetailWidgetSpotId = buildIntegrationDetailWidgetSpotId('s
 export const integration: IntegrationDefinition = {
   id: 'sync_excel',
   title: 'Excel / CSV Import',
+  titleKey: 'integrations.providers.sync_excel.title',
   description: 'Upload CSV files, preview mappings, and run file-based imports through Data Sync.',
+  descriptionKey: 'integrations.providers.sync_excel.description',
   category: 'data_sync',
   hub: 'data_sync',
   providerKey: 'excel',

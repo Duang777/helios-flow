@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>商品目录 模块走查</title>
+  <style>
+    :root { --bg:#f7f4ef; --card:#fff; --text:#1f1a17; --muted:#5c534c; --border:#e4ddd4; --accent:#3d2b1f; }
+    body { margin:0; font-family:"PingFang SC","Hiragino Sans GB","Noto Sans SC",system-ui,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+    main { max-width:960px; margin:0 auto; padding:32px 20px 64px; }
+    h1 { font-size:1.7rem; margin:0 0 8px; }
+    h2 { font-size:1.2rem; margin:36px 0 10px; }
+    .muted { color:var(--muted); }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin:12px 0 24px; }
+    .card img { display:block; width:100%; height:auto; border-radius:8px; border:1px solid var(--border); }
+    .card figcaption { margin-top:10px; color:var(--muted); font-size:.95rem; }
+    table { width:100%; border-collapse:collapse; background:var(--card); margin:12px 0 20px; }
+    th,td { border:1px solid var(--border); padding:8px 10px; text-align:left; }
+    th { background:#efe8df; }
+    a { color:var(--accent); }
+    code { font-family:ui-monospace,Menlo,monospace; font-size:.9rem; }
+    nav a { margin-right:12px; }
+  </style>
+</head>
+<body>
+  <main>
+    <nav>
+      <a href="./index.html">模块索引</a>
+      <a href="../operating-loop-walkthrough.html">经营闭环总览</a>
+      <a href="./catalog.md">Markdown</a>
+    </nav>
+    <h1>商品目录（<code>catalog</code>）</h1>
+    <p>可售商品主数据。产品、变体与分类供销售引用。</p>
+    <p class="muted">演示环境 http://localhost:3000 · admin@acme.com · 2026-08-08</p>
+    <h2>后台入口</h2>
+    <table>
+      <thead><tr><th>页面</th><th>路径</th></tr></thead>
+      <tbody>
+<tr><td>产品</td><td><code>/backend/catalog/products</code></td></tr>
+<tr><td>分类</td><td><code>/backend/catalog/categories</code></td></tr>
+      </tbody>
+    </table>
+    <h2>要点</h2>
+    <ul>
+<li>产品可维护变体；分类用于组织目录树。</li>
+    </ul>
+    <h2>界面截图</h2>
+
+    <h2>产品列表</h2>
+    <p>入口：<code>/backend/catalog/products</code></p>
+    <figure class="card">
+      <img src="../assets/module-walkthroughs/catalog/products.png" alt="产品列表" />
+      <figcaption>产品列表</figcaption>
+    </figure>
+
+    <h2>分类列表</h2>
+    <p>入口：<code>/backend/catalog/categories</code></p>
+    <figure class="card">
+      <img src="../assets/module-walkthroughs/catalog/categories.png" alt="分类列表" />
+      <figcaption>分类列表</figcaption>
+    </figure>
+  </main>
+</body>
+</html>

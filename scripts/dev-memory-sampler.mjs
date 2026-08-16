@@ -148,10 +148,17 @@ export function readCgroupMemory(cgroupRoot = '/sys/fs/cgroup') {
 }
 
 async function runPsSnapshot(execFileImpl = execFileAsync) {
-  const { stdout } = await execFileImpl('ps', ['-A', '-o', 'pid=,ppid=,rss=,args='], {
-    maxBuffer: 16 * 1024 * 1024,
-  })
-  return parsePsOutput(stdout)
+  try {
+    const { stdout } = await execFileImpl('ps', ['-A', '-o', 'pid=,ppid=,rss=,args='], {
+      maxBuffer: 16 * 1024 * 1024,
+    })
+    return parsePsOutput(stdout)
+  } catch {
+    // `ps` may be unavailable in restricted sandboxes / minimal containers.
+    // Returning null degrades memory sampling gracefully without crashing
+    // the dev runtime.
+    return []
+  }
 }
 
 export async function sampleProcessTreeMemory(rootPid, options = {}) {
