@@ -651,7 +651,7 @@ and capture the real model/tool output with Chinese and English subtitles.
 - [x] Add dry-run and preview manifest step details for review before recording.
 - [x] Document when to use Playwright versus WebReel for final competition videos.
 - [x] Run focused script tests and one local smoke capture.
-- [ ] Commit and push the detailed walkthrough pipeline.
+- [x] Commit and push the detailed walkthrough pipeline.
 
 ### Verification Notes
 - `node --test scripts/__tests__/demo-video-scenes.test.mjs` passed 7 focused
