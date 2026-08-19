@@ -188,6 +188,7 @@ When adding new injected widgets, follow this pattern — keep the widget self-c
 | `lib/` | When changing core engine logic (executor, handlers, compensation, signals) |
 | `subscribers/` | When adding event-driven side effects (trigger evaluation, notifications) |
 | `widgets/` | When adding cross-module UI injection (e.g., approval widgets) |
+| `ai-tools.ts` | Operating-loop instance/task reads plus confirm-required claim/complete |
 | `workers/` | When modifying the async activity worker |
 
 ## Structure

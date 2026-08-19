@@ -20,9 +20,25 @@ import { useIsMobile } from '@helios/ui/hooks/useIsMobile'
 import { definitionToGraph } from '../../../lib/graph-utils'
 import type { Node } from '@xyflow/react'
 import { RecordNotFoundState, ErrorMessage } from '@helios/ui/backend/detail'
+import { InjectionSpot } from '@helios/ui/backend/injection/InjectionSpot'
 import { createLogger } from '@helios/shared/lib/logger'
 
 const logger = createLogger('workflows')
+
+function WorkflowInstanceAiTrigger({ instance }: { instance: WorkflowInstance }) {
+  return (
+    <InjectionSpot
+      spotId="detail:workflows.instance:header"
+      context={{
+        entityType: 'workflows.instance',
+        recordId: instance.id,
+        organizationId: instance.organizationId,
+        instanceId: instance.id,
+      }}
+      data={{ instance }}
+    />
+  )
+}
 
 export default function WorkflowInstanceDetailPage({ params }: { params?: { id?: string } }) {
   const id = params?.id
@@ -433,6 +449,7 @@ export default function WorkflowInstanceDetailPage({ params }: { params?: { id?:
                   <span className="font-mono text-sm text-muted-foreground">#{instance.id.slice(0, 8)}</span>
                 </div>
               }
+              utilityActions={<WorkflowInstanceAiTrigger instance={instance} />}
               menuActions={[
                 ...(canCancel ? [{
                   id: 'cancel',
@@ -481,6 +498,7 @@ export default function WorkflowInstanceDetailPage({ params }: { params?: { id?:
                 <span className="font-mono text-sm text-muted-foreground">#{instance.id.slice(0, 8)}</span>
               </div>
             }
+            utilityActions={<WorkflowInstanceAiTrigger instance={instance} />}
             menuActions={[
               ...(canCancel ? [{
                 id: 'cancel',

@@ -1,4 +1,18 @@
 export type OperatingLoopEntityType =
+  | 'customers.person'
+  | 'customers.company'
+  | 'customers.customer_entity'
+  | 'customers.deal'
+  | 'sales.order'
+  | 'sales.quote'
+  | 'inbox_ops.proposal'
+  | 'catalog.product'
+  | 'wms.warehouse'
+  | 'wms.inventory_balance'
+  | 'wms.inventory_reservation'
+  | 'workflows.instance'
+  | 'workflows.task'
+  | 'integrations.integration'
   | 'projects.project'
   | 'projects.milestone'
   | 'projects.risk'
@@ -37,6 +51,16 @@ export type OperatingLoopPageContext = {
     findingId?: string
     identityMapId?: string
     customerEntityId?: string
+    personId?: string
+    dealId?: string
+    orderId?: string
+    quoteId?: string
+    productId?: string
+    warehouseId?: string
+    instanceId?: string
+    taskId?: string
+    integrationId?: string
+    proposalId?: string
   }
 }
 
@@ -70,6 +94,18 @@ export type OperatingLoopHostContext = {
   findingId?: unknown
   identityMapId?: unknown
   customerEntityId?: unknown
+  personId?: unknown
+  dealId?: unknown
+  orderId?: unknown
+  quoteId?: unknown
+  productId?: unknown
+  warehouseId?: unknown
+  instanceId?: unknown
+  taskId?: unknown
+  integrationId?: unknown
+  proposalId?: unknown
+  resourceKind?: unknown
+  resourceId?: unknown
   searchValue?: unknown
   visibleFilters?: unknown
   page?: unknown
@@ -83,21 +119,37 @@ function readString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined
 }
 
+const OPERATING_LOOP_ENTITY_TYPES = new Set<OperatingLoopEntityType>([
+  'customers.person',
+  'customers.company',
+  'customers.customer_entity',
+  'customers.deal',
+  'sales.order',
+  'sales.quote',
+  'inbox_ops.proposal',
+  'catalog.product',
+  'wms.warehouse',
+  'wms.inventory_balance',
+  'wms.inventory_reservation',
+  'workflows.instance',
+  'workflows.task',
+  'integrations.integration',
+  'projects.project',
+  'projects.milestone',
+  'projects.risk',
+  'commercial.contract',
+  'commercial.invoice',
+  'commercial.payment',
+  'commercial.payment_allocation',
+  'insights.kpi_target',
+  'insights.kpi_completion',
+  'insights.operating_loop_digest',
+  'governance.finding',
+  'governance.identity_map',
+])
+
 function isOperatingLoopEntityType(value: unknown): value is OperatingLoopEntityType {
-  return (
-    value === 'projects.project' ||
-    value === 'projects.milestone' ||
-    value === 'projects.risk' ||
-    value === 'commercial.contract' ||
-    value === 'commercial.invoice' ||
-    value === 'commercial.payment' ||
-    value === 'commercial.payment_allocation' ||
-    value === 'insights.kpi_target' ||
-    value === 'insights.kpi_completion' ||
-    value === 'insights.operating_loop_digest' ||
-    value === 'governance.finding' ||
-    value === 'governance.identity_map'
-  )
+  return typeof value === 'string' && OPERATING_LOOP_ENTITY_TYPES.has(value as OperatingLoopEntityType)
 }
 
 function isHostRecord(value: unknown): value is HostRecord {
@@ -115,6 +167,18 @@ function recordTypeFromEntityType(entityType: OperatingLoopEntityType): string {
 }
 
 const LIST_TABLE_ENTITY_TYPES: Record<string, OperatingLoopEntityType> = {
+  'customers.people.list': 'customers.person',
+  'customers.companies.list': 'customers.company',
+  'customers.deals.list': 'customers.deal',
+  'sales.orders': 'sales.order',
+  'sales.quotes': 'sales.quote',
+  'inbox_ops.proposals.list': 'inbox_ops.proposal',
+  'catalog.products': 'catalog.product',
+  'catalog.products.list': 'catalog.product',
+  'wms.inventory.balances': 'wms.inventory_balance',
+  'wms.inventory.reservations': 'wms.inventory_reservation',
+  'workflows.instances.list': 'workflows.instance',
+  'workflows.tasks.list': 'workflows.task',
   'projects.list': 'projects.project',
   'projects.milestones.list': 'projects.milestone',
   'projects.risks.list': 'projects.risk',
@@ -127,6 +191,7 @@ const LIST_TABLE_ENTITY_TYPES: Record<string, OperatingLoopEntityType> = {
   'insights.operating_loop.today': 'insights.operating_loop_digest',
   'governance.findings.list': 'governance.finding',
   'governance.identity_maps.list': 'governance.identity_map',
+  'integrations.marketplace': 'integrations.integration',
 }
 
 function readPositiveInteger(value: unknown): number | undefined {
@@ -183,7 +248,42 @@ function buildExtra(
     identityMapId:
       readString(context?.identityMapId) ??
       (entityType === 'governance.identity_map' && recordId ? recordId : undefined),
-    customerEntityId: readString(context?.customerEntityId) ?? readString(record?.customerEntityId),
+    customerEntityId:
+      readString(context?.customerEntityId) ??
+      readString(record?.customerEntityId) ??
+      (entityType === 'customers.company' || entityType === 'customers.customer_entity'
+        ? (recordId ?? undefined)
+        : undefined),
+    personId:
+      readString(context?.personId) ??
+      (entityType === 'customers.person' && recordId ? recordId : undefined),
+    dealId:
+      readString(context?.dealId) ??
+      (entityType === 'customers.deal' && recordId ? recordId : undefined),
+    orderId:
+      readString(context?.orderId) ??
+      (entityType === 'sales.order' && recordId ? recordId : undefined),
+    quoteId:
+      readString(context?.quoteId) ??
+      (entityType === 'sales.quote' && recordId ? recordId : undefined),
+    productId:
+      readString(context?.productId) ??
+      (entityType === 'catalog.product' && recordId ? recordId : undefined),
+    warehouseId:
+      readString(context?.warehouseId) ??
+      (entityType === 'wms.warehouse' && recordId ? recordId : undefined),
+    instanceId:
+      readString(context?.instanceId) ??
+      (entityType === 'workflows.instance' && recordId ? recordId : undefined),
+    taskId:
+      readString(context?.taskId) ??
+      (entityType === 'workflows.task' && recordId ? recordId : undefined),
+    integrationId:
+      readString(context?.integrationId) ??
+      (entityType === 'integrations.integration' && recordId ? recordId : undefined),
+    proposalId:
+      readString(context?.proposalId) ??
+      (entityType === 'inbox_ops.proposal' && recordId ? recordId : undefined),
   }
 }
 
@@ -219,11 +319,16 @@ export function buildOperatingLoopPageContext(
   const record = firstRecord(data) ?? firstRecord(context?.data)
   const rawEntityType = isOperatingLoopEntityType(context?.entityType)
     ? context.entityType
-    : isOperatingLoopEntityType(context?.entityId)
-      ? context.entityId
-      : null
+    : isOperatingLoopEntityType(context?.resourceKind)
+      ? context.resourceKind
+      : isOperatingLoopEntityType(context?.entityId)
+        ? context.entityId
+        : null
   const entityType = rawEntityType
-  const recordId = readString(context?.recordId) ?? readString(record?.id)
+  const recordId =
+    readString(context?.recordId) ??
+    readString(context?.resourceId) ??
+    readString(record?.id)
   if (!entityType || !recordId) return null
 
   const extra = buildExtra(context, record, entityType, recordId)

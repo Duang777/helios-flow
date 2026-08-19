@@ -94,6 +94,8 @@ describe('customers.list_companies', () => {
     expect(items[0].websiteUrl).toBe('https://acme.example')
     expect(items[0].industry).toBe('manufacturing')
     expect(items[0].sizeBucket).toBe('medium')
+    expect(items[0].href).toBe('/backend/customers/companies-v2/c1')
+    expect(result.href).toBe('/backend/customers/companies')
 
     expect(runMock).toHaveBeenCalledTimes(1)
     const operation = runMock.mock.calls[0][0]
@@ -217,6 +219,7 @@ describe('customers.get_company', () => {
     expect(result.found).toBe(true)
     const company = result.company as Record<string, unknown>
     expect(company.displayName).toBe('Acme')
+    expect(company.href).toBe(`/backend/customers/companies-v2/${companyId}`)
     const profile = result.profile as Record<string, unknown>
     expect(profile.domain).toBe('acme.example')
     expect(profile.industry).toBe('manufacturing')

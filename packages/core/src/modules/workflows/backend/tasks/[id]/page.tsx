@@ -26,9 +26,26 @@ import { MobileTaskForm } from '../../../components/mobile/MobileTaskForm'
 import { useIsMobile } from '@helios/ui/hooks/useIsMobile'
 import type { UserTaskResponse, UserTaskStatus } from '../../../data/types'
 import { RecordNotFoundState, ErrorMessage } from '@helios/ui/backend/detail'
+import { InjectionSpot } from '@helios/ui/backend/injection/InjectionSpot'
 import { createLogger } from '@helios/shared/lib/logger'
 
 const logger = createLogger('workflows')
+
+function WorkflowTaskAiTrigger({ task }: { task: UserTaskResponse }) {
+  return (
+    <InjectionSpot
+      spotId="detail:workflows.task:header"
+      context={{
+        entityType: 'workflows.task',
+        recordId: task.id,
+        organizationId: task.organizationId,
+        taskId: task.id,
+        instanceId: task.workflowInstanceId,
+      }}
+      data={{ task }}
+    />
+  )
+}
 
 export default function UserTaskDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -400,6 +417,7 @@ export default function UserTaskDetailPage({ params }: { params: { id: string } 
               mode="detail"
               backHref="/backend/tasks"
               backLabel={t('workflows.tasks.backToList', 'Back to tasks')}
+              utilityActions={<WorkflowTaskAiTrigger task={task} />}
             />
             <MobileTaskForm
               task={task}
@@ -438,6 +456,7 @@ export default function UserTaskDetailPage({ params }: { params: { id: string } 
                 {t(`workflows.tasks.statuses.${task.status}`)}
               </span>
             }
+            utilityActions={<WorkflowTaskAiTrigger task={task} />}
           />
 
           <div className="space-y-3">

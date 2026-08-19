@@ -179,6 +179,7 @@ describe('buildExtractionUserPrompt', () => {
     expect(result).toContain('<output_requirements>')
     expect(result).toContain('summary')
     expect(result).toContain('proposedActions')
+    expect(result).toContain('payloadJson must be a JSON object encoded as a string')
   })
 
   it('includes task instruction', () => {

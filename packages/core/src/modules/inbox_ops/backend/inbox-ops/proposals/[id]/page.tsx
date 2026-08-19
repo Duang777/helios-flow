@@ -30,6 +30,7 @@ import { ActionCard, ConfidenceBadge, useActionTypeLabels, useDiscrepancyDescrip
 import { CategoryBadge, CATEGORY_CONFIG, ALL_CATEGORIES, useCategoryLabels } from '../../../../components/proposals/CategoryBadge'
 import { hasContactNameIssue } from '../../../../lib/contactValidation'
 import { EditActionDialog } from '../../../../components/proposals/EditActionDialog'
+import { InjectionSpot } from '@helios/ui/backend/injection/InjectionSpot'
 
 function EmailThreadViewer({ email }: { email: EmailDetail | null }) {
   const t = useT()
@@ -467,6 +468,17 @@ export default function ProposalDetailPage({ params }: { params?: { id?: string 
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          {proposalId ? (
+            <InjectionSpot
+              spotId="detail:inbox_ops.proposal:header"
+              context={{
+                entityType: 'inbox_ops.proposal',
+                recordId: proposalId,
+                proposalId,
+              }}
+              data={proposal ? { proposal } : undefined}
+            />
+          ) : null}
           {pendingActions.length > 0 && (
             <Button
               type="button"

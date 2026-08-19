@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   OPERATING_LOOP_ACCEPTANCE_PROMPTS,
+  OPERATING_LOOP_TOOL_NAME_PATTERN,
   assertOperatingLoopAnswerQuality,
   evaluateOperatingLoopAnswer,
   extractAssistantTextFromSse,
@@ -46,7 +47,7 @@ test('evaluateOperatingLoopAnswer reports missing tools and answer markers', () 
 })
 
 test('all operating-loop acceptance prompts declare stable tool and marker expectations', () => {
-  assert.ok(OPERATING_LOOP_ACCEPTANCE_PROMPTS.length >= 10)
+  assert.ok(OPERATING_LOOP_ACCEPTANCE_PROMPTS.length >= 15)
   const ids = new Set()
   for (const promptCase of OPERATING_LOOP_ACCEPTANCE_PROMPTS) {
     assert.equal(typeof promptCase.id, 'string')
@@ -59,9 +60,37 @@ test('all operating-loop acceptance prompts declare stable tool and marker expec
     assert.ok(Array.isArray(promptCase.requiredMarkers), `${promptCase.id} missing requiredMarkers`)
     assert.ok(promptCase.requiredMarkers.length > 0, `${promptCase.id} requiredMarkers is empty`)
     for (const tool of promptCase.requiredTools) {
-      assert.match(tool, /^[a-z_]+\.[a-z0-9_]+$/, `${promptCase.id} has invalid tool name ${tool}`)
+      assert.match(
+        tool,
+        OPERATING_LOOP_TOOL_NAME_PATTERN,
+        `${promptCase.id} has invalid tool name ${tool}`,
+      )
     }
   }
+  const promptIds = OPERATING_LOOP_ACCEPTANCE_PROMPTS.map((promptCase) => promptCase.id)
+  for (const id of [
+    'zh_inbox_proposals',
+    'zh_sales_orders',
+    'zh_wms_balances',
+    'zh_workflow_tasks',
+    'zh_integrations_health',
+    'zh_customers_companies',
+    'zh_catalog_products',
+  ]) {
+    assert.ok(promptIds.includes(id), `missing platform hop prompt ${id}`)
+  }
+})
+
+test('inbox acceptance prompt allows underscore tool names and evidence IDs', () => {
+  const promptCase = OPERATING_LOOP_ACCEPTANCE_PROMPTS.find((item) => item.id === 'zh_inbox_proposals')
+  assert.ok(promptCase)
+  const result = assertOperatingLoopAnswerQuality({
+    text:
+      '待处理提案 1 条，来源 inbox_ops。证据: 提案 ID proposal-1。接受需确认卡，未写入。链接 /backend/inbox-ops/proposals/proposal-1。',
+    toolCalls: ['inbox_ops_list_proposals'],
+    promptCase,
+  })
+  assert.equal(result.passed, true)
 })
 
 test('assertOperatingLoopAnswerQuality accepts a complete Chinese closed-loop answer', () => {

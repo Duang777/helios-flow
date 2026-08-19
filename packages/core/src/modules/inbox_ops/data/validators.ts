@@ -173,10 +173,29 @@ export const categorizeProposalSchema = z.object({
 // LLM Extraction Output Schema
 // ---------------------------------------------------------------------------
 
+const PARTICIPANT_ROLES = ['buyer', 'seller', 'logistics', 'finance', 'other'] as const
+
+function stringifyPayloadJson(value: unknown): unknown {
+  if (value && typeof value === 'object') {
+    try {
+      return JSON.stringify(value)
+    } catch {
+      return '{}'
+    }
+  }
+  return value
+}
+
+function coerceParticipantRole(value: unknown): unknown {
+  return typeof value === 'string' && (PARTICIPANT_ROLES as readonly string[]).includes(value)
+    ? value
+    : 'other'
+}
+
 export const extractedParticipantSchema = z.object({
   name: z.string(),
-  email: z.string(),
-  role: z.enum(['buyer', 'seller', 'logistics', 'finance', 'other']),
+  email: z.string().optional().default(''),
+  role: z.preprocess(coerceParticipantRole, z.enum(PARTICIPANT_ROLES)),
 })
 
 export const extractedActionSchema = z.object({
@@ -192,23 +211,38 @@ export const extractedActionSchema = z.object({
     'draft_reply',
   ]),
   description: z.string(),
-  confidence: z.number(),
+  confidence: z.coerce.number(),
   requiredFeature: z.string().optional(),
-  payloadJson: z.string().describe('JSON-encoded payload object for this action'),
+  payloadJson: z.preprocess(
+    stringifyPayloadJson,
+    z.string().describe('JSON-encoded payload object for this action'),
+  ),
 })
 
+const DISCREPANCY_TYPES = [
+  'price_mismatch',
+  'quantity_mismatch',
+  'unknown_contact',
+  'currency_mismatch',
+  'date_conflict',
+  'product_not_found',
+  'duplicate_order',
+  'other',
+] as const
+
+function coerceDiscrepancyType(value: unknown): unknown {
+  return typeof value === 'string' && (DISCREPANCY_TYPES as readonly string[]).includes(value)
+    ? value
+    : 'other'
+}
+
+function coerceDiscrepancySeverity(value: unknown): unknown {
+  return value === 'error' ? 'error' : 'warning'
+}
+
 export const extractedDiscrepancySchema = z.object({
-  type: z.enum([
-    'price_mismatch',
-    'quantity_mismatch',
-    'unknown_contact',
-    'currency_mismatch',
-    'date_conflict',
-    'product_not_found',
-    'duplicate_order',
-    'other',
-  ]),
-  severity: z.enum(['warning', 'error']),
+  type: z.preprocess(coerceDiscrepancyType, z.enum(DISCREPANCY_TYPES)),
+  severity: z.preprocess(coerceDiscrepancySeverity, z.enum(['warning', 'error'])),
   description: z.string(),
   expectedValue: z.string().optional(),
   foundValue: z.string().optional(),
@@ -218,17 +252,17 @@ export const extractedDiscrepancySchema = z.object({
 export const extractionOutputSchema = z.object({
   summary: z.string(),
   category: inboxProposalCategoryEnum.optional(),
-  participants: z.array(extractedParticipantSchema),
-  proposedActions: z.array(extractedActionSchema),
-  discrepancies: z.array(extractedDiscrepancySchema),
+  participants: z.array(extractedParticipantSchema).default([]),
+  proposedActions: z.array(extractedActionSchema).default([]),
+  discrepancies: z.array(extractedDiscrepancySchema).default([]),
   draftReplies: z.array(z.object({
     to: z.string(),
     toName: z.string().optional(),
     subject: z.string(),
     body: z.string(),
     context: z.string().optional(),
-  })),
-  confidence: z.number(),
+  })).default([]),
+  confidence: z.coerce.number(),
   detectedLanguage: z.string().optional(),
   possiblyIncomplete: z.boolean().optional(),
 })

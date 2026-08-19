@@ -57,6 +57,7 @@ import {
   resolveEm,
   toPriceNumeric,
   toProductSummary,
+  catalogProductListHref,
   type ProductBundle,
   type ProductBundleResult,
 } from './_shared'
@@ -340,7 +341,14 @@ const searchProductsTool: CatalogAiToolDefinition = {
           .map((hit) => hit.recordId)
           .filter((id): id is string => typeof id === 'string' && id.length > 0)
         if (!hitIds.length) {
-          return { items: [], total: 0, limit, offset, source: 'search_service' as const }
+          return {
+            items: [],
+            total: 0,
+            limit,
+            offset,
+            href: catalogProductListHref(),
+            source: 'search_service' as const,
+          }
         }
         // Hydrate tenant-scoped products from the hit IDs, then apply any
         // structured filters the search service can't express (category /
@@ -348,7 +356,7 @@ const searchProductsTool: CatalogAiToolDefinition = {
         // currently accept structured filters, so we narrow in-process and
         // document that in the return report + description.
         const { items, total } = await queryProductsWithFilters(em, ctx, tenantId, { ...input, q: undefined }, hitIds)
-        return { items, total, limit, offset, source: 'search_service' as const }
+        return { items, total, limit, offset, href: catalogProductListHref(), source: 'search_service' as const }
       }
       // Fall through to the query-engine path if the search service is not
       // registered in the DI container — keeps the tool usable in test
@@ -356,7 +364,7 @@ const searchProductsTool: CatalogAiToolDefinition = {
     }
 
     const { items, total } = await queryProductsWithFilters(em, ctx, tenantId, input, null)
-    return { items, total, limit, offset, source: 'query_engine' as const }
+    return { items, total, limit, offset, href: catalogProductListHref(), source: 'query_engine' as const }
   },
 }
 

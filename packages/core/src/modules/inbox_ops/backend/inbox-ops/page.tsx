@@ -363,6 +363,9 @@ export default function InboxOpsProposalsPage() {
           filterValues={filterValues}
           onFiltersApply={handleFiltersApply}
           onFiltersClear={handleFiltersClear}
+          perspective={{
+            tableId: 'inbox_ops.proposals.list',
+          }}
           onRowClick={(row) => router.push(`/backend/inbox-ops/proposals/${row.id}`)}
           rowActions={(row) => (
             <RowActions items={[

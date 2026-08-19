@@ -92,6 +92,8 @@ describe('customers.list_people', () => {
     expect(items.map((entry) => entry.id)).toEqual(['p1'])
     expect(items[0].displayName).toBe('Alice')
     expect(items[0].primaryEmail).toBe('alice@example.com')
+    expect(items[0].href).toBe('/backend/customers/people-v2/p1')
+    expect(result.href).toBe('/backend/customers/people')
     expect(result.limit).toBe(50)
     expect(result.offset).toBe(0)
     expect(result.total).toBe(1)
@@ -257,6 +259,7 @@ describe('customers.get_person', () => {
     expect(result.found).toBe(true)
     const person = result.person as Record<string, unknown>
     expect(person.displayName).toBe('Alice')
+    expect(person.href).toBe(`/backend/customers/people-v2/${existingId}`)
     expect(person.tenantId).toBe('tenant-1')
     const profile = result.profile as Record<string, unknown>
     expect(profile.jobTitle).toBe('CTO')

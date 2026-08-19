@@ -16,6 +16,43 @@ const ALLOWED_TOOLS: readonly string[] = [
 ]
 
 const OPERATING_LOOP_ALLOWED_TOOLS: readonly string[] = [
+  'customers.list_people',
+  'customers.get_person',
+  'customers.list_companies',
+  'customers.get_company',
+  'customers.list_deals',
+  'customers.get_deal',
+  'customers.analyze_deals',
+  'customers.list_activities',
+  'customers.list_tasks',
+  'customers.update_deal_stage',
+  'customers.manage_deal_comment',
+  'customers.manage_deal_activity',
+  'customers.manage_record_comment',
+  'customers.manage_record_activity',
+  'sales.list_orders',
+  'sales.get_order',
+  'sales.list_quotes',
+  'sales.get_quote',
+  'sales.manage_order',
+  'sales.manage_quote',
+  'inbox_ops_list_proposals',
+  'inbox_ops_get_proposal',
+  'inbox_ops_accept_action',
+  'catalog.list_products',
+  'catalog.get_product',
+  'catalog.list_categories',
+  'catalog.get_category',
+  'catalog.search_products',
+  'wms.list_warehouses',
+  'wms.list_balances',
+  'wms.list_reservations',
+  'workflows.list_instances',
+  'workflows.get_instance',
+  'workflows.list_tasks',
+  'workflows.get_task',
+  'workflows.claim_task',
+  'workflows.complete_task',
   'projects.list_projects',
   'projects.get_project',
   'projects.manage_project',
@@ -53,8 +90,12 @@ const OPERATING_LOOP_ALLOWED_TOOLS: readonly string[] = [
   'governance.update_findings_disposition',
   'governance.acknowledge_findings',
   'projects.manage_milestone',
+  'integrations.list_integrations',
+  'integrations.get_integration',
   'search.hybrid_search',
   'search.get_record_context',
+  'attachments.list_record_attachments',
+  'attachments.read_attachment',
   'meta.describe_agent',
 ]
 
@@ -94,8 +135,30 @@ function resolvePageContextField(entityType: string | null): string {
     case 'customers.customer_entity':
     case 'customers.company':
       return 'customerEntityId'
+    case 'customers.person':
+      return 'personId'
     case 'customers.deal':
       return 'dealId'
+    case 'sales.order':
+      return 'orderId'
+    case 'sales.quote':
+      return 'quoteId'
+    case 'catalog.product':
+      return 'productId'
+    case 'wms.warehouse':
+      return 'warehouseId'
+    case 'wms.inventory_balance':
+      return 'balanceId'
+    case 'wms.inventory_reservation':
+      return 'reservationId'
+    case 'workflows.instance':
+      return 'instanceId'
+    case 'workflows.task':
+      return 'taskId'
+    case 'integrations.integration':
+      return 'integrationId'
+    case 'inbox_ops.proposal':
+      return 'proposalId'
     case 'projects.project':
       return 'projectId'
     case 'projects.milestone':
@@ -167,28 +230,35 @@ const operatingLoopAgent: AiAgentDefinition = {
   label: 'Operating Loop Assistant',
   labelKey: 'insights.ai_agents.operating_loop_assistant.label',
   description:
-    'Cross-module operating advisor for projects, settlement, KPI gaps, and governance findings.',
+    'Cross-module operating advisor for CRM, sales, inbox, catalog, warehouse, workflows, projects, settlement, KPI gaps, governance, and integration health.',
   descriptionKey: 'insights.ai_agents.operating_loop_assistant.description',
   systemPrompt: [
     'ROLE',
-    'You are the Operating Loop Assistant for Helios Flow. You act like an operating advisor across delivery projects, commercial settlement, KPI completion, and governance findings.',
+    'You are the Operating Loop Assistant for Helios. You act like an operating advisor across CRM, sales documents, inbox proposals, catalog, warehouse stock, workflow tasks, delivery projects, commercial settlement, KPI completion, governance findings, and integration health.',
     '',
     'SCOPE',
-    'Stay inside the enabled Helios modules and their tool results. Do not pretend to be general ledger, do not write master data outside the explicit confirmed mutation tools, and never delete source customer records. Respect tenant and organization isolation.',
+    'Stay inside the enabled Helios modules and their tool results. Do not pretend to be general ledger, do not write master data outside the explicit confirmed mutation tools, and never delete source customer records. Respect tenant and organization isolation. If a tool is missing because the caller lacks the feature, skip that hop and say so. Never request, print, or guess integration credentials.',
     '',
     'ORCHESTRATION',
-    'Follow the closed loop when the user asks a business question: project status and delays -> contract/invoice/payment facts -> KPI gap -> governance findings. Ask the next useful follow-up only after showing the current answer. When page context includes current entity ids, treat them as authoritative and reuse them in every downstream tool call.',
+    'Follow the closed loop when the user asks a business question: customer/deal -> sales quote/order -> inbox proposal -> catalog / warehouse stock -> workflow tasks -> project status and delays -> contract/invoice/payment facts -> KPI gap -> governance findings -> integration health. Ask the next useful follow-up only after showing the current answer. When page context includes current entity ids, treat them as authoritative and reuse them in every downstream tool call.',
     '',
     'TOOLS',
-    'Use projects.* for delivery state, commercial.* for settlement facts and overdue AR, insights.get_kpi_gap for target gaps and dragged organizations, and governance.* for findings and confirmed disposition writes.',
+    'Use customers.* for people, companies, and deals; sales.* for quotes and orders; inbox_ops_* for inbound email proposals; catalog.* for products and categories; wms.* for warehouses and inventory; workflows.* for instances and user tasks; projects.* for delivery state; commercial.* for settlement facts and overdue AR; insights.get_kpi_gap for target gaps and dragged organizations; governance.* for findings and confirmed disposition writes; and integrations.* for connector health without secrets.',
     '',
     'PROMPT ROUTING RULES',
+    'If the user asks about a customer, company, person, deal, 客户, 公司, or 商机, call the matching customers.list_* / customers.get_* tool first. For stalled or risky deals, call customers.analyze_deals before suggesting customers.update_deal_stage.',
+    'If the user asks about an order, quote, 订单, or 报价, call sales.list_orders / sales.get_order or sales.list_quotes / sales.get_quote and cite document ids, customerEntityId, totals, and href. Status changes go through sales.manage_order or sales.manage_quote with statusEntryId from the current dictionary, never a free-typed status slug.',
+    'If the user asks about inbox mail, 收件箱, or 邮件提案, call inbox_ops_list_proposals or inbox_ops_get_proposal. To accept a pending proposal action, call inbox_ops_accept_action and wait for the approval card. Do not categorize emails from this agent.',
+    'If the user asks about a product, SKU, category, 商品, or 目录, call catalog.search_products or catalog.get_product before answering.',
+    'If the user asks about stock, warehouse, 库存, or 仓库, call wms.list_balances or wms.list_reservations. Do not receive, adjust, or move inventory.',
+    'If the user asks about a workflow, 工作流, 待办任务, or task inbox, call workflows.list_tasks or workflows.get_instance. Read formSchema via workflows.get_task before workflows.complete_task.',
+    'If the user asks about an integration, connector, 集成, or 连接器, call integrations.list_integrations. Report health and enablement only.',
     'If the user asks about overdue AR, overdue receivables, 逾期应收, 逾期回款, or 逾期未回金额, call commercial.list_overdue_invoices and commercial.explain_metric before answering. Treat returned invoice ids, payment ids, and allocation ids as evidence IDs and label them explicitly.',
     'If the user asks about critical findings, governance risks, 治理检出, or 处置建议, call governance.list_findings, governance.explain_rule, and governance.suggest_disposition before answering. Cite finding.id, ruleId, severity, ownerRole, evidence IDs, and href.',
     'If the user asks whether a project is delayed or what is risky on the current project page, call projects.get_delay_summary first, then continue with commercial.get_project_settlement_summary, insights.get_kpi_gap, and governance.list_findings when the question asks for money, KPI, or findings.',
     '',
     'MUTATION POLICY',
-    'Read tools freely. Project, contract, invoice, payment, allocation, KPI-target, and governance disposition writes all require confirmation. Do not claim you updated data until the approval card is confirmed.',
+    'Read tools freely. Deal stage, activity/comment, sales document updates, inbox proposal accept, workflow claim/complete, project, contract, invoice, payment, allocation, KPI-target, and governance disposition writes all require confirmation. Do not claim you updated data until the approval card is confirmed.',
     '',
     'SUGGEST TOOLS',
     'After calling any *suggest_* tool (commercial.suggest_collection_actions, governance.suggest_disposition, projects.suggest_delay_mitigation, insights.suggest_kpi_actions), inspect the response\'s `linkedMutations` array — each entry is the concrete write tool that can persist the proposal item. Chain into the appropriate write tool with the `argsTemplate` substituted from each proposal item. The mutation itself goes through the standard pending-actions confirm gate, so do not skip this step.',
@@ -202,10 +272,34 @@ const operatingLoopAgent: AiAgentDefinition = {
   requiredFeatures: ['projects.view', 'commercial.view', 'insights.view', 'governance.view'],
   readOnly: false,
   mutationPolicy: 'confirm-required',
-  keywords: ['operating loop', 'projects', 'commercial', 'kpi', 'governance', '经营参谋', '闭环'],
+  keywords: [
+    'operating loop',
+    'customers',
+    'sales',
+    'inbox',
+    'catalog',
+    'wms',
+    'workflows',
+    'projects',
+    'commercial',
+    'kpi',
+    'governance',
+    'integrations',
+    '经营参谋',
+    '闭环',
+  ],
   domain: 'insights',
   dataCapabilities: {
     entities: [
+      'customers.person',
+      'customers.company',
+      'customers.deal',
+      'sales.order',
+      'sales.quote',
+      'inbox_ops.proposal',
+      'catalog.product',
+      'wms.warehouse',
+      'workflows.task',
       'projects.project',
       'projects.milestone',
       'commercial.contract',
@@ -213,6 +307,7 @@ const operatingLoopAgent: AiAgentDefinition = {
       'commercial.payment',
       'insights.kpi_target',
       'governance.finding',
+      'integrations.integration',
     ],
     operations: ['read', 'search', 'aggregate'],
   },

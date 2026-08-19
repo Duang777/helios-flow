@@ -30,6 +30,7 @@ import {
   CatalogProductUnitConversion,
 } from '../data/entities'
 import { assertTenantScope, type CatalogAiToolDefinition, type CatalogToolContext } from './types'
+import { catalogProductHref, catalogProductListHref } from './_shared'
 
 function resolveEm(ctx: CatalogToolContext | AiToolExecutionContext): EntityManager {
   return ctx.container.resolve<EntityManager>('em')
@@ -156,11 +157,13 @@ const listProductsTool = defineApiBackedAiTool<
           tenantId: row.tenant_id ?? row.tenantId ?? null,
           createdAt,
           updatedAt,
+          href: catalogProductHref(row.id),
         }
       }),
       total: typeof data.total === 'number' ? data.total : 0,
       limit,
       offset,
+      href: catalogProductListHref(),
     }
   },
 }) as unknown as CatalogAiToolDefinition
@@ -375,6 +378,7 @@ const getProductTool: CatalogAiToolDefinition = {
         tenantId: product.tenantId ?? null,
         createdAt: product.createdAt ? new Date(product.createdAt).toISOString() : null,
         updatedAt: product.updatedAt ? new Date(product.updatedAt).toISOString() : null,
+        href: catalogProductHref(product.id),
       },
       customFields,
       related,

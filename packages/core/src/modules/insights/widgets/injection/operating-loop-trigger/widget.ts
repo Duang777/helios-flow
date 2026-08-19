@@ -6,7 +6,7 @@ const widget: InjectionWidgetModule<Record<string, unknown>, Record<string, unkn
     id: 'insights.injection.operating-loop-trigger',
     title: 'Operating Loop Assistant trigger',
     description:
-      'Renders an Operating Loop Assistant button on M5-M7 detail headers with record-aware page context.',
+      'Renders an Operating Loop Assistant button on CRM, sales, catalog, and M5-M7 list/detail headers with record-aware page context.',
     features: ['ai_assistant.view'],
     requiredModules: ['ai_assistant', 'projects', 'commercial', 'insights', 'governance'],
     priority: 60,

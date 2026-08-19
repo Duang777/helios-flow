@@ -16,6 +16,7 @@ import {
 } from '../../../lib/agent-runtime'
 import { AgentPolicyError } from '../../../lib/agent-tools'
 import { ensureAllModuleToolsLoaded } from '../../../lib/tool-loader'
+import { extractAssistantSnapshot } from '../../../lib/chat-sse-snapshot'
 import { readBaseurlAllowlist, isBaseurlAllowlisted } from '../../../lib/baseurl-allowlist'
 import {
   canonicalProviderId,
@@ -208,89 +209,6 @@ function statusForDenyCode(code: AgentPolicyDenyCode): number {
     default:
       return 409
   }
-}
-
-function extractDataPayload(eventBlock: string): string | null {
-  const dataLines = eventBlock
-    .split('\n')
-    .filter((line) => line.startsWith('data:'))
-    .map((line) => (line.startsWith('data: ') ? line.slice(6) : line.slice(5)))
-  if (dataLines.length === 0) return null
-  return dataLines.join('\n')
-}
-
-function isUiPartRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
-}
-
-function extractUiPartsFromToolOutput(output: unknown): Record<string, unknown>[] {
-  let parsed = output
-  if (typeof output === 'string') {
-    const trimmed = output.trim()
-    if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return []
-    try {
-      parsed = JSON.parse(trimmed) as unknown
-    } catch {
-      return []
-    }
-  }
-  if (!isUiPartRecord(parsed)) return []
-  const value = parsed as Record<string, unknown>
-  const parts: Record<string, unknown>[] = []
-  if (value.status === 'pending-confirmation' || value.status === 'awaiting-confirmation') {
-    const pendingActionId =
-      typeof value.pendingActionId === 'string' && value.pendingActionId.length > 0
-        ? value.pendingActionId
-        : null
-    if (pendingActionId) {
-      parts.push({
-        componentId: 'mutation-preview-card',
-        pendingActionId,
-        payload: {
-          pendingActionId,
-          expiresAt: typeof value.expiresAt === 'string' ? value.expiresAt : undefined,
-          agentId:
-            typeof value.agentId === 'string'
-              ? value.agentId
-              : typeof value.agent === 'string'
-                ? value.agent
-                : undefined,
-          toolName: typeof value.toolName === 'string' ? value.toolName : undefined,
-        },
-      })
-    }
-  }
-  if (isUiPartRecord(value.uiPart)) parts.push(value.uiPart)
-  if (Array.isArray(value.uiParts)) parts.push(...value.uiParts.filter(isUiPartRecord))
-  return parts
-}
-
-function extractAssistantSnapshot(
-  raw: string,
-  contentType: string | null,
-): { content: string; uiParts: Record<string, unknown>[] } {
-  if (!contentType?.includes('event-stream')) {
-    return { content: raw, uiParts: [] }
-  }
-  let content = ''
-  const uiParts: Record<string, unknown>[] = []
-  for (const block of raw.split('\n\n')) {
-    const data = extractDataPayload(block)
-    if (!data || data === '[DONE]') continue
-    try {
-      const parsed = JSON.parse(data) as Record<string, unknown>
-      if (parsed.type === 'text-delta' && typeof parsed.delta === 'string') {
-        content += parsed.delta
-      } else if (parsed.type === 'text' && typeof parsed.content === 'string') {
-        content += parsed.content
-      } else if (parsed.type === 'tool-output-available') {
-        uiParts.push(...extractUiPartsFromToolOutput(parsed.output))
-      }
-    } catch {
-      // Ignore SSE comments and malformed provider chunks.
-    }
-  }
-  return { content, uiParts }
 }
 
 async function persistChatTurnStart(input: {

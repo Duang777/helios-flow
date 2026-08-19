@@ -1,3 +1,149 @@
+# Implementation Plan: Operating Loop Platform Coverage Phase 4
+
+## Overview
+
+Keep the same orchestrator. Close remaining detail-page assistant holes that Phase 3 left untested or unmounted: catalog product CrudForm header, and Playwright coverage for order, product, workflow instance/task, inbox proposal, and integration detail using self-created fixtures.
+
+## Architecture Decisions
+
+- Reuse existing header injection. Catalog products already expose `crud-form:catalog.product:header` through CrudForm; only the injection table row is missing.
+- Create and delete fixtures through public APIs. Do not depend on demo seed rows.
+- Inbox extraction needs the configured LLM. If extract cannot produce a proposal, skip that one test with a reason.
+- Integration detail uses registered provider ids from `GET /api/integrations`, not tenant seed data.
+- Do not add live-model chat assertions. Widget mount plus page-context ids are the contract.
+
+## Task List
+
+- [x] Task 1: Register `crud-form:catalog.product:header` on the operating-loop widget.
+- [x] Task 2: Add Playwright detail coverage for sales order, catalog product, workflow instance/task, inbox proposal, and integration.
+- [x] Task 3: Cover catalog.product resourceKind in page-context unit tests.
+
+## Out of scope
+
+- Live-model confirmation-card chat
+- WMS receive / adjust / move
+- Integration credential write / health-check POST
+- Workflow start/cancel/retry on the orchestrator
+
+---
+
+# Implementation Plan: Operating Loop Platform Coverage Phase 3
+
+## Overview
+
+Keep the same orchestrator, `insights.operating_loop_assistant`, with `confirm-required` writes. Close the remaining operator entry points and the inbox confirm-write hop that Phase 2 left off the whitelist: proposal/instance/task/integration detail headers, the integrations marketplace header, and `inbox_ops_accept_action` with a typed pending-action preview.
+
+## Architecture Decisions
+
+- Reuse existing `inbox_ops_accept_action`. Add `loadBeforeRecord` so `prepareMutation` can show status `pending` → `accepted` without dumping action payloads.
+- Do not whitelist `inbox_ops_categorize_email`.
+- Mount the existing operating-loop widget on new header spots. Do not invent a second agent.
+- Integrations stay read-only for credentials and health POST. Marketplace and detail headers only pass ids already visible on the page.
+- Workflow start/cancel/retry remain off the orchestrator.
+
+## Task List
+
+### Phase 3A: Detail and marketplace entry points
+
+- [x] Task 1: Inject on inbox proposal detail, workflow instance/task detail, integrations marketplace header, and integration detail header.
+- [x] Task 2: Map `integrations.marketplace` list tableId in page context.
+
+### Phase 3B: Inbox confirm-required accept
+
+- [x] Task 3: Add `loadBeforeRecord` to `inbox_ops_accept_action`.
+- [x] Task 4: Whitelist it on the operating-loop assistant. Keep categorize off.
+
+### Checkpoint
+
+- [x] `yarn generate`
+- [x] Focused unit tests for agents, page context, inbox accept preview
+- [x] Playwright list coverage includes `/backend/integrations`
+- [x] Mutation policy remains `confirm-required`
+
+## Out of scope
+
+- WMS receive / adjust / move
+- Integration credential write / health-check POST
+- Workflow start / cancel / retry
+- Unattended writes, digest auto-chat, Code Mode merge
+
+---
+
+# Implementation Plan: Operating Loop Platform Coverage Phase 2
+
+## Overview
+
+Keep a single orchestrator, `insights.operating_loop_assistant`, with `confirm-required` writes. Close the remaining business hops that Phase 1 left out: sales document status updates, inbox proposal reads, workflow instance/task reads plus claim/complete, WMS inventory reads, and integration health reads without credentials.
+
+## Architecture Decisions
+
+- Reuse existing HTTP APIs through `defineAiTool` / `defineApiBackedAiTool` and `createAiApiOperationRunner`. Do not add in-process chat HTTP.
+- Keep agent-level `requiredFeatures` on projects/commercial/insights/governance. New modules stay tool-level ACL so tenants without WMS/workflows/inbox still open the advisor.
+- Sales writes update existing quotes/orders only (`statusEntryId`, comment, references). Do not create documents or skip Quote → Order → Invoice.
+- Workflow writes are claim/complete only. Do not cancel, retry, start, or patch the state machine.
+- WMS and integrations are read-only. Never expose integration credentials. Never adjust/receive/move stock.
+- Inbox whitelist is list/get only. `inbox_ops_accept_action` stays off the orchestrator because it creates downstream entities without a typed pending-action preview.
+- Page injection mounts only where a real `tableId` or header spot already exists.
+- Do not unify OpenCode Code Mode. Do not auto-open chat from digest. Do not unattended writes.
+
+## Task List
+
+### Phase 1: Sales confirm-required writes
+
+- [x] Task 1: Add `sales.manage_order` and `sales.manage_quote` with `isMutation: true` and `loadBeforeRecord`.
+- [x] Task 2: Route updates through `PUT /sales/orders` and `PUT /sales/quotes`.
+
+### Checkpoint: Sales writes
+
+- [x] Unit tests cover tool names and `isMutation`.
+- [x] Operating-loop whitelist includes the two write tools.
+
+### Phase 2: Workflows
+
+- [x] Task 3: Add read tools for instances and tasks.
+- [x] Task 4: Add confirm-required `workflows.claim_task` and `workflows.complete_task`.
+- [x] Task 5: Inject the operating-loop widget on `workflows.instances.list` and `workflows.tasks.list`.
+
+### Checkpoint: Workflows
+
+- [x] Tools registered after `yarn generate`.
+- [x] Prompt routing mentions 工作流 / 待办任务.
+
+### Phase 3: WMS, integrations, inbox
+
+- [x] Task 6: Add WMS read tools for warehouses, balances, reservations.
+- [x] Task 7: Add integrations list/get tools that strip credentials.
+- [x] Task 8: Whitelist `inbox_ops_list_proposals` and `inbox_ops_get_proposal`.
+- [x] Task 9: Bind page context + inject on existing table ids, including inbox proposals list.
+
+### Checkpoint: Complete
+
+- [x] `yarn generate`
+- [x] Focused unit tests for agents, page context, and new tool packs
+- [x] Spec and AGENTS.md updated
+- [x] Mutation policy remains `confirm-required`
+
+## Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| Sales status UUID vs slug | Medium | Pass `statusEntryId` only; workflow API rejects illegal skips |
+| Completing a task with empty formData | Medium | `get_task` returns `formSchema`; complete requires the filled map |
+| Integration detail leaking secrets | High | mapResponse whitelist; never return credentials |
+| Inbox accept creating orders | High | Do not whitelist `inbox_ops_accept_action` |
+| Agent requiredFeatures too wide | Medium | Keep new ACL on tools only |
+
+## Out of scope
+
+- Catalog merchandising bulk writes
+- WMS receive / adjust / move
+- Integration credential write / health-check POST
+- Workflow start / cancel / retry
+- Auth, api_keys, dashboards
+- Unattended writes, digest auto-chat, Code Mode merge
+
+---
+
 # Implementation Plan: Operating Loop Advisor Closure
 
 ## Overview
@@ -271,10 +417,11 @@ Move the operating advisor from “competition-stable demo” toward a productio
 - [ ] Add unit coverage for ACL declaration, API runner calls, partial failures, and linked mutation exposure.
 
 ### Phase 11B: Real-Model Prompt Expansion
-- [ ] Expand `OPERATING_LOOP_ACCEPTANCE_PROMPTS` from 3 prompts to 10+ Chinese prompts across project delay, overdue AR, KPI gap, governance disposition, write suggestions, and page-context follow-ups.
-- [ ] Require tool sets appropriate to each prompt, not one global tool list.
-- [ ] Keep assertions on numbers, formula/source, evidence IDs, and `/backend/` links.
-- [ ] Add script unit tests so new prompts cannot silently miss required tool metadata.
+- [x] Expand `OPERATING_LOOP_ACCEPTANCE_PROMPTS` from 3 prompts to 10+ Chinese prompts across project delay, overdue AR, KPI gap, governance disposition, write suggestions, and page-context follow-ups.
+- [x] Require tool sets appropriate to each prompt, not one global tool list.
+- [x] Keep assertions on numbers, formula/source, evidence IDs, and `/backend/` links.
+- [x] Add script unit tests so new prompts cannot silently miss required tool metadata.
+- [x] Add platform-hop prompts for inbox proposals, sales orders, WMS balances, workflow tasks, and integration health. Inbox live-eval lists proposals and requires 确认卡 wording; it does not call `inbox_ops_accept_action`.
 
 ### Phase 11C: Page Context Coverage
 - [x] Inventory M5-M7 list/detail pages and existing widget injection spots.

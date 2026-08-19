@@ -9,8 +9,10 @@
 ## Closed loop
 
 ```text
-客户/商机 (customers)
-    → 项目/里程碑/风险 (projects)          [M5 DONE]
+客户/商机 (customers)                  [AI tools + page inject]
+    → 报价/订单 (sales)                [read tools + page inject]
+    → 商品查阅 (catalog, read)         [existing tools]
+    → 项目/里程碑/风险 (projects)          [M5]
     → 合同→营收/成本→开票→回款核销 (commercial) [M6]
     → KPI 目标与完成率 (insights)           [M7]
     → 治理映射与检出 (governance)           [M7]

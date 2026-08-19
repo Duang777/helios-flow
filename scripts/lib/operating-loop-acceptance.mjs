@@ -124,7 +124,58 @@ export const OPERATING_LOOP_ACCEPTANCE_PROMPTS = [
     ],
     requiredMarkers: ['今日', 'critical', '逾期', '延期', 'KPI'],
   },
+  {
+    id: 'zh_inbox_proposals',
+    prompt:
+      '列出待处理收件箱提案，说明条数和状态来源，给出提案证据 ID 和后台链接。如果要接受 pending 动作，必须走确认卡，不要说已经写入。',
+    requiredTools: ['inbox_ops_list_proposals'],
+    requiredMarkers: ['提案', '确认', '证据'],
+  },
+  {
+    id: 'zh_sales_orders',
+    prompt:
+      '列出当前订单，给出条数或金额、来源、证据 ID 和后台链接。说明改状态需要确认写入。',
+    requiredTools: ['sales.list_orders'],
+    requiredMarkers: ['订单', '确认', '证据'],
+  },
+  {
+    id: 'zh_wms_balances',
+    prompt:
+      '当前库存余额怎样？给出数量、来源、证据 ID 和后台链接。不要做收货、调整或移库。',
+    requiredTools: ['wms.list_balances'],
+    requiredMarkers: ['库存', '证据'],
+  },
+  {
+    id: 'zh_workflow_tasks',
+    prompt:
+      '有哪些待办工作流任务？给出任务状态来源、证据 ID 和后台链接。认领或完成必须走确认卡。',
+    requiredTools: ['workflows.list_tasks'],
+    requiredMarkers: ['任务', '确认', '证据'],
+  },
+  {
+    id: 'zh_integrations_health',
+    prompt:
+      '集成连接器健康状况如何？给出启用状态、来源、证据 ID 和后台链接，不要输出凭据。',
+    requiredTools: ['integrations.list_integrations'],
+    requiredMarkers: ['集成', '凭据', '证据'],
+  },
+  {
+    id: 'zh_customers_companies',
+    prompt:
+      '列出当前客户公司，给出条数、来源、证据 ID 和后台链接。',
+    requiredTools: ['customers.list_companies'],
+    requiredMarkers: ['客户', '证据'],
+  },
+  {
+    id: 'zh_catalog_products',
+    prompt:
+      '查一下现有商品，给出条数或 SKU、来源、证据 ID 和后台链接。',
+    requiredTools: ['catalog.search_products'],
+    requiredMarkers: ['商品', '证据'],
+  },
 ]
+
+export const OPERATING_LOOP_TOOL_NAME_PATTERN = /^(?:[a-z_]+\.[a-z0-9_]+|inbox_ops_[a-z0-9_]+)$/
 
 export function normalizeToolName(name) {
   return String(name ?? '').replace(/__/g, '.')
@@ -200,7 +251,15 @@ export function evaluateOperatingLoopAnswer({ text, toolCalls, promptCase }) {
       /projects\.lib\.milestoneDelay/,
     ]),
     hasBackendHref: /\/backend\//.test(normalizedText),
-    hasEvidenceMarker: containsAny(normalizedText, [/evidence/i, /证据/, /finding\.id/i, /检出 ID/, /治理检出/]),
+      hasEvidenceMarker: containsAny(normalizedText, [
+        /evidence/i,
+        /证据/,
+        /finding\.id/i,
+        /检出 ID/,
+        /治理检出/,
+        /提案 ID/,
+        /proposal\.id/i,
+      ]),
   }
   const failures = []
   if (missingTools.length > 0) failures.push(`missing tools: ${missingTools.join(', ')}`)

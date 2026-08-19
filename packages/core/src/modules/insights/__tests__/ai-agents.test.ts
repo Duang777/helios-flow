@@ -15,10 +15,19 @@ import insightsAiTools from '../ai-tools'
 import commercialAiTools from '../../commercial/ai-tools'
 import projectsAiTools from '../../projects/ai-tools'
 import governanceAiTools from '../../governance/ai-tools'
+import customersAiTools from '../../customers/ai-tools'
+import catalogAiTools from '../../catalog/ai-tools'
+import salesAiTools from '../../sales/ai-tools'
+import workflowsAiTools from '../../workflows/ai-tools'
+import wmsAiTools from '../../wms/ai-tools'
+import integrationsAiTools from '../../integrations/ai-tools'
+import inboxOpsAiTools from '../../inbox_ops/ai-tools'
 
 const GENERAL_PURPOSE_TOOLS = new Set([
   'search.hybrid_search',
   'search.get_record_context',
+  'attachments.list_record_attachments',
+  'attachments.read_attachment',
   'meta.describe_agent',
 ])
 
@@ -52,6 +61,13 @@ describe('insights.operating_loop_assistant agent definition', () => {
       ...commercialAiTools.map((tool) => tool.name),
       ...projectsAiTools.map((tool) => tool.name),
       ...governanceAiTools.map((tool) => tool.name),
+      ...customersAiTools.map((tool) => tool.name),
+      ...catalogAiTools.map((tool) => tool.name),
+      ...salesAiTools.map((tool) => tool.name),
+      ...workflowsAiTools.map((tool) => tool.name),
+      ...wmsAiTools.map((tool) => tool.name),
+      ...integrationsAiTools.map((tool) => tool.name),
+      ...inboxOpsAiTools.map((tool) => tool.name),
     ])
     for (const toolName of agent.allowedTools) {
       expect(registered.has(toolName) || GENERAL_PURPOSE_TOOLS.has(toolName)).toBe(true)
@@ -72,6 +88,14 @@ describe('insights.operating_loop_assistant agent definition', () => {
     expect(agent.systemPrompt).toContain('commercial.explain_metric')
     expect(agent.systemPrompt).toContain('governance.suggest_disposition')
     expect(agent.systemPrompt).toContain('projects.get_delay_summary')
+    expect(agent.systemPrompt).toContain('customers.list_')
+    expect(agent.systemPrompt).toContain('sales.list_orders')
+    expect(agent.systemPrompt).toContain('catalog.search_products')
+    expect(agent.systemPrompt).toContain('wms.list_balances')
+    expect(agent.systemPrompt).toContain('workflows.list_tasks')
+    expect(agent.systemPrompt).toContain('inbox_ops_list_proposals')
+    expect(agent.systemPrompt).toContain('inbox_ops_accept_action')
+    expect(agent.systemPrompt).toContain('integrations.list_integrations')
     expect(agent.systemPrompt).toContain('Treat returned invoice ids, payment ids, and allocation ids as evidence IDs')
   })
 
@@ -84,8 +108,18 @@ describe('insights.operating_loop_assistant agent definition', () => {
         'commercial.manage_payment',
         'commercial.manage_allocation',
         'insights.manage_kpi_target',
+        'customers.update_deal_stage',
+        'sales.manage_order',
+        'sales.list_orders',
+        'catalog.get_product',
+        'wms.list_balances',
+        'workflows.complete_task',
+        'integrations.list_integrations',
+        'inbox_ops_list_proposals',
+        'inbox_ops_accept_action',
       ]),
     )
+    expect(agent.allowedTools).not.toContain('inbox_ops_categorize_email')
     expect(agent.systemPrompt).toContain('confirmed mutation tools')
     expect(agent.systemPrompt).not.toContain('do not create contracts/projects')
   })
@@ -93,9 +127,11 @@ describe('insights.operating_loop_assistant agent definition', () => {
   it('keeps the fixed operating prompt regression set covered by concrete tools', () => {
     const regressionCases = [
       {
-        prompt: '这个项目延期了吗？合同回款怎样，KPI 差多少，有哪些检出？',
+        prompt: '这个客户的商机和订单怎么样，项目延期了吗，合同回款和 KPI、治理检出如何？',
         tools: [
-          'projects.get_project',
+          'customers.get_company',
+          'customers.list_deals',
+          'sales.list_orders',
           'projects.get_delay_summary',
           'commercial.get_project_settlement_summary',
           'insights.get_kpi_gap',
@@ -126,6 +162,34 @@ describe('insights.operating_loop_assistant agent definition', () => {
           'governance.acknowledge_findings',
         ],
       },
+      {
+        prompt: '列出待处理收件箱提案，接受 pending 动作前必须走确认卡。',
+        tools: ['inbox_ops_list_proposals', 'inbox_ops_get_proposal', 'inbox_ops_accept_action'],
+      },
+      {
+        prompt: '列出当前订单，改状态需要确认写入。',
+        tools: ['sales.list_orders', 'sales.manage_order'],
+      },
+      {
+        prompt: '当前库存余额怎样？不要做收货或调整。',
+        tools: ['wms.list_balances'],
+      },
+      {
+        prompt: '有哪些待办工作流任务？认领或完成必须走确认卡。',
+        tools: ['workflows.list_tasks', 'workflows.claim_task', 'workflows.complete_task'],
+      },
+      {
+        prompt: '集成连接器健康状况如何？不要输出凭据。',
+        tools: ['integrations.list_integrations'],
+      },
+      {
+        prompt: '列出当前客户公司，给出后台链接。',
+        tools: ['customers.list_companies'],
+      },
+      {
+        prompt: '查一下现有商品，给出 SKU 和后台链接。',
+        tools: ['catalog.search_products', 'catalog.list_products'],
+      },
     ]
 
     for (const item of regressionCases) {
@@ -141,6 +205,10 @@ describe('insights.operating_loop_assistant agent definition', () => {
         ...commercialAiTools,
         ...projectsAiTools,
         ...governanceAiTools,
+        ...customersAiTools,
+        ...salesAiTools,
+        ...workflowsAiTools,
+        ...inboxOpsAiTools,
       ].map((tool) => [tool.name, tool]),
     )
     const writeTools = [
@@ -150,6 +218,12 @@ describe('insights.operating_loop_assistant agent definition', () => {
       'commercial.manage_payment',
       'commercial.manage_allocation',
       'insights.manage_kpi_target',
+      'customers.update_deal_stage',
+      'sales.manage_order',
+      'sales.manage_quote',
+      'workflows.claim_task',
+      'workflows.complete_task',
+      'inbox_ops_accept_action',
       'governance.acknowledge_finding',
       'governance.update_finding_disposition',
       'governance.acknowledge_findings',

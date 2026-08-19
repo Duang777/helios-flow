@@ -7,7 +7,7 @@ import { CrudForm, type CrudField } from '@helios/ui/backend/CrudForm'
 import { WebhookSetupGuide } from '@helios/ui/backend/WebhookSetupGuide'
 import { InjectionSpot, useInjectionWidgets } from '@helios/ui/backend/injection/InjectionSpot'
 import { useGuardedMutation } from '@helios/ui/backend/injection/useGuardedMutation'
-import { FormHeader } from '@helios/ui/backend/forms'
+import { FormActionButtons, FormHeader } from '@helios/ui/backend/forms'
 import { Card, CardHeader, CardTitle, CardContent } from '@helios/ui/primitives/card'
 import { Badge } from '@helios/ui/primitives/badge'
 import { Button } from '@helios/ui/primitives/button'
@@ -1100,17 +1100,32 @@ export default function IntegrationDetailPage({ params }: IntegrationDetailPageP
         <FormHeader
           backHref="/backend/integrations"
           title={translateMetadata(t, resolvedIntegration.titleKey, resolvedIntegration.title)}
-          actions={{
-            cancelHref: showCredentialActions ? '/backend/integrations' : undefined,
-            submit: showCredentialActions
-              ? {
-                formId: credentialsFormId,
-                pending: isSavingCredentials,
-                label: t('integrations.detail.credentials.save', 'Save credentials'),
-                pendingLabel: t('ui.forms.status.saving', 'Saving...'),
-              }
-              : undefined,
-          }}
+          actionsContent={(
+            <div className="flex flex-wrap items-center gap-2">
+              <InjectionSpot
+                spotId="detail:integrations.integration:header"
+                context={{
+                  entityType: 'integrations.integration',
+                  recordId: resolvedIntegration.id,
+                  integrationId: resolvedIntegration.id,
+                  resourceKind: 'integrations.integration',
+                  resourceId: resolvedIntegration.id,
+                }}
+                data={{ integration: resolvedIntegration }}
+              />
+              {showCredentialActions ? (
+                <FormActionButtons
+                  cancelHref="/backend/integrations"
+                  submit={{
+                    formId: credentialsFormId,
+                    pending: isSavingCredentials,
+                    label: t('integrations.detail.credentials.save', 'Save credentials'),
+                    pendingLabel: t('ui.forms.status.saving', 'Saving...'),
+                  }}
+                />
+              ) : null}
+            </div>
+          )}
         />
 
         <div className="space-y-2">

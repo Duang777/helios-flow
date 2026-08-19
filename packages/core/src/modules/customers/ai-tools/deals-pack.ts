@@ -33,6 +33,7 @@ import {
   type CustomersToolContext,
   type CustomersToolLoadBeforeSingleRecord,
 } from './types'
+import { customerListHref, customerRecordHref } from './_shared'
 
 function resolveEm(ctx: CustomersToolContext | AiToolExecutionContext): EntityManager {
   return ctx.container.resolve<EntityManager>('em')
@@ -152,11 +153,13 @@ const listDealsTool = defineApiBackedAiTool<ListDealsInput, ListDealsApiResponse
           organizationId: row.organization_id ?? row.organizationId ?? null,
           tenantId: row.tenant_id ?? row.tenantId ?? null,
           createdAt,
+          href: customerRecordHref('deal', row.id),
         }
       }),
       total: typeof data.total === 'number' ? data.total : 0,
       limit,
       offset,
+      href: customerListHref('deal'),
     }
   },
 }) as unknown as CustomersAiToolDefinition
@@ -332,6 +335,7 @@ const getDealTool: CustomersAiToolDefinition = {
         tenantId: dealRow.tenantId ?? null,
         createdAt: toIsoDeal(dealRow.createdAt),
         updatedAt: toIsoDeal(dealRow.updatedAt),
+        href: customerRecordHref('deal', dealRow.id),
       },
       customFields,
       related,

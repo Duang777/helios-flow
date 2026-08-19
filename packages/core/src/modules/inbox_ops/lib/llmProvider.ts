@@ -17,6 +17,7 @@ import {
 } from '@helios/ai-assistant/modules/ai_assistant/lib/model-factory'
 import { joinProviderModel } from '@helios/shared/lib/ai/model-id'
 import { extractionOutputSchema } from '../data/validators'
+import { repairExtractionJsonText } from './extractionRepair'
 
 // Vercel AI SDK provider factories return LanguageModelV1 but generateObject()
 // expects a narrower LanguageModel union. The types are structurally compatible
@@ -214,9 +215,12 @@ export async function runExtractionWithConfiguredProvider(input: {
     generateObject({
       model,
       schema: extractionOutputSchema,
+      schemaName: 'InboxExtraction',
       system: input.systemPrompt,
       prompt: input.userPrompt,
       temperature: 0,
+      maxRetries: 2,
+      experimental_repairText: async ({ text }) => repairExtractionJsonText(text),
     }),
     input.timeoutMs,
     `LLM extraction timed out after ${input.timeoutMs}ms`,

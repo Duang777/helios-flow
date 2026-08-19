@@ -310,10 +310,33 @@ describe('extractionOutputSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('rejects missing participants', () => {
-    const { participants, ...rest } = validOutput
+  it('defaults omitted arrays to empty', () => {
+    const { participants, proposedActions, discrepancies, draftReplies, ...rest } = validOutput
     const result = extractionOutputSchema.safeParse(rest)
-    expect(result.success).toBe(false)
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.data.participants).toEqual([])
+    expect(result.data.proposedActions).toEqual([])
+    expect(result.data.discrepancies).toEqual([])
+    expect(result.data.draftReplies).toEqual([])
+  })
+
+  it('accepts object payloads by stringifying payloadJson', () => {
+    const result = extractionOutputSchema.safeParse({
+      ...validOutput,
+      proposedActions: [{
+        actionType: 'create_contact',
+        description: 'Create contact',
+        confidence: 0.9,
+        payloadJson: { type: 'person', name: 'Giulia Bianchi' },
+      }],
+    })
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(JSON.parse(result.data.proposedActions[0]?.payloadJson ?? '{}')).toEqual({
+      type: 'person',
+      name: 'Giulia Bianchi',
+    })
   })
 
   it('accepts confidence at boundary 0.0', () => {
@@ -384,7 +407,7 @@ describe('extractionOutputSchema', () => {
     expect(result.success).toBe(true)
   })
 
-  it('validates discrepancy types', () => {
+  it('coerces unknown discrepancy types to other', () => {
     const result = extractionOutputSchema.safeParse({
       ...validOutput,
       discrepancies: [{
@@ -393,7 +416,9 @@ describe('extractionOutputSchema', () => {
         description: 'test',
       }],
     })
-    expect(result.success).toBe(false)
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.data.discrepancies[0]?.type).toBe('other')
   })
 
   it('accepts valid discrepancies', () => {
@@ -421,12 +446,14 @@ describe('extractionOutputSchema', () => {
     expect(result.success).toBe(true)
   })
 
-  it('validates participant role enum', () => {
+  it('coerces unknown participant roles to other', () => {
     const result = extractionOutputSchema.safeParse({
       ...validOutput,
       participants: [{ name: 'Test', email: 'test@test.com', role: 'invalid_role' }],
     })
-    expect(result.success).toBe(false)
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.data.participants[0]?.role).toBe('other')
   })
 })
 

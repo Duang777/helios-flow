@@ -59,6 +59,15 @@ test.describe('TC-AI-001: Operating-loop AI registry', () => {
         'insights.manage_kpi_target',
         'governance.list_findings',
         'governance.acknowledge_finding',
+        'customers.list_deals',
+        'sales.get_order',
+        'sales.manage_order',
+        'catalog.search_products',
+        'wms.list_balances',
+        'workflows.list_tasks',
+        'inbox_ops_list_proposals',
+        'inbox_ops_accept_action',
+        'integrations.list_integrations',
       ]),
     )
     expect(operatingLoop?.readOnly).toBe(false)

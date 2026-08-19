@@ -39,3 +39,6 @@ yarn workspace @helios/core build
 | `lib/completion.ts` | Actuals + completion rate |
 | `lib/rollup.ts` | Org hierarchy rollup |
 | `backend/insights/` | Admin UI |
+| `ai-agents.ts` | `insights.operating_loop_assistant` orchestrates CRM/sales/inbox accept/catalog/WMS/workflows + M5–M7 + integrations health |
+
+See `.ai/specs/2026-08-19-operating-loop-platform-coverage.md`.

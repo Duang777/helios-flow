@@ -102,6 +102,10 @@ Sales documents are scoped to channels. Channel selection affects:
 - Email on document creation: `subscribers/`
 - Notification implementation: `notifications.ts`, `notifications.client.ts`, `widgets/notifications/`
 
+## AI tools
+
+Read `sales.list_*` / `sales.get_*` plus confirm-required `sales.manage_order` / `sales.manage_quote` in `ai-tools.ts`. Consumed by `insights.operating_loop_assistant`. Writes go through existing PUT APIs and `statusEntryId`; do not create documents or skip workflow states.
+
 ## Frontend
 
 - `frontend/quote/` — public-facing quote view (for customer acceptance)

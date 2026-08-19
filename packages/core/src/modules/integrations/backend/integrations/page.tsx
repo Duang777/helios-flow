@@ -14,6 +14,7 @@ import { flash } from '@helios/ui/backend/FlashMessages'
 import { useOrganizationScopeVersion } from '@helios/shared/lib/frontend/useOrganizationScope'
 import { useT } from '@helios/shared/lib/i18n/context'
 import { FilterBar, type FilterValues } from '@helios/ui/backend/FilterBar'
+import { InjectionSpot } from '@helios/ui/backend/injection/InjectionSpot'
 import { Bell, Cog, CreditCard, HardDrive, LayoutGrid, MessageSquare, RefreshCw, Search, Truck, Webhook } from 'lucide-react'
 import {
   buildIntegrationMarketplaceFilterDefs,
@@ -322,11 +323,17 @@ export default function IntegrationsMarketplacePage() {
       <PageBody className="space-y-6">
         <section className="space-y-6 rounded-lg border bg-background p-6">
           <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-0.5">
-              <h2 className="text-lg font-semibold">{t('integrations.marketplace.title')}</h2>
-              <p className="text-sm text-muted-foreground">
-                {t('integrations.marketplace.description')}
-              </p>
+            <div className="flex items-start gap-3">
+              <div className="space-y-0.5">
+                <h2 className="text-lg font-semibold">{t('integrations.marketplace.title')}</h2>
+                <p className="text-sm text-muted-foreground">
+                  {t('integrations.marketplace.description')}
+                </p>
+              </div>
+              <InjectionSpot
+                spotId="page:integrations.marketplace:header"
+                context={{ tableId: 'integrations.marketplace' }}
+              />
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative w-full min-w-[200px] max-w-xs lg:w-64">

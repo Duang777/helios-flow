@@ -41,12 +41,34 @@ describe('buildOperatingLoopPageContext', () => {
         findingId: undefined,
         identityMapId: undefined,
         customerEntityId: 'customer-1',
+        personId: undefined,
+        dealId: undefined,
+        orderId: undefined,
+        quoteId: undefined,
+        productId: undefined,
+        warehouseId: undefined,
+        instanceId: undefined,
+        taskId: undefined,
+        integrationId: undefined,
+        proposalId: undefined,
       },
     })
   })
 
   it('covers all M5-M7 list table ids', () => {
     const cases: Array<[string, string]> = [
+      ['customers.people.list', 'customers.person'],
+      ['customers.companies.list', 'customers.company'],
+      ['customers.deals.list', 'customers.deal'],
+      ['sales.orders', 'sales.order'],
+      ['sales.quotes', 'sales.quote'],
+      ['inbox_ops.proposals.list', 'inbox_ops.proposal'],
+      ['catalog.products', 'catalog.product'],
+      ['catalog.products.list', 'catalog.product'],
+      ['wms.inventory.balances', 'wms.inventory_balance'],
+      ['wms.inventory.reservations', 'wms.inventory_reservation'],
+      ['workflows.instances.list', 'workflows.instance'],
+      ['workflows.tasks.list', 'workflows.task'],
       ['projects.list', 'projects.project'],
       ['projects.milestones.list', 'projects.milestone'],
       ['projects.risks.list', 'projects.risk'],
@@ -58,6 +80,7 @@ describe('buildOperatingLoopPageContext', () => {
       ['insights.kpi.completion', 'insights.kpi_completion'],
       ['governance.findings.list', 'governance.finding'],
       ['governance.identity_maps.list', 'governance.identity_map'],
+      ['integrations.marketplace', 'integrations.integration'],
     ]
 
     for (const [tableId, entityType] of cases) {
@@ -94,6 +117,16 @@ describe('buildOperatingLoopPageContext', () => {
         findingId: undefined,
         identityMapId: undefined,
         customerEntityId: undefined,
+        personId: undefined,
+        dealId: undefined,
+        orderId: undefined,
+        quoteId: undefined,
+        productId: undefined,
+        warehouseId: undefined,
+        instanceId: undefined,
+        taskId: undefined,
+        integrationId: undefined,
+        proposalId: undefined,
       },
     })
   })
@@ -138,5 +171,86 @@ describe('buildOperatingLoopPageContext', () => {
     expect(buildOperatingLoopPageContext({ entityType: 'unknown', recordId: 'x' })).toBeNull()
     expect(buildOperatingLoopPageContext({ entityType: 'projects.project' })).toBeNull()
     expect(buildOperatingLoopPageContext({ tableId: 'unknown.table' })).toBeNull()
+  })
+
+  it('maps CRM and sales resourceKind plus resourceId on detail pages', () => {
+    expect(
+      buildOperatingLoopPageContext({
+        resourceKind: 'customers.company',
+        resourceId: 'company-1',
+        organizationId: 'org-1',
+      }),
+    ).toMatchObject({
+      view: 'operating_loop.detail',
+      entityType: 'customers.company',
+      recordId: 'company-1',
+      extra: { customerEntityId: 'company-1' },
+    })
+
+    expect(
+      buildOperatingLoopPageContext({
+        resourceKind: 'customers.deal',
+        resourceId: 'deal-1',
+      }),
+    ).toMatchObject({
+      entityType: 'customers.deal',
+      recordId: 'deal-1',
+      extra: { dealId: 'deal-1' },
+    })
+
+    expect(
+      buildOperatingLoopPageContext({
+        resourceKind: 'sales.order',
+        resourceId: 'order-1',
+      }),
+    ).toMatchObject({
+      entityType: 'sales.order',
+      recordId: 'order-1',
+      extra: { orderId: 'order-1' },
+    })
+  })
+
+  it('maps inbox, workflow, and integration detail ids', () => {
+    expect(
+      buildOperatingLoopPageContext({
+        entityType: 'inbox_ops.proposal',
+        recordId: 'proposal-1',
+      }),
+    ).toMatchObject({
+      view: 'operating_loop.detail',
+      extra: { proposalId: 'proposal-1' },
+    })
+
+    expect(
+      buildOperatingLoopPageContext({
+        entityType: 'workflows.instance',
+        recordId: 'instance-1',
+        organizationId: 'org-1',
+      }),
+    ).toMatchObject({
+      extra: { instanceId: 'instance-1' },
+      organizationId: 'org-1',
+    })
+
+    expect(
+      buildOperatingLoopPageContext({
+        entityType: 'workflows.task',
+        recordId: 'task-1',
+      }),
+    ).toMatchObject({ extra: { taskId: 'task-1' } })
+
+    expect(
+      buildOperatingLoopPageContext({
+        resourceKind: 'integrations.integration',
+        resourceId: 'integration-1',
+      }),
+    ).toMatchObject({ extra: { integrationId: 'integration-1' } })
+
+    expect(
+      buildOperatingLoopPageContext({
+        resourceKind: 'catalog.product',
+        resourceId: 'product-1',
+      }),
+    ).toMatchObject({ extra: { productId: 'product-1' } })
   })
 })
