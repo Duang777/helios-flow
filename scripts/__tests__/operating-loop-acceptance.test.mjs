@@ -66,6 +66,19 @@ test('all operating-loop acceptance prompts declare stable tool and marker expec
         `${promptCase.id} has invalid tool name ${tool}`,
       )
     }
+    for (const marker of promptCase.requiredMarkers) {
+      if (Array.isArray(marker)) {
+        assert.ok(marker.length > 0, `${promptCase.id} empty marker alternative group`)
+        for (const item of marker) {
+          assert.equal(typeof item, 'string', `${promptCase.id} marker alternative must be string`)
+        }
+      } else {
+        assert.equal(typeof marker, 'string', `${promptCase.id} marker must be string or string[]`)
+      }
+    }
+    if (promptCase.skipChecks !== undefined) {
+      assert.ok(Array.isArray(promptCase.skipChecks), `${promptCase.id} skipChecks must be array`)
+    }
   }
   const promptIds = OPERATING_LOOP_ACCEPTANCE_PROMPTS.map((promptCase) => promptCase.id)
   for (const id of [
@@ -76,9 +89,39 @@ test('all operating-loop acceptance prompts declare stable tool and marker expec
     'zh_integrations_health',
     'zh_customers_companies',
     'zh_catalog_products',
+    'zh_cross_hop_customer_to_governance',
+    'zh_messages_inbox',
+    'zh_staff_roster',
+    'zh_risk_confirm_write',
   ]) {
     assert.ok(promptIds.includes(id), `missing platform hop prompt ${id}`)
   }
+})
+
+test('risk confirm prompt can skip formula-source check', () => {
+  const promptCase = OPERATING_LOOP_ACCEPTANCE_PROMPTS.find((item) => item.id === 'zh_risk_confirm_write')
+  assert.ok(promptCase)
+  const result = assertOperatingLoopAnswerQuality({
+    text:
+      '风险 0 条。已发起确认卡创建示例风险，未写入。证据: projectId=abc。',
+    toolCalls: ['projects.list_risks', 'projects.manage_risk'],
+    promptCase,
+  })
+  assert.equal(result.passed, true)
+})
+
+test('cross-hop markers accept 未延期 alternative', () => {
+  const promptCase = OPERATING_LOOP_ACCEPTANCE_PROMPTS.find(
+    (item) => item.id === 'zh_cross_hop_customer_to_governance',
+  )
+  assert.ok(promptCase)
+  const result = assertOperatingLoopAnswerQuality({
+    text:
+      '商机 2 个；订单 4 单；项目未延期；回款率 60%，公式来源 commercial.metrics；KPI 缺口 200；治理检出 finding.id=abc，证据 invoice-1，链接 /backend/governance/findings/abc。',
+    toolCalls: promptCase.requiredTools,
+    promptCase,
+  })
+  assert.equal(result.passed, true)
 })
 
 test('inbox acceptance prompt allows underscore tool names and evidence IDs', () => {

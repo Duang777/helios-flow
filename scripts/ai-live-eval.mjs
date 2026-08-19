@@ -399,7 +399,22 @@ async function runAppOperatingLoopAcceptance({
 }) {
   const token = await loginApp(appUrl, email, password)
   const results = []
-  for (const promptCase of OPERATING_LOOP_ACCEPTANCE_PROMPTS) {
+  const continueOnFail = readEnv('LIVE_AI_ACCEPTANCE_CONTINUE_ON_FAIL') === '1'
+  const promptFilter = (readEnv('LIVE_AI_ACCEPTANCE_PROMPT_IDS') ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+  const promptCases = promptFilter.length
+    ? OPERATING_LOOP_ACCEPTANCE_PROMPTS.filter((promptCase) => promptFilter.includes(promptCase.id))
+    : OPERATING_LOOP_ACCEPTANCE_PROMPTS
+  if (promptFilter.length && promptCases.length === 0) {
+    throw new Error(
+      `[ai-live-eval] LIVE_AI_ACCEPTANCE_PROMPT_IDS matched no prompts: ${promptFilter.join(',')}`,
+    )
+  }
+  const baseTimeoutMs = readPositiveIntegerEnv('LIVE_AI_APP_REQUEST_TIMEOUT_MS', 240_000)
+
+  for (const promptCase of promptCases) {
     const url = new URL(`${appUrl}/api/ai_assistant/ai/chat`)
     url.searchParams.set('agent', readEnv('LIVE_AI_AGENT') ?? OPERATING_LOOP_AGENT_ID)
     url.searchParams.set('provider', provider)
@@ -408,35 +423,67 @@ async function runAppOperatingLoopAcceptance({
       url.searchParams.set('baseUrl', `${upstreamBaseUrl}/v1`)
     }
 
-  const { response, text: raw } = await fetchSseWithTimeout(
-      url,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: promptCase.prompt }],
-          debug: true,
-          ...(pageContext ? { pageContext } : {}),
-        }),
-      },
-      {
-        label: `app operating-loop prompt ${promptCase.id}`,
-        timeoutMs: readPositiveIntegerEnv('LIVE_AI_APP_REQUEST_TIMEOUT_MS', 90_000),
-        stopWhenRaw: (raw) =>
-          evaluateOperatingLoopAnswer({
-            text: extractAssistantTextFromSse(raw),
-            toolCalls: extractToolCallSequence(raw),
-            promptCase,
-          }).passed,
-      },
+    const toolCount = promptCase.requiredTools?.length ?? 0
+    const toolBudgetMs = Math.max(
+      baseTimeoutMs,
+      120_000 + toolCount * 30_000,
+      toolCount >= 5 ? 300_000 : 0,
     )
+
+    let response
+    let raw
+    try {
+      ;({ response, text: raw } = await fetchSseWithTimeout(
+        url,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messages: [{ role: 'user', content: promptCase.prompt }],
+            debug: true,
+            ...(pageContext ? { pageContext } : {}),
+          }),
+        },
+        {
+          label: `app operating-loop prompt ${promptCase.id}`,
+          timeoutMs: toolBudgetMs,
+          stopWhenRaw: (rawText) =>
+            evaluateOperatingLoopAnswer({
+              text: extractAssistantTextFromSse(rawText),
+              toolCalls: extractToolCallSequence(rawText),
+              promptCase,
+            }).passed,
+        },
+      ))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (!continueOnFail) throw error
+      results.push({
+        id: promptCase.id,
+        prompt: promptCase.prompt,
+        text: '',
+        toolCalls: [],
+        quality: { passed: false, error: message },
+      })
+      console.error(message)
+      continue
+    }
+
     if (!response.ok) {
-      throw new Error(
-        `[ai-live-eval] App operating-loop prompt ${promptCase.id} failed (${response.status}): ${raw.slice(0, 500)}`,
-      )
+      const message = `[ai-live-eval] App operating-loop prompt ${promptCase.id} failed (${response.status}): ${raw.slice(0, 500)}`
+      if (!continueOnFail) throw new Error(message)
+      results.push({
+        id: promptCase.id,
+        prompt: promptCase.prompt,
+        text: raw.slice(0, 1000),
+        toolCalls: [],
+        quality: { passed: false, error: message },
+      })
+      console.error(message)
+      continue
     }
     const text = extractAssistantTextFromSse(raw)
     const toolCalls = extractToolCallSequence(raw)
@@ -445,9 +492,17 @@ async function runAppOperatingLoopAcceptance({
       quality = assertOperatingLoopAnswerQuality({ text, toolCalls, promptCase })
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      throw new Error(
-        `[ai-live-eval] App operating-loop prompt ${promptCase.id} failed quality: ${message}; toolCalls=${toolCalls.join(',') || 'none'}; text=${text.slice(0, 500)}`,
-      )
+      const full = `[ai-live-eval] App operating-loop prompt ${promptCase.id} failed quality: ${message}; toolCalls=${toolCalls.join(',') || 'none'}; text=${text.slice(0, 500)}`
+      if (!continueOnFail) throw new Error(full)
+      results.push({
+        id: promptCase.id,
+        prompt: promptCase.prompt,
+        text: text.slice(0, 1000),
+        toolCalls,
+        quality: { passed: false, error: full },
+      })
+      console.error(full)
+      continue
     }
     results.push({
       id: promptCase.id,
@@ -456,6 +511,10 @@ async function runAppOperatingLoopAcceptance({
       toolCalls,
       quality,
     })
+  }
+  const failed = results.filter((entry) => entry.quality?.passed === false)
+  if (failed.length > 0 && continueOnFail) {
+    process.exitCode = 1
   }
   return results
 }

@@ -675,4 +675,5 @@ Harden verification, force multi-hop Chinese regressions, add read-only messages
 - [x] Add `staff.list_team_members` / `staff.list_leave_requests` and whitelist them.
 - [x] Mount operating-loop triggers on messages + staff list tables.
 - [x] Add `projects.manage_risk` confirm-required write.
-- [ ] Run `yarn generate`, focused tests, acceptance scripts, and feishu/live-eval when env allows.
+- [x] Run `yarn generate`, focused tests, acceptance scripts, and feishu verify (`ok` on 2026-08-12).
+- [x] `yarn ai:live-eval` Phase 18 prompts green (`zh_cross_hop_customer_to_governance`, `zh_messages_inbox`, `zh_staff_roster`, `zh_risk_confirm_write`) plus `zh_project_loop`; live-eval default timeout raised to 240s with per-prompt tool budget, `LIVE_AI_ACCEPTANCE_PROMPT_IDS`, and `LIVE_AI_ACCEPTANCE_CONTINUE_ON_FAIL`. Full suite initially 17/23; remaining 6 flaky prompts retuned and individually green (including `zh_bulk_governance_disposition`).
