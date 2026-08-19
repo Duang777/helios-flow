@@ -737,7 +737,7 @@
   "workflows.form.placeholders.parentKey": "parentKey",
   "workflows.form.placeholders.parentPath": "parent.field.path",
   "workflows.form.placeholders.placeholder": "输入占位符文本...",
-  "workflows.form.placeholders.roles": "Manager, Reviewer",
+  "workflows.form.placeholders.roles": "经理, 审核人",
   "workflows.form.placeholders.signalName": "payment_confirmed",
   "workflows.form.placeholders.signalTimeout": "PT5M",
   "workflows.form.placeholders.stepName": "输入步骤名称",

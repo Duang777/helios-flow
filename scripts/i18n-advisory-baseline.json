@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-19T07:28:53.476Z",
+  "updatedAt": "2026-08-19T08:16:30.171Z",
   "generatedBy": "node scripts/i18n-advisory-baseline.mjs --update",
   "metrics": {
     "usage": {
@@ -22,10 +22,10 @@
       "locales": {
         "zh": {
           "total": 18115,
-          "identical": 4118,
-          "identicalSignificant": 3759,
+          "identical": 3054,
+          "identicalSignificant": 2772,
           "missing": 0,
-          "translated": 13997
+          "translated": 15061
         },
         "pl": {
           "total": 18115,

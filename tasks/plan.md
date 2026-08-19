@@ -593,10 +593,13 @@ Remove high-visibility English copy from the WMS inventory console in Chinese de
 - [x] Localize WMS left-nav labels for inventory, warehouses, zones, locations, lots, movements, and reservations.
 - [x] Localize reservation and movement section labels that become visible when scrolling the same inventory console.
 - [x] Browser-verify `/backend/wms/inventory` shows Chinese labels and no targeted English residues.
+- [x] Rewrite full WMS `zh.json` to clear remaining English identical strings and corrupted bilingual fragments across config, dashboard, import, receive/adjust/move, lot/SKU detail, and sales stock widgets.
 
 ### Verification Notes
-- `yarn i18n:check` passed with no new advisory issues above baseline and one improved metric.
+- `yarn i18n:check` passed with no new advisory issues above baseline after intentional baseline refresh.
 - Playwright DOM verification passed for `/backend/wms/inventory`; targeted English residues were empty and the expected Chinese labels/placeholders were present.
+- Full-module zh rewrite kept intentional technical identicals only (SKU/UOM/FEFO/FIFO/LIFO/RMA/CSV field names/`—`/`…`).
+- Follow-up: Staff module `zh.json` fully rewritten (1160 keys) to clear the same bilingual corruption class; customers calendar weekday abbreviations and a few catalog/workflow labels tightened.
 
 ### Verification Gate
 - `yarn generate`
