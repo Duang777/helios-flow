@@ -22,6 +22,8 @@ import workflowsAiTools from '../../workflows/ai-tools'
 import wmsAiTools from '../../wms/ai-tools'
 import integrationsAiTools from '../../integrations/ai-tools'
 import inboxOpsAiTools from '../../inbox_ops/ai-tools'
+import messagesAiTools from '../../messages/ai-tools'
+import staffAiTools from '../../staff/ai-tools'
 
 const GENERAL_PURPOSE_TOOLS = new Set([
   'search.hybrid_search',
@@ -68,6 +70,8 @@ describe('insights.operating_loop_assistant agent definition', () => {
       ...wmsAiTools.map((tool) => tool.name),
       ...integrationsAiTools.map((tool) => tool.name),
       ...inboxOpsAiTools.map((tool) => tool.name),
+      ...messagesAiTools.map((tool) => tool.name),
+      ...staffAiTools.map((tool) => tool.name),
     ])
     for (const toolName of agent.allowedTools) {
       expect(registered.has(toolName) || GENERAL_PURPOSE_TOOLS.has(toolName)).toBe(true)
@@ -117,6 +121,9 @@ describe('insights.operating_loop_assistant agent definition', () => {
         'integrations.list_integrations',
         'inbox_ops_list_proposals',
         'inbox_ops_accept_action',
+        'messages.list_messages',
+        'staff.list_team_members',
+        'projects.manage_risk',
       ]),
     )
     expect(agent.allowedTools).not.toContain('inbox_ops_categorize_email')
@@ -190,6 +197,18 @@ describe('insights.operating_loop_assistant agent definition', () => {
         prompt: '查一下现有商品，给出 SKU 和后台链接。',
         tools: ['catalog.search_products', 'catalog.list_products'],
       },
+      {
+        prompt: '列出站内消息，不要声称已发送。',
+        tools: ['messages.list_messages'],
+      },
+      {
+        prompt: '列出团队成员，请假只读不要审批。',
+        tools: ['staff.list_team_members', 'staff.list_leave_requests'],
+      },
+      {
+        prompt: '项目风险改成 mitigating 必须确认。',
+        tools: ['projects.list_risks', 'projects.manage_risk'],
+      },
     ]
 
     for (const item of regressionCases) {
@@ -213,6 +232,7 @@ describe('insights.operating_loop_assistant agent definition', () => {
     )
     const writeTools = [
       'projects.manage_project',
+      'projects.manage_risk',
       'commercial.manage_contract',
       'commercial.manage_invoice',
       'commercial.manage_payment',

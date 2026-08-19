@@ -173,6 +173,42 @@ export const OPERATING_LOOP_ACCEPTANCE_PROMPTS = [
     requiredTools: ['catalog.search_products'],
     requiredMarkers: ['商品', '证据'],
   },
+  {
+    id: 'zh_cross_hop_customer_to_governance',
+    prompt:
+      '这个客户的商机和订单怎样？项目延期了吗？合同回款和 KPI、治理检出如何？请一次串联给出数字、公式来源、证据 ID 和后台链接。',
+    requiredTools: [
+      'customers.list_companies',
+      'customers.list_deals',
+      'sales.list_orders',
+      'projects.get_delay_summary',
+      'commercial.get_project_settlement_summary',
+      'insights.get_kpi_gap',
+      'governance.list_findings',
+    ],
+    requiredMarkers: ['客户', '订单', '延期', '回款', 'KPI', '治理', '证据'],
+  },
+  {
+    id: 'zh_messages_inbox',
+    prompt:
+      '列出站内消息，给出条数、来源、证据 ID 和后台链接。不要声称已发送或已归档。',
+    requiredTools: ['messages.list_messages'],
+    requiredMarkers: ['消息', '证据'],
+  },
+  {
+    id: 'zh_staff_roster',
+    prompt:
+      '列出当前团队成员，给出条数、来源、证据 ID 和后台链接。请假列表只读，不要审批。',
+    requiredTools: ['staff.list_team_members'],
+    requiredMarkers: ['员工', '证据'],
+  },
+  {
+    id: 'zh_risk_confirm_write',
+    prompt:
+      '当前项目有哪些风险？如果要改成 mitigating，必须走确认卡，不要说已经写入。',
+    requiredTools: ['projects.list_risks', 'projects.manage_risk'],
+    requiredMarkers: ['风险', '确认'],
+  },
 ]
 
 export const OPERATING_LOOP_TOOL_NAME_PATTERN = /^(?:[a-z_]+\.[a-z0-9_]+|inbox_ops_[a-z0-9_]+)$/

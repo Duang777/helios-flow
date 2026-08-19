@@ -662,3 +662,17 @@ and capture the real model/tool output with Chinese and English subtitles.
 - `yarn demo:videos -- --scene=02-today-digest --duration-ms=4000 --ai-wait-ms=8000 --output-dir=.tmp/demo-video-detailed-ai-smoke`
   produced video, Chinese/English captions, preview HTML, and an `ok` real AI
   dialogue step for `insights.operating_loop_assistant`.
+
+## Phase 18: Platform AI Depth (Cross-Hop + Messages/Staff + Risk Write)
+
+### Goal
+Harden verification, force multi-hop Chinese regressions, add read-only messages/staff tools with list entry points, and add confirm-required `projects.manage_risk`. Spec: `.ai/specs/2026-08-19-operating-loop-platform-phase18.md`.
+
+### Task List
+- [x] Add Phase 18 spec with explicit out-of-scope dangerous mutations.
+- [x] Expand `OPERATING_LOOP_ACCEPTANCE_PROMPTS` with cross-hop, messages, staff, and risk confirm prompts.
+- [x] Add `messages.list_messages` / `messages.get_message` and whitelist them.
+- [x] Add `staff.list_team_members` / `staff.list_leave_requests` and whitelist them.
+- [x] Mount operating-loop triggers on messages + staff list tables.
+- [x] Add `projects.manage_risk` confirm-required write.
+- [ ] Run `yarn generate`, focused tests, acceptance scripts, and feishu/live-eval when env allows.

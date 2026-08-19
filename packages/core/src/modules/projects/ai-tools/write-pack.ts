@@ -4,7 +4,7 @@ import { defineAiTool } from '@helios/ai-assistant'
 import { createAiApiOperationRunner } from '@helios/ai-assistant/modules/ai_assistant/lib/ai-api-operation-runner'
 import type { AiToolExecutionContext } from '@helios/ai-assistant/modules/ai_assistant/lib/ai-api-operation-runner'
 import type { AiToolLoadBeforeSingleRecord } from '@helios/ai-assistant/modules/ai_assistant/lib/types'
-import { Project } from '../data/entities'
+import { Project, ProjectRisk } from '../data/entities'
 import { assertTenantScope, type ProjectsAiToolDefinition, type ProjectsToolContext } from './types'
 
 type ManageProjectInput = z.infer<typeof manageProjectInput>
@@ -255,6 +255,191 @@ const manageProjectTool = defineAiTool({
   },
 }) as ProjectsAiToolDefinition
 
-export const aiTools: ProjectsAiToolDefinition[] = [manageProjectTool]
+const manageRiskInput = z
+  .object({
+    operation: z.enum(['create', 'update']),
+    riskId: z.string().uuid().optional(),
+    projectId: z.string().uuid().optional(),
+    title: z.string().trim().min(1).max(200).optional(),
+    description: z.string().trim().max(4000).nullable().optional(),
+    riskType: z.enum(['schedule', 'cost', 'scope', 'other']).optional(),
+    status: z.enum(['open', 'mitigating', 'closed']).optional(),
+    ownerEmployeeId: z.string().uuid().nullable().optional(),
+    isActive: z.boolean().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.operation === 'create') {
+      if (!value.projectId) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'projectId is required for create.', path: ['projectId'] })
+      }
+      if (!value.title) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'title is required for create.', path: ['title'] })
+      }
+    }
+    if (value.operation === 'update' && !value.riskId) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'riskId is required for update.', path: ['riskId'] })
+    }
+    const hasPatch =
+      value.title !== undefined ||
+      value.description !== undefined ||
+      value.riskType !== undefined ||
+      value.status !== undefined ||
+      value.ownerEmployeeId !== undefined ||
+      value.isActive !== undefined ||
+      value.projectId !== undefined
+    if (value.operation === 'update' && !hasPatch) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'At least one risk field is required for update.',
+        path: ['status'],
+      })
+    }
+  })
+
+type ManageRiskInput = z.infer<typeof manageRiskInput>
+
+function riskSnapshot(row: ProjectRisk): Record<string, unknown> {
+  return {
+    projectId: row.projectId,
+    title: row.title,
+    description: row.description ?? null,
+    riskType: row.riskType,
+    status: row.status,
+    ownerEmployeeId: row.ownerEmployeeId ?? null,
+    isActive: !!row.isActive,
+  }
+}
+
+function riskAfter(input: ManageRiskInput, before: Record<string, unknown> | null): Record<string, unknown> {
+  return {
+    projectId: input.projectId ?? before?.projectId ?? null,
+    title: input.title ?? before?.title ?? null,
+    description: input.description !== undefined ? input.description : (before?.description ?? null),
+    riskType: input.riskType ?? before?.riskType ?? null,
+    status: input.status ?? before?.status ?? null,
+    ownerEmployeeId:
+      input.ownerEmployeeId !== undefined ? input.ownerEmployeeId : (before?.ownerEmployeeId ?? null),
+    isActive: input.isActive !== undefined ? input.isActive : (before?.isActive ?? true),
+  }
+}
+
+async function loadRiskForScope(
+  em: EntityManager,
+  ctx: ProjectsToolContext,
+  tenantId: string,
+  riskId: string,
+): Promise<ProjectRisk | null> {
+  const row = await em.findOne(ProjectRisk, {
+    id: riskId,
+    tenantId,
+    organizationId: ctx.organizationId ?? undefined,
+    deletedAt: null,
+  })
+  if (!row) return null
+  if (ctx.organizationId && row.organizationId !== ctx.organizationId) return null
+  return row
+}
+
+async function loadRiskPreview(
+  input: ManageRiskInput,
+  ctx: ProjectsToolContext,
+): Promise<AiToolLoadBeforeSingleRecord | null> {
+  const { tenantId } = assertTenantScope(ctx)
+  const em = resolveEm(ctx)
+  if (input.operation === 'create') {
+    return {
+      recordId: `create:${input.title ?? input.projectId}`,
+      entityType: 'projects.risk',
+      recordVersion: null,
+      before: {
+        projectId: null,
+        title: null,
+        status: null,
+        riskType: null,
+        ownerEmployeeId: null,
+      },
+      after: riskAfter(input, null),
+    }
+  }
+  const row = await loadRiskForScope(em, ctx, tenantId, input.riskId!)
+  if (!row) return null
+  const before = riskSnapshot(row)
+  return {
+    recordId: row.id,
+    entityType: 'projects.risk',
+    recordVersion: recordVersionFromUpdatedAt(row.updatedAt),
+    before,
+    after: riskAfter(input, before),
+  }
+}
+
+const manageRiskTool = defineAiTool({
+  name: 'projects.manage_risk',
+  displayName: 'Manage project risk',
+  description:
+    'Create or update a delivery risk (status, owner, title). Confirm-required. Prefer update status to mitigating/closed after explaining evidence.',
+  inputSchema: manageRiskInput,
+  requiredFeatures: ['projects.manage'],
+  isMutation: true,
+  loadBeforeRecord: loadRiskPreview,
+  async handler(rawInput: ManageRiskInput, ctx: ProjectsToolContext) {
+    const { tenantId, organizationId } = assertTenantScope(ctx)
+    const input = manageRiskInput.parse(rawInput)
+    const runner = createAiApiOperationRunner(ctx as unknown as AiToolExecutionContext)
+
+    if (input.operation === 'create') {
+      if (!organizationId) {
+        throw new Error('[internal] Organization scope is required to create a risk.')
+      }
+      const response = await runner.run<{ id?: string }>({
+        method: 'POST',
+        path: '/projects/risks',
+        body: {
+          tenantId,
+          organizationId,
+          projectId: input.projectId,
+          title: input.title,
+          description: input.description ?? null,
+          riskType: input.riskType,
+          status: input.status,
+          ownerEmployeeId: input.ownerEmployeeId ?? null,
+          isActive: input.isActive,
+        },
+      })
+      if (!response.success) {
+        throw new Error(response.error ?? 'Failed to create risk')
+      }
+      return {
+        riskId: response.data?.id ?? null,
+        commandName: 'projects.risks.create',
+        href: response.data?.id ? `/backend/risks/${response.data.id}` : '/backend/risks',
+      }
+    }
+
+    const body: Record<string, unknown> = { id: input.riskId, tenantId, organizationId }
+    if (input.projectId !== undefined) body.projectId = input.projectId
+    if (input.title !== undefined) body.title = input.title
+    if (input.description !== undefined) body.description = input.description
+    if (input.riskType !== undefined) body.riskType = input.riskType
+    if (input.status !== undefined) body.status = input.status
+    if (input.ownerEmployeeId !== undefined) body.ownerEmployeeId = input.ownerEmployeeId
+    if (input.isActive !== undefined) body.isActive = input.isActive
+    const response = await runner.run({
+      method: 'PUT',
+      path: '/projects/risks',
+      body,
+    })
+    if (!response.success) {
+      throw new Error(response.error ?? `Failed to update risk "${input.riskId}"`)
+    }
+    return {
+      riskId: input.riskId,
+      commandName: 'projects.risks.update',
+      href: `/backend/risks/${input.riskId}`,
+    }
+  },
+}) as ProjectsAiToolDefinition
+
+export const aiTools: ProjectsAiToolDefinition[] = [manageProjectTool, manageRiskTool]
 
 export default aiTools
