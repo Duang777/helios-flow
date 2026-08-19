@@ -99,6 +99,8 @@
   "configs.moduleTelemetry.table.topOperationsBreakdown": "Top operations in this range",
   "configs.moduleTelemetry.table.worstP95": "Worst p95",
   "configs.moduleTelemetry.title": "Module telemetry",
+  "configs.nav.description": "Shared configuration storage and helpers for module settings.",
+  "configs.nav.title": "Configuration",
   "configs.systemStatus.actions.purgeCache": "Purge cache",
   "configs.systemStatus.actions.purgeCacheConfirm": "Purge all cached data now? This clears cache entries across every tenant.",
   "configs.systemStatus.actions.purgeCacheError": "Failed to purge cache.",

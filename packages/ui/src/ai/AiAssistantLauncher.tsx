@@ -52,6 +52,7 @@ import { useAiChatSessions } from './AiChatSessions'
 import { ChatPaneTabs } from './ChatPaneTabs'
 import { ConversationShareButton } from './ConversationShareButton'
 import { AiIcon } from './AiIcon'
+import { resolveAiAgentDescription, resolveAiAgentLabel } from './agent-display'
 import type { AiChatContextItem, AiChatSuggestion } from './AiChat'
 
 // Lazy-load the chat surface so AppShell tests (and any other importers that
@@ -65,7 +66,9 @@ const LazyAiChat = React.lazy(async () => {
 export interface AiAssistantLauncherAgent {
   id: string
   label: string
+  labelKey?: string | null
   description?: string | null
+  descriptionKey?: string | null
   moduleId?: string | null
   /**
    * `read-only` (default), `confirm-required`, or
@@ -113,7 +116,9 @@ interface AgentsResponse {
   agents?: Array<{
     id?: string | null
     label?: string | null
+    labelKey?: string | null
     description?: string | null
+    descriptionKey?: string | null
     moduleId?: string | null
     mutationPolicy?: string | null
     keywords?: string[] | null
@@ -149,7 +154,12 @@ function normalizeAgents(payload: AgentsResponse | null | undefined): AiAssistan
     result.push({
       id: raw.id,
       label: raw.label,
+      labelKey: typeof raw.labelKey === 'string' && raw.labelKey.length > 0 ? raw.labelKey : null,
       description: typeof raw.description === 'string' ? raw.description : null,
+      descriptionKey:
+        typeof raw.descriptionKey === 'string' && raw.descriptionKey.length > 0
+          ? raw.descriptionKey
+          : null,
       moduleId: typeof raw.moduleId === 'string' ? raw.moduleId : null,
       mutationPolicy:
         typeof raw.mutationPolicy === 'string' ? raw.mutationPolicy : null,
@@ -173,12 +183,19 @@ function normalizeAgents(payload: AgentsResponse | null | undefined): AiAssistan
   return result
 }
 
-function matchesQuery(agent: AiAssistantLauncherAgent, query: string): boolean {
+type AiAssistantLauncherDisplayAgent = AiAssistantLauncherAgent & {
+  displayLabel: string
+  displayDescription: string | null
+}
+
+function matchesQuery(agent: AiAssistantLauncherDisplayAgent, query: string): boolean {
   if (!query) return true
   const needle = query.trim().toLowerCase()
   if (!needle) return true
+  if (agent.displayLabel.toLowerCase().includes(needle)) return true
   if (agent.label.toLowerCase().includes(needle)) return true
   if (agent.id.toLowerCase().includes(needle)) return true
+  if (agent.displayDescription?.toLowerCase().includes(needle)) return true
   if (agent.description && agent.description.toLowerCase().includes(needle)) return true
   if (agent.moduleId && agent.moduleId.toLowerCase().includes(needle)) return true
   if (agent.keywords && agent.keywords.some((keyword) => keyword.toLowerCase().includes(needle))) return true
@@ -216,7 +233,7 @@ export function AiAssistantLauncher({
   // instead of a disappearing control or a failing chat stream.
   const [aiConfigured, setAiConfigured] = React.useState<boolean | null>(null)
   const [pickerOpen, setPickerOpen] = React.useState(false)
-  const [activeAgent, setActiveAgent] = React.useState<AiAssistantLauncherAgent | null>(null)
+  const [activeAgent, setActiveAgent] = React.useState<AiAssistantLauncherDisplayAgent | null>(null)
   const [chatOpen, setChatOpen] = React.useState(false)
   const [query, setQuery] = React.useState('')
   const [highlight, setHighlight] = React.useState(0)
@@ -232,8 +249,18 @@ export function AiAssistantLauncher({
     if (deepLinkParam) setDeepLinkConversationId(deepLinkParam)
   }, [deepLinkParam])
 
+  const displayAgents = React.useMemo<AiAssistantLauncherDisplayAgent[]>(
+    () =>
+      agents.map((agent) => ({
+        ...agent,
+        displayLabel: resolveAiAgentLabel(agent, t),
+        displayDescription: resolveAiAgentDescription(agent, t),
+      })),
+    [agents, t],
+  )
+
   React.useEffect(() => {
-    if (!deepLinkConversationId || !agentsLoaded || agents.length === 0) return
+    if (!deepLinkConversationId || !agentsLoaded || displayAgents.length === 0) return
     if (deepLinkHandledRef.current === deepLinkConversationId) return
     deepLinkHandledRef.current = deepLinkConversationId
     let cancelled = false
@@ -244,7 +271,7 @@ export function AiAssistantLauncher({
       .then((res) => {
         if (cancelled || !res.ok || !res.result) return
         const { agentId } = res.result.conversation
-        const matched = agents.find((a) => a.id === agentId) ?? agents[0]
+        const matched = displayAgents.find((a) => a.id === agentId) ?? displayAgents[0]
         if (!matched) return
         setActiveAgent(matched)
         setChatOpen(true)
@@ -256,7 +283,7 @@ export function AiAssistantLauncher({
     return () => {
       cancelled = true
     }
-  }, [deepLinkConversationId, agentsLoaded, agents, router, pathname])
+  }, [deepLinkConversationId, agentsLoaded, displayAgents, router, pathname])
 
   // Health check — best-effort signal only. We do NOT gate the launcher
   // behind it any more: a flaky / slow / transiently-401 health endpoint on
@@ -345,8 +372,8 @@ export function AiAssistantLauncher({
   }, [agentsEndpoint, agentsLoaded])
 
   const filteredAgents = React.useMemo(
-    () => agents.filter((agent) => matchesQuery(agent, query)),
-    [agents, query],
+    () => displayAgents.filter((agent) => matchesQuery(agent, query)),
+    [displayAgents, query],
   )
 
   // Reset highlight when the filtered set changes; clamp to a valid index.
@@ -371,7 +398,7 @@ export function AiAssistantLauncher({
     return () => window.removeEventListener(AI_ASSISTANT_LAUNCHER_OPEN_EVENT, listener)
   }, [openPicker])
 
-  const handleSelectAgent = React.useCallback((agent: AiAssistantLauncherAgent) => {
+  const handleSelectAgent = React.useCallback((agent: AiAssistantLauncherDisplayAgent) => {
     // Manual agent selection → discard any pending deep-link so the user gets
     // a fresh session instead of the shared conversation.
     setDeepLinkConversationId(null)
@@ -604,7 +631,7 @@ export function AiAssistantLauncher({
                     <span className="flex-1 min-w-0 space-y-0.5">
                       <span className="flex items-center gap-2">
                         <span className="truncate font-medium leading-tight">
-                          {agent.label}
+                          {agent.displayLabel}
                         </span>
                         <span
                           className="inline-flex items-center rounded-full border border-border bg-secondary px-1.5 py-0 text-[10px] font-medium uppercase tracking-wide text-secondary-foreground"
@@ -621,9 +648,9 @@ export function AiAssistantLauncher({
                           </span>
                         ) : null}
                       </span>
-                      {agent.description ? (
+                      {agent.displayDescription ? (
                         <span className="block truncate text-xs text-muted-foreground">
-                          {agent.description}
+                          {agent.displayDescription}
                         </span>
                       ) : null}
                       <span className="block truncate font-mono text-[10px] text-muted-foreground/80">
@@ -699,7 +726,7 @@ export function AiAssistantLauncher({
                   if (!activeAgent) return
                   dock.dock({
                     agent: activeAgent.id,
-                    label: activeAgent.label,
+                    label: activeAgent.displayLabel,
                     description:
                       activeAgent.moduleId ??
                       t('ai_assistant.launcher.dock.subtitle', 'AI assistant'),
@@ -710,9 +737,9 @@ export function AiAssistantLauncher({
                     ),
                     suggestions: launcherSuggestions,
                     contextItems: launcherContextItems,
-                    welcomeTitle: activeAgent.label,
+                    welcomeTitle: activeAgent.displayLabel,
                     welcomeDescription:
-                      activeAgent.description ??
+                      activeAgent.displayDescription ??
                       t(
                         'ai_assistant.launcher.welcome.fallback',
                         'How can I help?',
@@ -727,7 +754,9 @@ export function AiAssistantLauncher({
               </IconButton>
               <DialogTitle className="flex-1 min-w-0 flex items-center gap-2">
                 <AiIcon className="size-4 shrink-0" />
-                <span className="min-w-0 truncate">{activeAgent?.label ?? dialogTitle}</span>
+                <span className="min-w-0 truncate">
+                  {activeAgent?.displayLabel ?? dialogTitle}
+                </span>
                 <span
                   className="inline-flex shrink-0 items-center rounded-full border border-border bg-secondary px-1.5 py-0 text-[10px] font-medium uppercase tracking-wide text-secondary-foreground"
                   data-ai-beta-chip=""
@@ -736,8 +765,8 @@ export function AiAssistantLauncher({
                 </span>
               </DialogTitle>
             </div>
-            {activeAgent?.description ? (
-              <DialogDescription>{activeAgent.description}</DialogDescription>
+            {activeAgent?.displayDescription ? (
+              <DialogDescription>{activeAgent.displayDescription}</DialogDescription>
             ) : null}
           </DialogHeader>
           {activeAgent ? (
@@ -763,7 +792,7 @@ export function AiAssistantLauncher({
 }
 
 interface LauncherChatBodyProps {
-  activeAgent: AiAssistantLauncherAgent
+  activeAgent: AiAssistantLauncherDisplayAgent
   suggestions: AiChatSuggestion[]
   contextItems: AiChatContextItem[]
   welcomeFallback: string
@@ -821,8 +850,8 @@ function LauncherChatBody({
               placeholder={placeholder}
               suggestions={suggestions}
               contextItems={contextItems}
-              welcomeTitle={activeAgent.label}
-              welcomeDescription={activeAgent.description ?? welcomeFallback}
+              welcomeTitle={activeAgent.displayLabel}
+              welcomeDescription={activeAgent.displayDescription ?? welcomeFallback}
               headerActions={<ConversationShareButton conversationId={conversationId} />}
             />
           </React.Suspense>

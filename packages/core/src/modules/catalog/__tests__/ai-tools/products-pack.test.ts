@@ -98,6 +98,8 @@ describe('catalog.list_products', () => {
     expect(items[0].productType).toBe('simple')
     expect(items[0].isActive).toBe(true)
     expect(items[0].tenantId).toBe('tenant-1')
+    expect(items[0].href).toBe('/backend/catalog/products/p1')
+    expect(result.href).toBe('/backend/catalog/products')
     expect(result.limit).toBe(50)
     expect(result.offset).toBe(0)
     expect(result.total).toBe(1)
@@ -199,6 +201,7 @@ describe('catalog.get_product', () => {
     expect(result.found).toBe(true)
     const product = result.product as Record<string, unknown>
     expect(product.title).toBe('Blue Widget')
+    expect(product.href).toBe(`/backend/catalog/products/${existingId}`)
     expect(result.related).toBeNull()
     expect(result.customFields).toEqual({})
     expect(loadCustomFieldValuesMock).not.toHaveBeenCalled()

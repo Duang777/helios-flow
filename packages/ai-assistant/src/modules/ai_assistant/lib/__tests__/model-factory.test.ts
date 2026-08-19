@@ -755,9 +755,25 @@ describe('createModelFactory', () => {
       )
     })
 
-    it('<MODULE>_AI_BASE_URL env beats agentDefaultBaseUrl for the baseURL axis', () => {
+    it('HELIOS_AI_BASE_URL env beats agentDefaultBaseUrl for the baseURL axis', () => {
       const { provider, createModel } = makeBaseUrlProviderWithSpy()
-      const env = { CATALOG_AI_BASE_URL: 'https://catalog-env.example.com/v1' }
+      const env = { HELIOS_AI_BASE_URL: 'https://global-env.example.com/v1' }
+      const factory = createModelFactory(fakeContainer, makeFactoryDeps(provider, env))
+      const resolution = factory.resolveModel({
+        agentDefaultBaseUrl: 'https://agent.example.com/v1',
+      })
+      expect(resolution.baseURL).toBe('https://global-env.example.com/v1')
+      expect(createModel).toHaveBeenCalledWith(
+        expect.objectContaining({ baseURL: 'https://global-env.example.com/v1' }),
+      )
+    })
+
+    it('HELIOS_AI_<MODULE>_BASE_URL env beats HELIOS_AI_BASE_URL for the baseURL axis', () => {
+      const { provider, createModel } = makeBaseUrlProviderWithSpy()
+      const env = {
+        HELIOS_AI_BASE_URL: 'https://global-env.example.com/v1',
+        HELIOS_AI_CATALOG_BASE_URL: 'https://catalog-env.example.com/v1',
+      }
       const factory = createModelFactory(fakeContainer, makeFactoryDeps(provider, env))
       const resolution = factory.resolveModel({
         moduleId: 'catalog',
@@ -769,9 +785,40 @@ describe('createModelFactory', () => {
       )
     })
 
-    it('baseUrlOverride beats <MODULE>_AI_BASE_URL env and agentDefaultBaseUrl', () => {
+    it('falls back to legacy <MODULE>_AI_BASE_URL when HELIOS_AI_<MODULE>_BASE_URL is unset', () => {
       const { provider, createModel } = makeBaseUrlProviderWithSpy()
-      const env = { CATALOG_AI_BASE_URL: 'https://catalog-env.example.com/v1' }
+      const env = { CATALOG_AI_BASE_URL: 'https://legacy-catalog-env.example.com/v1' }
+      const factory = createModelFactory(fakeContainer, makeFactoryDeps(provider, env))
+      const resolution = factory.resolveModel({
+        moduleId: 'catalog',
+        agentDefaultBaseUrl: 'https://agent.example.com/v1',
+      })
+      expect(resolution.baseURL).toBe('https://legacy-catalog-env.example.com/v1')
+      expect(createModel).toHaveBeenCalledWith(
+        expect.objectContaining({ baseURL: 'https://legacy-catalog-env.example.com/v1' }),
+      )
+    })
+
+    it('prefers HELIOS_AI_<MODULE>_BASE_URL over the legacy <MODULE>_AI_BASE_URL fallback', () => {
+      const { provider, createModel } = makeBaseUrlProviderWithSpy()
+      const env = {
+        HELIOS_AI_CATALOG_BASE_URL: 'https://canonical-catalog-env.example.com/v1',
+        CATALOG_AI_BASE_URL: 'https://legacy-catalog-env.example.com/v1',
+      }
+      const factory = createModelFactory(fakeContainer, makeFactoryDeps(provider, env))
+      const resolution = factory.resolveModel({ moduleId: 'catalog' })
+      expect(resolution.baseURL).toBe('https://canonical-catalog-env.example.com/v1')
+      expect(createModel).toHaveBeenCalledWith(
+        expect.objectContaining({ baseURL: 'https://canonical-catalog-env.example.com/v1' }),
+      )
+    })
+
+    it('baseUrlOverride beats module/global env and agentDefaultBaseUrl', () => {
+      const { provider, createModel } = makeBaseUrlProviderWithSpy()
+      const env = {
+        HELIOS_AI_BASE_URL: 'https://global-env.example.com/v1',
+        HELIOS_AI_CATALOG_BASE_URL: 'https://catalog-env.example.com/v1',
+      }
       const factory = createModelFactory(fakeContainer, makeFactoryDeps(provider, env))
       const resolution = factory.resolveModel({
         moduleId: 'catalog',
@@ -784,9 +831,9 @@ describe('createModelFactory', () => {
       )
     })
 
-    it('uppercases moduleId when deriving the <MODULE>_AI_BASE_URL env var name', () => {
+    it('uppercases moduleId when deriving the HELIOS_AI_<MODULE>_BASE_URL env var name', () => {
       const { provider, createModel } = makeBaseUrlProviderWithSpy()
-      const env = { INBOX_OPS_AI_BASE_URL: 'https://inbox-env.example.com/v1' }
+      const env = { HELIOS_AI_INBOX_OPS_BASE_URL: 'https://inbox-env.example.com/v1' }
       const factory = createModelFactory(fakeContainer, makeFactoryDeps(provider, env))
       const resolution = factory.resolveModel({ moduleId: 'inbox_ops' })
       expect(resolution.baseURL).toBe('https://inbox-env.example.com/v1')
@@ -797,7 +844,7 @@ describe('createModelFactory', () => {
 
     it('treats empty baseUrlOverride as "no override" and falls through to env', () => {
       const { provider, createModel } = makeBaseUrlProviderWithSpy()
-      const env = { CATALOG_AI_BASE_URL: 'https://catalog-env.example.com/v1' }
+      const env = { HELIOS_AI_CATALOG_BASE_URL: 'https://catalog-env.example.com/v1' }
       const factory = createModelFactory(fakeContainer, makeFactoryDeps(provider, env))
       const resolution = factory.resolveModel({
         moduleId: 'catalog',
@@ -811,7 +858,7 @@ describe('createModelFactory', () => {
 
     it('skips <MODULE>_AI_BASE_URL lookup when moduleId is undefined', () => {
       const { provider, createModel } = makeBaseUrlProviderWithSpy()
-      const env = { CATALOG_AI_BASE_URL: 'https://catalog-env.example.com/v1' }
+      const env = { HELIOS_AI_CATALOG_BASE_URL: 'https://catalog-env.example.com/v1' }
       const factory = createModelFactory(fakeContainer, makeFactoryDeps(provider, env))
       const resolution = factory.resolveModel({
         agentDefaultBaseUrl: 'https://agent.example.com/v1',

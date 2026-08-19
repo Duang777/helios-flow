@@ -26,17 +26,24 @@ const logger = createLogger('customers')
 const leafletRuntime = ((L as { default?: typeof L }).default ?? L) as typeof L
 
 const TILE_URL =
-  process.env.NEXT_PUBLIC_HELIOS_DEALS_MAP_TILE_URL ?? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+  process.env.NEXT_PUBLIC_HELIOS_DEALS_MAP_TILE_URL ??
+  // Demo seed deals are in China. Esri World Street Map returns gray
+  // "Map data not yet available" tiles for China at ≈z14+. CARTO/OSM public
+  // CDNs are often unreachable from mainland networks. Gaode works locally;
+  // pins may be slightly offset (GCJ-02 tiles vs WGS-84 coordinates).
+  'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}'
 const TILE_ATTRIBUTION =
   process.env.NEXT_PUBLIC_HELIOS_DEALS_MAP_TILE_ATTRIBUTION ??
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  '&copy; <a href="https://lbs.amap.com/">Gaode</a>'
+const TILE_SUBDOMAINS =
+  process.env.NEXT_PUBLIC_HELIOS_DEALS_MAP_TILE_SUBDOMAINS ?? '1234'
 // True whenever the EFFECTIVE tile URL targets OSM's public CDN — whether from the bundled default
 // (env unset) OR an env value pointed back at the same public host. OSM's tile usage policy
 // prohibits production/commercial traffic against it. Match on the parsed hostname rather than a raw
 // substring so a lookalike host (e.g. `tile.openstreetmap.org.example.com`) is not mistaken for OSM.
 function targetsPublicOsmTileHost(tileUrl: string): boolean {
   try {
-    const { hostname } = new URL(tileUrl)
+    const { hostname } = new URL(tileUrl.replace('{s}', '1'))
     return hostname === 'openstreetmap.org' || hostname.endsWith('.openstreetmap.org')
   } catch {
     return false
@@ -58,8 +65,9 @@ function warnOnPublicOsmTilesOnce(): void {
   )
 }
 
-const WORLD_CENTER: L.LatLngTuple = [20, 0]
-const WORLD_ZOOM = 2
+// Empty-state / pre-fit view: mainland China — demo seed deals live here; users can still pan worldwide.
+const DEFAULT_CENTER: L.LatLngTuple = [35.0, 105.0]
+const DEFAULT_ZOOM = 4
 const SINGLE_PIN_ZOOM = 12
 const FIT_PADDING: L.PointTuple = [32, 32]
 
@@ -246,8 +254,14 @@ export default function DealsMapCanvasImpl({
     const map = L.map(node, { zoomControl: false, worldCopyJump: true })
     // Zoom sits top-LEFT so it never overlaps the selection preview card (top-right overlay).
     L.control.zoom({ position: 'topleft' }).addTo(map)
-    L.tileLayer(TILE_URL, { attribution: TILE_ATTRIBUTION, maxZoom: 19 }).addTo(map)
-    map.setView(WORLD_CENTER, WORLD_ZOOM)
+    L.tileLayer(TILE_URL, {
+      attribution: TILE_ATTRIBUTION,
+      maxZoom: 19,
+      ...(TILE_SUBDOMAINS
+        ? { subdomains: TILE_SUBDOMAINS.split('').filter(Boolean) }
+        : {}),
+    }).addTo(map)
+    map.setView(DEFAULT_CENTER, DEFAULT_ZOOM)
     const cluster = leafletRuntime.markerClusterGroup({
       showCoverageOnHover: false,
       iconCreateFunction: (markerCluster) => buildClusterIcon(markerCluster.getChildCount()),
@@ -317,7 +331,7 @@ export default function DealsMapCanvasImpl({
       // re-fits would stack overlapping zoom transitions and race Leaflet's pane bookkeeping.
       map.stop()
       if (deals.length === 0) {
-        map.setView(WORLD_CENTER, WORLD_ZOOM, { animate: false })
+        map.setView(DEFAULT_CENTER, DEFAULT_ZOOM, { animate: false })
       } else if (deals.length === 1) {
         map.setView([deals[0].latitude, deals[0].longitude], SINGLE_PIN_ZOOM, { animate: false })
       } else {

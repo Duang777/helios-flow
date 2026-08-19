@@ -51,6 +51,7 @@
   "feature_toggles.list.headers.name": "Nazwa",
   "feature_toggles.list.headers.type": "Typ",
   "feature_toggles.list.table.refresh": "Odśwież",
+  "feature_toggles.nav.description": "Global feature flags with tenant-level overrides.",
   "feature_toggles.nav.global": "Globalne",
   "feature_toggles.nav.group": "Przełączniki Funkcji",
   "feature_toggles.nav.overrides": "Nadpisania",

@@ -99,6 +99,8 @@
   "configs.moduleTelemetry.table.topOperationsBreakdown": "Najczęstsze operacje w tym zakresie",
   "configs.moduleTelemetry.table.worstP95": "Najgorszy p95",
   "configs.moduleTelemetry.title": "Telemetria modułów",
+  "configs.nav.description": "Shared configuration storage and helpers for module settings.",
+  "configs.nav.title": "Configuration",
   "configs.systemStatus.actions.purgeCache": "Wyczyść pamięć podręczną",
   "configs.systemStatus.actions.purgeCacheConfirm": "Wyczyścić całą pamięć podręczną? Spowoduje to usunięcie wpisów cache dla wszystkich tenantów.",
   "configs.systemStatus.actions.purgeCacheError": "Nie udało się wyczyścić pamięci podręcznej.",

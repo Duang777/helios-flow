@@ -21,6 +21,8 @@ import {
 import { assertTenantScope, type CustomersAiToolDefinition, type CustomersToolContext } from './types'
 import {
   buildRelatedRecords,
+  customerListHref,
+  customerRecordHref,
   toCustomerListSummary,
   toIso,
   type CustomerRelatedRecords,
@@ -120,10 +122,12 @@ const listCompaniesTool = defineApiBackedAiTool<
         websiteUrl: row.website_url ?? row.websiteUrl ?? null,
         industry: row.industry ?? null,
         sizeBucket: row.size_bucket ?? row.sizeBucket ?? null,
+        href: customerRecordHref('company', row.id),
       })),
       total: typeof data.total === 'number' ? data.total : 0,
       limit,
       offset,
+      href: customerListHref('company'),
     }
   },
 }) as unknown as CustomersAiToolDefinition
@@ -198,6 +202,7 @@ const getCompanyTool: CustomersAiToolDefinition = {
         tenantId: companyRow.tenantId ?? null,
         createdAt: toIso(companyRow.createdAt),
         updatedAt: toIso(companyRow.updatedAt),
+        href: customerRecordHref('company', companyRow.id),
       },
       profile: profileRow
         ? {

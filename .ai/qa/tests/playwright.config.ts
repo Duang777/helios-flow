@@ -85,5 +85,5 @@ export default defineConfig({
         ['json', { outputFile: path.join(qaTestResultsRoot, 'results.json') }],
         ['html', { outputFolder: path.join(qaTestResultsRoot, 'html'), open: 'never' }],
       ],
-  outputDir: path.join(qaTestResultsRoot, 'artifacts'),
+  outputDir: process.env.PW_OUTPUT_DIR || path.join(qaTestResultsRoot, 'artifacts'),
 });

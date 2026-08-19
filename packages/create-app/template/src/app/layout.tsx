@@ -38,7 +38,11 @@ export default async function RootLayout({
                     : stored === 'light' ? 'light'
                     : window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
                   if (theme === 'dark') document.documentElement.classList.add('dark');
-                } catch (e) {}
+                  var palette = localStorage.getItem('helios-palette');
+                  document.documentElement.dataset.palette = palette === 'classic' ? 'classic' : 'warm';
+                } catch (e) {
+                  document.documentElement.dataset.palette = 'warm';
+                }
               })();
             `,
           }}

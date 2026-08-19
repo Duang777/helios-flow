@@ -68,8 +68,8 @@
     "mailparser": "^3.9.14"
   },
   "peerDependencies": {
-    "@mikro-orm/postgresql": "^7.0.14",
     "@helios/shared": "workspace:*",
+    "@mikro-orm/postgresql": "^7.0.14",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

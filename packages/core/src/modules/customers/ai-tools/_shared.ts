@@ -75,6 +75,31 @@ export type CustomerListSummary = {
   createdAt: string | null
 }
 
+export type CustomerHrefKind = 'company' | 'person' | 'deal'
+
+export function customerListHref(kind: CustomerHrefKind): string {
+  switch (kind) {
+    case 'company':
+      return '/backend/customers/companies'
+    case 'person':
+      return '/backend/customers/people'
+    case 'deal':
+      return '/backend/customers/deals'
+  }
+}
+
+export function customerRecordHref(kind: CustomerHrefKind, id: unknown): string | null {
+  if (typeof id !== 'string' || id.length === 0) return null
+  switch (kind) {
+    case 'company':
+      return `/backend/customers/companies-v2/${id}`
+    case 'person':
+      return `/backend/customers/people-v2/${id}`
+    case 'deal':
+      return `/backend/customers/deals/${id}`
+  }
+}
+
 export function toCustomerListSummary(row: CustomerListApiItemBase): CustomerListSummary {
   const createdAtRaw = row.created_at ?? row.createdAt ?? null
   const createdAt = createdAtRaw ? new Date(String(createdAtRaw)).toISOString() : null

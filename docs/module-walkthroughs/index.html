@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Helios 核心模块走查索引</title>
+  <style>
+    :root { --bg:#f7f4ef; --card:#fff; --text:#1f1a17; --muted:#5c534c; --border:#e4ddd4; --accent:#3d2b1f; }
+    body { margin:0; font-family:"PingFang SC","Hiragino Sans GB","Noto Sans SC",system-ui,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+    main { max-width:960px; margin:0 auto; padding:32px 20px 64px; }
+    h1 { margin:0 0 8px; }
+    .muted { color:var(--muted); }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; margin-top:24px; }
+    a.card { display:block; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; text-decoration:none; color:inherit; }
+    a.card:hover { border-color:var(--accent); }
+    a.card h2 { margin:0 0 6px; font-size:1.1rem; }
+    a.card p { margin:0; color:var(--muted); font-size:.95rem; }
+    .tag { display:inline-block; margin-top:10px; font-size:.8rem; color:var(--accent); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Helios 核心模块走查</h1>
+    <p class="muted">customers · sales · catalog · workflows · projects · commercial · insights · governance</p>
+    <p>每份文档含真实后台截图。请用浏览器打开各模块 HTML。另见
+      <a href="../operating-loop-walkthrough.html">经营闭环总览</a>。
+    </p>
+    <div class="grid">
+      <a class="card" href="./customers.html">
+        <h2>客户 CRM <small>(customers)</small></h2>
+        <p>经营闭环起点。维护公司、联系人与商机，再立项或签合同。</p>
+        <span class="tag">4 张截图 →</span>
+      </a>
+      <a class="card" href="./sales.html">
+        <h2>销售 <small>(sales)</small></h2>
+        <p>成交单据层。报价与订单引用目录商品，并关联客户。</p>
+        <span class="tag">3 张截图 →</span>
+      </a>
+      <a class="card" href="./catalog.html">
+        <h2>商品目录 <small>(catalog)</small></h2>
+        <p>可售商品主数据。产品、变体与分类供销售引用。</p>
+        <span class="tag">2 张截图 →</span>
+      </a>
+      <a class="card" href="./workflows.html">
+        <h2>工作流 <small>(workflows)</small></h2>
+        <p>跨模块流程编排。定义流程后产生实例与人工任务。</p>
+        <span class="tag">3 张截图 →</span>
+      </a>
+      <a class="card" href="./projects.html">
+        <h2>项目交付 <small>(projects)</small></h2>
+        <p>交付主档（M5）。从商机/客户立项，维护里程碑与风险。</p>
+        <span class="tag">3 张截图 →</span>
+      </a>
+      <a class="card" href="./commercial.html">
+        <h2>经营结算 <small>(commercial)</small></h2>
+        <p>经营结算（M6）。合同 → 营收/成本 → 开票 → 回款核销。不是总账。</p>
+        <span class="tag">4 张截图 →</span>
+      </a>
+      <a class="card" href="./insights.html">
+        <h2>经营分析 KPI <small>(insights)</small></h2>
+        <p>KPI 目标与完成率（M7）。实际值来自 commercial.metrics。</p>
+        <span class="tag">2 张截图 →</span>
+      </a>
+      <a class="card" href="./governance.html">
+        <h2>治理 <small>(governance)</small></h2>
+        <p>主数据治理与风险检出（M7）。身份映射保留源客户，不自动合并删除。</p>
+        <span class="tag">2 张截图 →</span>
+      </a>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "updatedAt": "2026-08-19T08:40:28.984Z",
+  "generatedBy": "node scripts/i18n-advisory-baseline.mjs --update",
+  "metrics": {
+    "usage": {
+      "totalKeys": 17847,
+      "totalReferences": 37582,
+      "usedKeys": 14014,
+      "dynamicCount": 552,
+      "missingKeys": 0,
+      "unusedKeys": 3833
+    },
+    "hardcoded": {
+      "totalFindings": 820,
+      "totalAllowlisted": 0,
+      "totalFiles": 4840,
+      "modulesWithFindings": 59
+    },
+    "values": {
+      "modulesProcessed": 53,
+      "locales": {
+        "zh": {
+          "total": 18115,
+          "identical": 1174,
+          "identicalSignificant": 1025,
+          "missing": 0,
+          "translated": 16941
+        },
+        "pl": {
+          "total": 18115,
+          "identical": 1364,
+          "identicalSignificant": 1179,
+          "missing": 0,
+          "translated": 16751
+        },
+        "es": {
+          "total": 18115,
+          "identical": 3685,
+          "identicalSignificant": 3363,
+          "missing": 0,
+          "translated": 14430
+        },
+        "de": {
+          "total": 18115,
+          "identical": 3937,
+          "identicalSignificant": 3464,
+          "missing": 0,
+          "translated": 14178
+        }
+      }
+    }
+  }
+}

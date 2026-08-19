@@ -35,7 +35,7 @@ jest.mock(
 
 import companiesAiTools from '../../ai-tools/companies-pack'
 import peopleAiTools from '../../ai-tools/people-pack'
-import { buildRelatedRecords, toCustomerListSummary, toIso } from '../../ai-tools/_shared'
+import { buildRelatedRecords, customerListHref, customerRecordHref, toCustomerListSummary, toIso } from '../../ai-tools/_shared'
 import type { CustomersAiToolDefinition } from '../../ai-tools/types'
 import { makeCtx } from './shared'
 
@@ -94,6 +94,19 @@ describe('customers ai-tools _shared helpers', () => {
       expect(summary.displayName).toBe('Beta')
       expect(summary.primaryPhone).toBe('123')
       expect(summary.createdAt).toBeNull()
+    })
+  })
+
+  describe('customer href helpers', () => {
+    it('maps company, person, and deal records to canonical backend pages', () => {
+      expect(customerListHref('company')).toBe('/backend/customers/companies')
+      expect(customerListHref('person')).toBe('/backend/customers/people')
+      expect(customerListHref('deal')).toBe('/backend/customers/deals')
+      expect(customerRecordHref('company', 'c1')).toBe('/backend/customers/companies-v2/c1')
+      expect(customerRecordHref('person', 'p1')).toBe('/backend/customers/people-v2/p1')
+      expect(customerRecordHref('deal', 'd1')).toBe('/backend/customers/deals/d1')
+      expect(customerRecordHref('company', '')).toBeNull()
+      expect(customerRecordHref('deal', null)).toBeNull()
     })
   })
 

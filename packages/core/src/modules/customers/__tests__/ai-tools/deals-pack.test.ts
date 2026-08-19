@@ -91,6 +91,8 @@ describe('customers.list_deals', () => {
     expect(items[0].pipelineStageId).toBe('stage-1')
     expect(items[0].valueAmount).toBe('1000')
     expect(items[0].valueCurrency).toBe('USD')
+    expect(items[0].href).toBe('/backend/customers/deals/d1')
+    expect(result.href).toBe('/backend/customers/deals')
 
     expect(runMock).toHaveBeenCalledTimes(1)
     const operation = runMock.mock.calls[0][0]
@@ -216,6 +218,7 @@ describe('customers.get_deal', () => {
     expect(runMock).toHaveBeenCalledTimes(1)
     const deal = result.deal as Record<string, unknown>
     expect(deal.title).toBe('Big deal')
+    expect(deal.href).toBe(`/backend/customers/deals/${dealId}`)
     expect(deal.pipelineStageId).toBe('stage-1')
     expect(deal.valueAmount).toBe('1000')
     expect(result.customFields).toEqual({ lane: 'enterprise' })

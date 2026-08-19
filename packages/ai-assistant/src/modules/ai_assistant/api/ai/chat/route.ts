@@ -15,6 +15,8 @@ import {
   type AiAgentLoopBudgetPreset,
 } from '../../../lib/agent-runtime'
 import { AgentPolicyError } from '../../../lib/agent-tools'
+import { ensureAllModuleToolsLoaded } from '../../../lib/tool-loader'
+import { extractAssistantSnapshot } from '../../../lib/chat-sse-snapshot'
 import { readBaseurlAllowlist, isBaseurlAllowlisted } from '../../../lib/baseurl-allowlist'
 import {
   canonicalProviderId,
@@ -209,85 +211,6 @@ function statusForDenyCode(code: AgentPolicyDenyCode): number {
   }
 }
 
-function extractDataPayload(eventBlock: string): string | null {
-  const dataLines = eventBlock
-    .split('\n')
-    .filter((line) => line.startsWith('data:'))
-    .map((line) => (line.startsWith('data: ') ? line.slice(6) : line.slice(5)))
-  if (dataLines.length === 0) return null
-  return dataLines.join('\n')
-}
-
-function extractUiPartsFromToolOutput(output: unknown): unknown[] {
-  let parsed = output
-  if (typeof output === 'string') {
-    const trimmed = output.trim()
-    if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return []
-    try {
-      parsed = JSON.parse(trimmed) as unknown
-    } catch {
-      return []
-    }
-  }
-  if (!parsed || typeof parsed !== 'object') return []
-  const value = parsed as Record<string, unknown>
-  const parts: unknown[] = []
-  if (value.status === 'pending-confirmation' || value.status === 'awaiting-confirmation') {
-    const pendingActionId =
-      typeof value.pendingActionId === 'string' && value.pendingActionId.length > 0
-        ? value.pendingActionId
-        : null
-    if (pendingActionId) {
-      parts.push({
-        componentId: 'mutation-preview-card',
-        pendingActionId,
-        payload: {
-          pendingActionId,
-          expiresAt: typeof value.expiresAt === 'string' ? value.expiresAt : undefined,
-          agentId:
-            typeof value.agentId === 'string'
-              ? value.agentId
-              : typeof value.agent === 'string'
-                ? value.agent
-                : undefined,
-          toolName: typeof value.toolName === 'string' ? value.toolName : undefined,
-        },
-      })
-    }
-  }
-  if (value.uiPart && typeof value.uiPart === 'object') parts.push(value.uiPart)
-  if (Array.isArray(value.uiParts)) parts.push(...value.uiParts)
-  return parts
-}
-
-function extractAssistantSnapshot(
-  raw: string,
-  contentType: string | null,
-): { content: string; uiParts: unknown[] } {
-  if (!contentType?.includes('event-stream')) {
-    return { content: raw, uiParts: [] }
-  }
-  let content = ''
-  const uiParts: unknown[] = []
-  for (const block of raw.split('\n\n')) {
-    const data = extractDataPayload(block)
-    if (!data || data === '[DONE]') continue
-    try {
-      const parsed = JSON.parse(data) as Record<string, unknown>
-      if (parsed.type === 'text-delta' && typeof parsed.delta === 'string') {
-        content += parsed.delta
-      } else if (parsed.type === 'text' && typeof parsed.content === 'string') {
-        content += parsed.content
-      } else if (parsed.type === 'tool-output-available') {
-        uiParts.push(...extractUiPartsFromToolOutput(parsed.output))
-      }
-    } catch {
-      // Ignore SSE comments and malformed provider chunks.
-    }
-  }
-  return { content, uiParts }
-}
-
 async function persistChatTurnStart(input: {
   container: Awaited<ReturnType<typeof createRequestContainer>>
   tenantId: string | null | undefined
@@ -356,6 +279,7 @@ function persistAssistantOnStreamCompletion(input: {
   const tenantId = input.tenantId
   const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>()
   const writer = writable.getWriter()
+  const encoder = new TextEncoder()
   const decoder = new TextDecoder()
   const contentType = input.response.headers.get('content-type')
 
@@ -363,16 +287,32 @@ function persistAssistantOnStreamCompletion(input: {
     const reader = input.response.body!.getReader()
     let raw = ''
     try {
+      let buffered = ''
       for (;;) {
         const { value, done } = await reader.read()
         if (done) break
         if (!value) continue
         raw += decoder.decode(value, { stream: true })
+        // Forward chunk unchanged to the client.
         await writer.write(value)
       }
       raw += decoder.decode()
       const assistant = extractAssistantSnapshot(raw, contentType)
       if (assistant.content.trim() || assistant.uiParts.length > 0) {
+        // Forward any UI parts (e.g. mutation-preview-card) into the SSE
+        // stream so chat clients (and smoke tests) can react in real time
+        // instead of waiting for the assistant message to be persisted.
+        // Each uiPart is emitted as a `data:` event with a stable shape:
+        //   { type: 'ui-part', componentId, ...payload }
+        for (const part of assistant.uiParts) {
+          try {
+            const json = JSON.stringify({ type: 'ui-part', ...part })
+            await writer.write(encoder.encode(`data: ${json}\n\n`))
+          } catch (err) {
+            logger.warn('Failed to forward uiPart to stream', { err })
+          }
+        }
+
         const repo = createConversationStorage(input.container)
         await repo.appendMessage(
           input.conversationId,
@@ -642,6 +582,8 @@ export async function POST(req: NextRequest): Promise<Response> {
       rawLoopBudget !== undefined && rawLoopBudget !== 'default'
         ? resolveLoopBudgetPreset(rawLoopBudget)
         : undefined
+
+    await ensureAllModuleToolsLoaded()
 
     const effectiveConversationId = bodyResult.data.sessionId ?? bodyResult.data.conversationId ?? null
     let persistedTurn:

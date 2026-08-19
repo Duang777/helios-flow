@@ -94,10 +94,10 @@
     }
   },
   "dependencies": {
+    "@helios/cache": "workspace:*",
     "@mikro-orm/core": "^7.1.5",
     "@mikro-orm/decorators": "^7.1.5",
     "@mikro-orm/postgresql": "^7.1.5",
-    "@helios/cache": "workspace:*",
     "@types/sanitize-html": "^2.16.1",
     "dotenv": "^17.4.2",
     "pino": "^10.3.1",

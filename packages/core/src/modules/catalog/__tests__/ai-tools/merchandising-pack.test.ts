@@ -145,6 +145,8 @@ describe('catalog.search_products', () => {
     expect(result.source).toBe('search_service')
     const items = result.items as Array<Record<string, unknown>>
     expect(items.map((entry) => entry.id)).toEqual(['p1'])
+    expect(items[0].href).toBe('/backend/catalog/products/p1')
+    expect(result.href).toBe('/backend/catalog/products')
   })
 
   it('routes to the query engine when q is empty', async () => {
@@ -198,6 +200,7 @@ describe('catalog.search_products', () => {
     const ctx = makeCtxWithSearch({ searchService: { search } })
     const result = (await tool.handler({ q: 'no-match' }, ctx as any)) as Record<string, unknown>
     expect(result).toEqual(expect.objectContaining({ total: 0, source: 'search_service', items: [] }))
+    expect(result.href).toBe('/backend/catalog/products')
     expect(findWithDecryptionMock).not.toHaveBeenCalled()
   })
 

@@ -117,6 +117,8 @@ ${cleanedText}
 
 <output_requirements>
 - Include summary, category, participants, proposedActions, discrepancies, draftReplies, confidence, and detectedLanguage.
+- Always include participants, proposedActions, discrepancies, and draftReplies as arrays; use [] when empty.
+- payloadJson must be a JSON object encoded as a string, not a nested object.
 - Keep payloads concise and schema-valid.
 </output_requirements>`
 }

@@ -91,7 +91,9 @@ import IntegrationsMarketplacePage from '../page'
 const standaloneIntegration = {
   id: 'gateway_stripe',
   title: 'Stripe',
+  titleKey: 'integrations.providers.gateway_stripe.title',
   description: 'Payments',
+  descriptionKey: 'integrations.providers.gateway_stripe.description',
   category: 'payment',
   isEnabled: false,
   hasCredentials: true,
@@ -148,5 +150,31 @@ describe('Integrations marketplace — guarded mutation wiring', () => {
     await waitFor(() => expect(runMutationMock).toHaveBeenCalledTimes(1))
     await waitFor(() => expect(flashMock).toHaveBeenCalledWith('integrations.detail.stateError', 'error'))
     expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false')
+  })
+
+  it('renders localized integration metadata and marketplace controls', async () => {
+    renderWithProviders(<IntegrationsMarketplacePage />, {
+      locale: 'zh',
+      dict: {
+        'integrations.marketplace.title': '集成',
+        'integrations.marketplace.description': '连接外部服务，管理凭据，并监控集成健康状态。',
+        'integrations.marketplace.search': '搜索集成...',
+        'integrations.marketplace.configure': '配置',
+        'integrations.marketplace.health.healthy': '健康',
+        'integrations.marketplace.analytics.events': '{count} 条日志事件（30 天）',
+        'integrations.marketplace.analytics.errorRate': '错误率：{rate}',
+        'integrations.marketplace.categories.all': '全部',
+        'integrations.marketplace.categories.payment': '支付',
+        'integrations.providers.gateway_stripe.title': 'Stripe',
+        'integrations.providers.gateway_stripe.description': '通过 Stripe 接收银行卡、Apple Pay、Google Pay 和银行转账。',
+      },
+    })
+
+    expect(await screen.findByText('集成')).toBeInTheDocument()
+    expect(screen.getByText('通过 Stripe 接收银行卡、Apple Pay、Google Pay 和银行转账。')).toBeInTheDocument()
+    expect(screen.getByText('健康')).toBeInTheDocument()
+    expect(screen.getByText('配置')).toBeInTheDocument()
+    expect(screen.queryByText('Payments')).not.toBeInTheDocument()
+    expect(screen.queryByText('Configure')).not.toBeInTheDocument()
   })
 })

@@ -10,6 +10,7 @@
  *  - String literals matching known translation key patterns in arrays/objects
  *
  * Usage: tsx scripts/i18n-check-usage.ts
+ *        tsx scripts/i18n-check-usage.ts --json
  * Exit code: 1 if missing keys found (referenced in code but not in JSON), 0 otherwise.
  * Unused keys are reported as warnings only.
  */
@@ -65,6 +66,18 @@ interface KeyReference {
   line: number
 }
 
+interface CliOptions {
+  json: boolean
+  jsonDetails: boolean
+}
+
+function parseArgs(argv: string[]): CliOptions {
+  return {
+    json: argv.includes('--json'),
+    jsonDetails: argv.includes('--json-details'),
+  }
+}
+
 function scanSourceFiles(allTranslationKeys: Set<string>): { refs: KeyReference[]; dynamicCount: number } {
   const sourceFiles = globSync('**/*.{ts,tsx}', {
     cwd: ROOT,
@@ -97,15 +110,18 @@ function scanSourceFiles(allTranslationKeys: Set<string>): { refs: KeyReference[
 }
 
 function main() {
-  console.log('Scanning codebase for translation key usage...\n')
+  const opts = parseArgs(process.argv.slice(2))
+  if (!opts.json) console.log('Scanning codebase for translation key usage...\n')
 
   const allTranslationKeys = collectAllTranslationKeys()
-  console.log(dim(`Found ${allTranslationKeys.size} translation keys across all en.json files`))
+  if (!opts.json) console.log(dim(`Found ${allTranslationKeys.size} translation keys across all en.json files`))
 
   const { refs, dynamicCount } = scanSourceFiles(allTranslationKeys)
   const usedKeys = new Set(refs.map(r => r.key))
-  console.log(dim(`Found ${refs.length} static references to ${usedKeys.size} unique keys`))
-  console.log('')
+  if (!opts.json) {
+    console.log(dim(`Found ${refs.length} static references to ${usedKeys.size} unique keys`))
+    console.log('')
+  }
 
   // Missing keys: referenced in code via t()/translate() but not in any en.json
   // Only flag direct calls as missing — indirect property refs are validated against known keys
@@ -121,6 +137,27 @@ function main() {
 
   // Unused keys: in en.json but never referenced in code
   const unusedKeys = [...allTranslationKeys].filter(k => !usedKeys.has(k)).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+
+  if (opts.json) {
+    const byKey = new Map<string, KeyReference>()
+    for (const ref of missingRefs) {
+      if (!byKey.has(ref.key)) byKey.set(ref.key, ref)
+    }
+    const payload: Record<string, unknown> = {
+      totalKeys: allTranslationKeys.size,
+      totalReferences: refs.length,
+      usedKeys: usedKeys.size,
+      dynamicCount,
+      missingKeys: missingKeys.size,
+      unusedKeys: unusedKeys.length,
+    }
+    if (opts.jsonDetails) {
+      payload.missing = Array.from(byKey.entries()).map(([key, ref]) => ({ key, file: ref.file, line: ref.line }))
+      payload.unused = unusedKeys
+    }
+    process.stdout.write(JSON.stringify(payload, null, 2) + '\n')
+    process.exit(missingKeys.size > 0 ? 1 : 0)
+  }
 
   let hasErrors = false
 

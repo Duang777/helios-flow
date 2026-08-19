@@ -38,5 +38,6 @@
   "api_keys.list.success.deleted": "Klucz API usunięty",
   "api_keys.list.title": "Klucze API",
   "api_keys.nav.apiKeys": "Klucze API",
-  "api_keys.nav.apiKeys.create": "Utwórz klucz API"
+  "api_keys.nav.apiKeys.create": "Utwórz klucz API",
+  "api_keys.nav.description": "Manage access tokens for external API access."
 }

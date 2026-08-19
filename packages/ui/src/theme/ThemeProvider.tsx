@@ -7,16 +7,20 @@ import { createLogger } from '@helios/shared/lib/logger'
 const logger = createLogger('ui').child({ component: 'ThemeProvider' })
 
 export type Theme = 'light' | 'dark' | 'system'
+export type Palette = 'warm' | 'classic'
 
 type ThemeContextValue = {
   theme: Theme
   resolvedTheme: 'light' | 'dark'
   setTheme: (theme: Theme) => void
+  palette: Palette
+  setPalette: (palette: Palette) => void
 }
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined)
 
 const THEME_STORAGE_KEY = 'helios-theme'
+const PALETTE_STORAGE_KEY = 'helios-palette'
 
 function getSystemTheme(): 'light' | 'dark' {
   if (typeof window === 'undefined') return 'light'
@@ -40,6 +44,21 @@ function getStoredTheme(): Theme {
   return 'system'
 }
 
+function getStoredPalette(): Palette {
+  if (typeof window === 'undefined') return 'warm'
+  try {
+    const stored = localStorage.getItem(PALETTE_STORAGE_KEY)
+    if (stored === 'warm' || stored === 'classic') {
+      return stored
+    }
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      logger.warn('localStorage palette read failed', { err: error })
+    }
+  }
+  return 'warm'
+}
+
 function applyTheme(resolvedTheme: 'light' | 'dark') {
   const root = document.documentElement
   if (resolvedTheme === 'dark') {
@@ -49,18 +68,26 @@ function applyTheme(resolvedTheme: 'light' | 'dark') {
   }
 }
 
+function applyPalette(palette: Palette) {
+  document.documentElement.dataset.palette = palette
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = React.useState<Theme>('system')
   const [resolvedTheme, setResolvedTheme] = React.useState<'light' | 'dark'>('light')
+  const [palette, setPaletteState] = React.useState<Palette>('warm')
   const [mounted, setMounted] = React.useState(false)
 
   // Initialize theme from localStorage on mount
   React.useEffect(() => {
     const stored = getStoredTheme()
+    const storedPalette = getStoredPalette()
     setThemeState(stored)
+    setPaletteState(storedPalette)
     const resolved = stored === 'system' ? getSystemTheme() : stored
     setResolvedTheme(resolved)
     applyTheme(resolved)
+    applyPalette(storedPalette)
     setMounted(true)
   }, [])
 
@@ -96,9 +123,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyTheme(resolved)
   }, [])
 
+  const setPalette = React.useCallback((newPalette: Palette) => {
+    setPaletteState(newPalette)
+    try {
+      localStorage.setItem(PALETTE_STORAGE_KEY, newPalette)
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        logger.warn('localStorage palette write failed', { err: error })
+      }
+    }
+    applyPalette(newPalette)
+  }, [])
+
   const value = React.useMemo(
-    () => ({ theme, resolvedTheme, setTheme }),
-    [theme, resolvedTheme, setTheme]
+    () => ({ theme, resolvedTheme, setTheme, palette, setPalette }),
+    [theme, resolvedTheme, setTheme, palette, setPalette]
   )
 
   // Prevent flash of wrong theme during hydration
@@ -117,6 +156,8 @@ export function useTheme(): ThemeContextValue {
       theme: 'system',
       resolvedTheme: 'light',
       setTheme: () => {},
+      palette: 'warm',
+      setPalette: () => {},
     }
   }
   return context

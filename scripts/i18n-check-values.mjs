@@ -17,6 +17,7 @@
  * Usage:
  *   node scripts/i18n-check-values.mjs                 # report
  *   node scripts/i18n-check-values.mjs --json          # machine output
+ *   node scripts/i18n-check-values.mjs --json-summary  # machine output without per-module rows
  *   node scripts/i18n-check-values.mjs --locale pl     # narrow to one locale
  *   node scripts/i18n-check-values.mjs --module customers
  *
@@ -34,7 +35,7 @@ const __filename_ = typeof __filename !== 'undefined' ? __filename : fileURLToPa
 const ROOT = path.resolve(path.dirname(__filename_), '..')
 
 const REFERENCE_LOCALE = 'en'
-const TARGET_LOCALES = ['pl', 'es', 'de']
+const TARGET_LOCALES = ['zh', 'pl', 'es', 'de']
 const ALLOWLIST_PATH = path.join(ROOT, 'scripts', 'i18n-values-allowlist.json')
 
 const red = (s) => `\x1b[31m${s}\x1b[0m`
@@ -44,10 +45,11 @@ const dim = (s) => `\x1b[2m${s}\x1b[0m`
 const cyan = (s) => `\x1b[36m${s}\x1b[0m`
 
 function parseArgs(argv) {
-  const opts = { json: false, localesFilter: null, moduleFilter: null, samples: 0 }
+  const opts = { json: false, jsonSummary: false, localesFilter: null, moduleFilter: null, samples: 0 }
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
     if (arg === '--json') opts.json = true
+    else if (arg === '--json-summary') opts.jsonSummary = true
     else if (arg === '--locale' && argv[i + 1]) {
       opts.localesFilter = argv[i + 1].split(',').map((s) => s.trim()).filter(Boolean)
       i++
@@ -169,7 +171,7 @@ function main() {
 
   const elapsedMs = Date.now() - startedAt
 
-  if (opts.json) {
+  if (opts.json || opts.jsonSummary) {
     const payload = {
       elapsedMs,
       modulesProcessed,
@@ -180,7 +182,7 @@ function main() {
         identicalSignificant: accum.identicalSignificant,
         missing: accum.missing,
         translated: accum.translated,
-        perModule: accum.perModule,
+        perModule: opts.jsonSummary ? undefined : accum.perModule,
       })),
     }
     process.stdout.write(JSON.stringify(payload, null, 2) + '\n')

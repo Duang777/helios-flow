@@ -165,6 +165,15 @@ export type ProductSummary = {
   createdAt: string | null
   updatedAt: string | null
   description: string | null
+  href: string | null
+}
+
+export function catalogProductListHref(): string {
+  return '/backend/catalog/products'
+}
+
+export function catalogProductHref(id: unknown): string | null {
+  return typeof id === 'string' && id.length > 0 ? `/backend/catalog/products/${id}` : null
 }
 
 export function toProductSummary(row: CatalogProduct): ProductSummary {
@@ -189,6 +198,7 @@ export function toProductSummary(row: CatalogProduct): ProductSummary {
     // `description` is a product field used by D18 authoring tools to seed
     // extract-attributes-from-description; falls back to null when absent.
     description: (row as any).description ?? null,
+    href: catalogProductHref(row.id),
   }
 }
 

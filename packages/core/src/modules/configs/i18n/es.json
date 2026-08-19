@@ -99,6 +99,8 @@
   "configs.moduleTelemetry.table.topOperationsBreakdown": "Operaciones principales en este rango",
   "configs.moduleTelemetry.table.worstP95": "Peor p95",
   "configs.moduleTelemetry.title": "Telemetría de módulos",
+  "configs.nav.description": "Shared configuration storage and helpers for module settings.",
+  "configs.nav.title": "Configuration",
   "configs.systemStatus.actions.purgeCache": "Purgar caché",
   "configs.systemStatus.actions.purgeCacheConfirm": "¿Purgar todos los datos en caché ahora? Esto limpia las entradas de caché de todos los tenants.",
   "configs.systemStatus.actions.purgeCacheError": "No se pudo purgar el caché.",

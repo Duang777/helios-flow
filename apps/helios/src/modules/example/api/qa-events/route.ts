@@ -35,14 +35,27 @@ function getCapturedEventsStore(): CapturedEvent[] {
 
 function getCapturedEventsFilePath(): string {
   const configured = process.env[QA_EVENTS_FILE_ENV]?.trim()
-  return configured || path.join(process.cwd(), '.helios', 'qa-events.jsonl')
+  if (configured) return configured
+  return path.join(
+    /*turbopackIgnore: true*/
+    process.cwd(),
+    '.helios',
+    'qa-events.jsonl',
+  )
 }
 
 function readPersistedEvents(): CapturedEvent[] {
   try {
     const filePath = getCapturedEventsFilePath()
-    if (!fs.existsSync(filePath)) return []
-    return fs.readFileSync(filePath, 'utf8')
+    if (!fs.existsSync(
+      /*turbopackIgnore: true*/
+      filePath,
+    )) return []
+    return fs.readFileSync(
+      /*turbopackIgnore: true*/
+      filePath,
+      'utf8',
+    )
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean)
@@ -62,8 +75,17 @@ function readPersistedEvents(): CapturedEvent[] {
 function appendPersistedEvent(event: CapturedEvent): void {
   try {
     const filePath = getCapturedEventsFilePath()
-    fs.mkdirSync(path.dirname(filePath), { recursive: true })
-    fs.appendFileSync(filePath, `${JSON.stringify(event)}\n`, 'utf8')
+    fs.mkdirSync(
+      /*turbopackIgnore: true*/
+      path.dirname(filePath),
+      { recursive: true },
+    )
+    fs.appendFileSync(
+      /*turbopackIgnore: true*/
+      filePath,
+      `${JSON.stringify(event)}\n`,
+      'utf8',
+    )
   } catch {
     // QA capture must never break the event bus.
   }
@@ -72,12 +94,21 @@ function appendPersistedEvent(event: CapturedEvent): void {
 function replacePersistedEvents(events: CapturedEvent[]): void {
   try {
     const filePath = getCapturedEventsFilePath()
-    fs.mkdirSync(path.dirname(filePath), { recursive: true })
+    fs.mkdirSync(
+      /*turbopackIgnore: true*/
+      path.dirname(filePath),
+      { recursive: true },
+    )
     const serialized = events
       .slice(-MAX_CAPTURED_EVENTS)
       .map((event) => JSON.stringify(event))
       .join('\n')
-    fs.writeFileSync(filePath, serialized ? `${serialized}\n` : '', 'utf8')
+    fs.writeFileSync(
+      /*turbopackIgnore: true*/
+      filePath,
+      serialized ? `${serialized}\n` : '',
+      'utf8',
+    )
   } catch {
     // QA cleanup is best-effort.
   }

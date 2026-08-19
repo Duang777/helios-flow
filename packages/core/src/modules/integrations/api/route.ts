@@ -79,7 +79,9 @@ export async function GET(req: Request) {
   type ListRow = {
     id: string
     title: string
+    titleKey: string | null
     description: string | null
+    descriptionKey: string | null
     category: string | null
     tags: string[]
     hub: string | null
@@ -127,7 +129,9 @@ export async function GET(req: Request) {
       return {
         id: integration.id,
         title: integration.title,
+        titleKey: integration.titleKey ?? null,
         description: integration.description ?? null,
+        descriptionKey: integration.descriptionKey ?? null,
         category: integration.category ?? null,
         tags: integration.tags ?? [],
         hub: integration.hub ?? null,
@@ -208,7 +212,9 @@ export async function GET(req: Request) {
     return {
       id: row.id,
       title: row.title,
+      titleKey: row.titleKey,
       description: row.description,
+      descriptionKey: row.descriptionKey,
       category: row.category,
       tags: row.tags,
       hub: row.hub,
@@ -242,7 +248,9 @@ export async function GET(req: Request) {
     return {
       id: bundle.id,
       title: bundle.title,
+      titleKey: bundle.titleKey ?? null,
       description: bundle.description,
+      descriptionKey: bundle.descriptionKey ?? null,
       icon: bundle.icon ?? null,
       integrationCount: bundleIntegrations.length,
       enabledCount,

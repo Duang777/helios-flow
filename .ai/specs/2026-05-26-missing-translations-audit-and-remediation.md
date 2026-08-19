@@ -250,11 +250,12 @@ comm -23 /tmp/with_ui.txt /tmp/with_i18n.txt
 1. Run `yarn i18n:check-values` (from Phase 1) and produce a per-locale, per-module breakdown sorted by user-facing impact (auth, customers, sales, checkout first).
 2. Define a value-coverage threshold per locale (initial target: `pl` ≥95%, `de` ≥80%, `es` ≥80% translated values). Below threshold ⇒ advisory warning in CI; above threshold + regression ⇒ blocking failure.
 3. Hand off the actual translation work to a translator pipeline (human, or AI-assisted with a glossary). Track via a follow-up issue per locale.
-4. Add a baseline file (`scripts/i18n-baseline.json`) that records the current per-locale identical-to-English count; CI fails if the count *grows*.
+4. Add a baseline file (`scripts/i18n-advisory-baseline.json`) that records current unused-key, hardcoded-string, and per-locale identical-to-English counts; `yarn i18n:check` fails if any tracked advisory count *grows*.
 
 **Acceptance:**
 - Baseline file committed.
 - CI gate: regression-only initially; promotion to absolute thresholds happens in a follow-up after the first translation batch lands.
+- Individual detailed advisory reports remain available via `yarn i18n:check-usage`, `yarn i18n:check-hardcoded`, and `yarn i18n:check-values`.
 
 **Integration coverage:** N/A (tooling + content). Lint-only verification.
 
@@ -282,7 +283,7 @@ comm -23 /tmp/with_ui.txt /tmp/with_i18n.txt
 - All new JSON keys are additive — no existing key is renamed or removed.
 - `packages/ui` primitive prop additions are non-breaking: new props are optional with defaults equal to the prior hardcoded string.
 - The internal-vs-user-facing error split uses an additive `[internal]` prefix; no error class hierarchy is introduced as a hard requirement.
-- Detection scripts are advisory until Phase 6's baseline file lands; until then nothing breaks CI by surprise.
+- Detection scripts are advisory when run individually. The unified `yarn i18n:check` command enforces only baseline regressions, so historical debt stays visible without blocking unrelated work.
 
 ## Risks
 
@@ -313,3 +314,4 @@ Each phase MUST include the integration test coverage listed in its section. UI-
 
 - 2026-05-26 — initial draft (audit findings, phased plan).
 - 2026-05-27 — Phase 1 implemented: `yarn i18n:check-hardcoded`, `yarn i18n:check-values`, per-module/per-key allowlists, scanner unit tests, `[internal]` prefix convention documented in root `AGENTS.md` and `packages/shared/AGENTS.md`. Both scripts run well under the 60s budget; raw value-coverage percentages reproduce the audit baseline exactly.
+- 2026-08-12 — Phase 6 regression baseline implemented: `scripts/i18n-advisory-baseline.mjs` collects machine-readable usage, hardcoded-string, and value-coverage metrics; `scripts/i18n-advisory-baseline.json` records the current baseline; `yarn i18n:check` now fails only on advisory count growth while preserving the detailed legacy reports as opt-in scripts.

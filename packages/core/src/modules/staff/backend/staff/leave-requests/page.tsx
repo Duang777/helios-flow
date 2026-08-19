@@ -144,6 +144,7 @@ export default function StaffLeaveRequestsPage() {
     <Page>
       <PageBody>
         <DataTable<LeaveRequestRow>
+          extensionTableId="staff.leave_requests"
           title={labels.title}
           data={rows}
           columns={columns}

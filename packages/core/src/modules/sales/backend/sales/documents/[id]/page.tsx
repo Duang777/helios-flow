@@ -4563,6 +4563,16 @@ export default function SalesDocumentDetailPage({
   return (
     <Page>
       <PageBody className="space-y-6">
+        <InjectionSpot
+          spotId={kind === 'order' ? 'detail:sales.order:header' : 'detail:sales.quote:header'}
+          context={{
+            ...detailInjectionContext,
+            entityType: kind === 'order' ? 'sales.order' : 'sales.quote',
+            recordId: record.id,
+            organizationId: record.organizationId ?? record.organization_id ?? undefined,
+          }}
+          data={{ document: record }}
+        />
         <FormHeader
           mode="detail"
           backHref={kind === 'order' ? '/backend/sales/orders' : '/backend/sales/quotes'}

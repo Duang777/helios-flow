@@ -577,6 +577,47 @@ describe('<AiChat>', () => {
     expect(screen.getByText('agent_unknown')).toBeInTheDocument()
   })
 
+  it('surfaces streaming provider error chunks via Alert and onError callback', async () => {
+    const fetchMock = apiFetch as unknown as jest.Mock
+    fetchMock.mockResolvedValueOnce(
+      createUiMessageSseResponse([
+        {
+          type: 'error',
+          code: 'provider_unavailable',
+          error: {
+            message: 'No available channel for the selected model.',
+          },
+        },
+      ]),
+    )
+
+    const onError = jest.fn()
+    renderWithProviders(
+      <AiChat agent="insights.operating_loop_assistant" onError={onError} />,
+      { dict },
+    )
+
+    const textarea = screen.getByLabelText('Message composer') as HTMLTextAreaElement
+    fireEvent.change(textarea, { target: { value: '请生成今日经营摘要' } })
+    await act(async () => {
+      fireEvent.keyDown(textarea, { key: 'Enter', metaKey: true })
+    })
+
+    await waitFor(() => {
+      expect(onError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          code: 'provider_unavailable',
+          message: 'No available channel for the selected model.',
+        }),
+      )
+    })
+
+    expect(screen.getByText('Agent dispatch failed')).toBeInTheDocument()
+    expect(screen.getByText('provider_unavailable')).toBeInTheDocument()
+    expect(screen.getByText('No available channel for the selected model.')).toBeInTheDocument()
+    expect(screen.queryByText('Thinking...')).not.toBeInTheDocument()
+  })
+
   it('Escape aborts an in-flight streaming response', async () => {
     const fetchMock = apiFetch as unknown as jest.Mock
     // Build a stream we can keep open until the component aborts it.

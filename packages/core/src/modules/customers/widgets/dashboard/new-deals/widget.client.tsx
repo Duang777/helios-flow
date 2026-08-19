@@ -61,6 +61,11 @@ function formatDate(value: string | null, locale?: string): string {
   return date.toLocaleString(locale ?? undefined, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
+function formatDealStatus(status: string | null, t: (key: string, fallback?: string) => string): string {
+  if (!status) return t('customers.widgets.common.unknown')
+  return t(`customers.deals.kanban.quickDeal.status.${status}`, status)
+}
+
 const CustomerNewDealsWidget: React.FC<DashboardWidgetComponentProps<CustomerNewDealsSettings>> = ({
   mode,
   settings = DEFAULT_SETTINGS,
@@ -145,7 +150,7 @@ const CustomerNewDealsWidget: React.FC<DashboardWidgetComponentProps<CustomerNew
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-medium">{item.title ?? t('customers.widgets.newDeals.untitled')}</p>
-                    <p className="text-xs text-muted-foreground">{item.status ?? t('customers.widgets.common.unknown')}</p>
+                    <p className="text-xs text-muted-foreground">{formatDealStatus(item.status, t)}</p>
                   </div>
                   <p className="text-xs text-muted-foreground">{createdLabel || t('customers.widgets.common.unknownDate')}</p>
                 </div>

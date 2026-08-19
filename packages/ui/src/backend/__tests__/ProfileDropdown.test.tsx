@@ -19,7 +19,13 @@ jest.mock('../injection/useInjectedMenuItems', () => ({
 }))
 
 jest.mock('@helios/ui/theme', () => ({
-  useTheme: () => ({ theme: 'light', resolvedTheme: 'light', setTheme: jest.fn() }),
+  useTheme: () => ({
+    theme: 'light',
+    resolvedTheme: 'light',
+    setTheme: jest.fn(),
+    palette: 'warm',
+    setPalette: jest.fn(),
+  }),
 }))
 
 import { ProfileDropdown } from '../ProfileDropdown'
@@ -55,5 +61,25 @@ describe('ProfileDropdown', () => {
 
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByTestId('profile-dropdown')).not.toBeInTheDocument()
+  })
+
+  it('renders language choices from the active dictionary', () => {
+    renderWithProviders(<ProfileDropdown email="user@example.com" />, {
+      locale: 'zh',
+      dict: {
+        'ui.profileMenu.language': '语言',
+        'common.languages.english': '英语',
+        'common.languages.chinese': '中文',
+        'common.languages.german': '德语',
+        'common.languages.spanish': '西班牙语',
+        'common.languages.polish': '波兰语',
+      },
+    })
+
+    fireEvent.click(screen.getByTestId('profile-dropdown-trigger'))
+    fireEvent.click(screen.getByRole('menuitem', { name: /语言/ }))
+
+    expect(screen.getByText('英语')).toBeInTheDocument()
+    expect(screen.getByText('德语')).toBeInTheDocument()
   })
 })

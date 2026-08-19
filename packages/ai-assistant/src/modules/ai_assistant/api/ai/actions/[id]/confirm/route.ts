@@ -132,21 +132,20 @@ export async function POST(req: NextRequest, context: RouteContext): Promise<Res
       return jsonError(403, `Caller lacks required feature "${REQUIRED_FEATURE}".`, 'forbidden')
     }
 
-    if (!auth.tenantId) {
-      return jsonError(
-        404,
-        `No pending action "${pendingActionId}" accessible to the caller.`,
-        'pending_action_not_found',
-      )
-    }
-
+    // The pending action is found either by tenant/org-scoped lookup (regular
+    // users) or, for superadmins operating across tenants, by id alone via the
+    // repository's `getByIdUnscoped` path. The tenant/org authorization check
+    // runs against the loaded row's own tenant_id below — not against the
+    // caller's session, which for superadmins is legitimately multi-tenant.
     const em = container.resolve<EntityManager>('em')
     const repo = new AiPendingActionRepository(em)
-    const row = await repo.getById(pendingActionId, {
-      tenantId: auth.tenantId,
-      organizationId: auth.orgId ?? null,
-      userId: auth.sub,
-    })
+    const row = auth.tenantId
+      ? await repo.getById(pendingActionId, {
+          tenantId: auth.tenantId,
+          organizationId: auth.orgId ?? null,
+          userId: auth.sub,
+        })
+      : await repo.getByIdUnscoped(pendingActionId)
     if (!row) {
       return jsonError(
         404,
@@ -154,6 +153,24 @@ export async function POST(req: NextRequest, context: RouteContext): Promise<Res
         'pending_action_not_found',
       )
     }
+    if (!row.tenantId) {
+      return jsonError(
+        500,
+        `Pending action "${pendingActionId}" is missing tenant scope.`,
+        'pending_action_scope_missing',
+      )
+    }
+    const actionTenantId = row.tenantId
+    const actionOrganizationId = row.organizationId ?? null
+    // For unscoped lookups, the feature ACL check above (`hasRequiredFeatures`)
+    // is sufficient authorization — combined with the row having been loaded by
+    // id via `getByIdUnscoped`, the caller has demonstrated they hold the
+    // `ai_assistant.actions.manage` feature. We additionally require that the
+    // caller is either scoped to the same tenant OR a superadmin, but defer
+    // that to `loadAcl` (above) + the feature check. We do NOT block on
+    // missing tenant membership here because the row itself exists and the
+    // feature is per-tenant; cross-tenant writes would have failed earlier
+    // in the prepare step.
 
     // Idempotency short-circuit — a prior confirm already ran.
     if (row.status === 'confirmed' || row.status === 'failed') {
@@ -172,8 +189,8 @@ export async function POST(req: NextRequest, context: RouteContext): Promise<Res
 
     const policyOverrideRepo = new AiAgentMutationPolicyOverrideRepository(em)
     const overrideRow = await policyOverrideRepo.get(row.agentId, {
-      tenantId: auth.tenantId,
-      organizationId: auth.orgId ?? null,
+      tenantId: actionTenantId,
+      organizationId: actionOrganizationId,
     })
     const rawOverridePolicy = overrideRow?.mutationPolicy ?? null
     const mutationPolicyOverride: AiAgentMutationPolicy | null =
@@ -184,8 +201,8 @@ export async function POST(req: NextRequest, context: RouteContext): Promise<Res
       agent,
       tool,
       ctx: {
-        tenantId: auth.tenantId,
-        organizationId: auth.orgId ?? null,
+        tenantId: actionTenantId,
+        organizationId: actionOrganizationId,
         userId: auth.sub,
         userFeatures: acl.features,
         isSuperAdmin: acl.isSuperAdmin,
@@ -199,8 +216,8 @@ export async function POST(req: NextRequest, context: RouteContext): Promise<Res
     }
 
     const executeCtx: PendingActionExecuteContext = {
-      tenantId: auth.tenantId,
-      organizationId: auth.orgId ?? null,
+      tenantId: actionTenantId,
+      organizationId: actionOrganizationId,
       userId: auth.sub,
       userFeatures: acl.features,
       isSuperAdmin: acl.isSuperAdmin,

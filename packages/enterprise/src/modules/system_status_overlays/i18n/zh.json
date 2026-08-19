@@ -1,0 +1,8 @@
+{
+  "system_status_overlays.enterpriseInfo.description": "This environment is running the Enterprise edition.",
+  "system_status_overlays.enterpriseInfo.editionBadge": "Enterprise",
+  "system_status_overlays.enterpriseInfo.editionLabel": "编辑ion",
+  "system_status_overlays.enterpriseInfo.editionValue": "Enterprise",
+  "system_status_overlays.enterpriseInfo.title": "编辑ion 和 version",
+  "system_status_overlays.enterpriseInfo.versionLabel": "Version"
+}

@@ -189,34 +189,35 @@ TODO: Fix that latter to have reference by the package names
   --brand-facebook: #1877F2;
   --brand-dropbox: #0061FF;
   --brand-linkedin: #0A66C2;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  /* Default light palette: warm rice / Claude-like beige (override with data-palette="classic") */
+  --background: oklch(0.965 0.012 85);
+  --foreground: oklch(0.28 0.028 55);
+  --card: oklch(0.985 0.008 85);
+  --card-foreground: oklch(0.28 0.028 55);
+  --popover: oklch(0.985 0.008 85);
+  --popover-foreground: oklch(0.28 0.028 55);
+  --primary: oklch(0.34 0.04 50);
+  --primary-foreground: oklch(0.98 0.01 85);
   --brand-violet: #14B8A6;
   --brand-violet-foreground: #042F2E;
-  --primary-hover: oklch(0.145 0 0);
+  --primary-hover: oklch(0.28 0.045 48);
   /* Accent indigo — used for selection controls (checkbox, radio, switch) */
   --accent-indigo: #6366f1;
   --accent-indigo-foreground: #ffffff;
   /* Disabled control tokens (Figma: bg/weak-25, text/disabled-300, stroke-soft-200) */
-  --bg-disabled: #f7f7f7;
-  --text-disabled: #d1d1d1;
-  --border-disabled: #ebebeb;
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --bg-disabled: oklch(0.94 0.01 85);
+  --text-disabled: oklch(0.78 0.015 75);
+  --border-disabled: oklch(0.90 0.012 80);
+  --secondary: oklch(0.94 0.015 80);
+  --secondary-foreground: oklch(0.30 0.03 55);
+  --muted: oklch(0.94 0.014 82);
+  --muted-foreground: oklch(0.50 0.02 60);
+  --accent: oklch(0.93 0.018 78);
+  --accent-foreground: oklch(0.30 0.03 55);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.88 0.016 75);
+  --input: oklch(0.88 0.016 75);
+  --ring: oklch(0.62 0.03 55);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -233,14 +234,14 @@ TODO: Fix that latter to have reference by the package names
   --chart-pink: oklch(0.656 0.241 354.308);
   --chart-teal: oklch(0.627 0.134 175.001);
   --chart-orange: oklch(0.705 0.213 47.604);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: oklch(0.94 0.018 80);
+  --sidebar-foreground: oklch(0.28 0.028 55);
+  --sidebar-primary: oklch(0.34 0.04 50);
+  --sidebar-primary-foreground: oklch(0.98 0.01 85);
+  --sidebar-accent: oklch(0.91 0.02 78);
+  --sidebar-accent-foreground: oklch(0.30 0.03 55);
+  --sidebar-border: oklch(0.86 0.018 75);
+  --sidebar-ring: oklch(0.62 0.03 55);
 
   /* ═══ Design System: Semantic Status Tokens — Light Mode ═══
      Token values match the Tailwind v4 default palette so the
@@ -278,17 +279,54 @@ TODO: Fix that latter to have reference by the package names
   --status-info-border: oklch(0.870 0.065 274.039);/* indigo-200 #c7d2fe */
   --status-info-icon: oklch(0.511 0.262 276.966);  /* indigo-600 #4f46e5 = --chart-indigo */
 
-  /* Neutral — Tailwind neutral (Figma state/faded/*) */
-  --status-neutral-bg: oklch(0.97 0 0);    /* neutral-100 #f5f5f5 */
-  --status-neutral-text: oklch(0.371 0 0); /* neutral-700 #404040 */
-  --status-neutral-border: oklch(0.922 0 0);/* neutral-200 #e5e5e5 (≈ Figma #ebebeb) */
-  --status-neutral-icon: oklch(0.556 0 0);  /* neutral-500 #737373 (≈ Figma #7b7b7b) */
+  /* Neutral — warm-leaning in default rice palette; classic overrides below */
+  --status-neutral-bg: oklch(0.95 0.012 82);
+  --status-neutral-text: oklch(0.40 0.025 55);
+  --status-neutral-border: oklch(0.88 0.016 75);
+  --status-neutral-icon: oklch(0.52 0.02 60);
 
   /* Pink (hue ~340° — Figma SPEC-048 ACCENT / PINK Stage badges; Tailwind pink-500/-200/-700/-50) */
   --status-pink-bg: oklch(0.965 0.020 340);   /* pink-50 #FDF2F8 */
   --status-pink-text: oklch(0.388 0.180 340); /* pink-700 #BE185D */
   --status-pink-border: oklch(0.840 0.090 340);/* pink-200 #FBCFE8 */
   --status-pink-icon: oklch(0.633 0.238 340); /* pink-500 #EC4899 */
+}
+
+/* Classic white light palette — restored when data-palette="classic" */
+html[data-palette="classic"]:not(.dark) {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --primary-hover: oklch(0.145 0 0);
+  --bg-disabled: #f7f7f7;
+  --text-disabled: #d1d1d1;
+  --border-disabled: #ebebeb;
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+  --status-neutral-bg: oklch(0.97 0 0);
+  --status-neutral-text: oklch(0.371 0 0);
+  --status-neutral-border: oklch(0.922 0 0);
+  --status-neutral-icon: oklch(0.556 0 0);
 }
 
 /* Opt-in Figma-style focus ring: 2px inner ring + 4px outer ring */

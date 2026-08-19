@@ -71,6 +71,8 @@ import './llm-bootstrap'
 
 const logger = createLogger('ai_assistant').child({ component: 'agent-runtime' })
 
+type AiSdkProviderOptions = NonNullable<Parameters<typeof streamText>[0]['providerOptions']>
+
 export interface AgentRequestPageContext {
   pageId?: string | null
   entityType?: string | null
@@ -317,6 +319,12 @@ export interface PreparedAiSdkOptions {
   experimental_repairToolCall: AiAgentLoopConfig['repairToolCall']
   activeTools: AiAgentLoopConfig['activeTools']
   toolChoice: AiAgentLoopConfig['toolChoice']
+  /**
+   * Provider-specific runtime options that must travel with every SDK dispatch.
+   * This is prepared by the wrapper instead of individual tools so multi-step
+   * agent behavior remains consistent across execution engines.
+   */
+  providerOptions?: AiSdkProviderOptions
   /**
    * Pre-wired to the per-turn `AbortController` used by budget enforcement
    * (Phase 3). Forward to the SDK call so budget limits can abort in-flight
@@ -882,6 +890,65 @@ function mapActiveToolsForModel(
     .filter((toolName) => wrappedTools[toolName] !== undefined)
 }
 
+function readBooleanEnv(value: string | undefined): boolean {
+  if (value === undefined) return false
+  const normalized = value.trim().toLowerCase()
+  return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on'
+}
+
+export function resolveOpenAIResponsesProviderOptions(
+  providerId: string | null | undefined,
+  env: NodeJS.ProcessEnv = process.env,
+): AiSdkProviderOptions | undefined {
+  if (providerId !== 'openai') return undefined
+  if (!readBooleanEnv(env.HELIOS_AI_OPENAI_RESPONSES_STORE)) return undefined
+  return { openai: { store: true } }
+}
+
+function cloneWithoutOpenAIItemIds<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => cloneWithoutOpenAIItemIds(item)) as T
+  }
+  if (!value || typeof value !== 'object') return value
+
+  const input = value as Record<string, unknown>
+  const output: Record<string, unknown> = {}
+  for (const [key, nestedValue] of Object.entries(input)) {
+    if ((key === 'providerOptions' || key === 'providerMetadata') && nestedValue && typeof nestedValue === 'object' && !Array.isArray(nestedValue)) {
+      const providerBag = nestedValue as Record<string, unknown>
+      const clonedProviderBag: Record<string, unknown> = {}
+      for (const [providerKey, providerValue] of Object.entries(providerBag)) {
+        if (providerValue && typeof providerValue === 'object' && !Array.isArray(providerValue)) {
+          const clonedValue = cloneWithoutOpenAIItemIds(providerValue) as Record<string, unknown>
+          if ('itemId' in clonedValue) delete clonedValue.itemId
+          clonedProviderBag[providerKey] = clonedValue
+        } else {
+          clonedProviderBag[providerKey] = providerValue
+        }
+      }
+      output[key] = clonedProviderBag
+    } else {
+      output[key] = cloneWithoutOpenAIItemIds(nestedValue)
+    }
+  }
+  return output as T
+}
+
+function buildOpenAIResponsesPrepareStep<T extends ToolSet>(
+  basePrepareStep: PrepareStepFunction<T>,
+  providerId: string | null | undefined,
+): PrepareStepFunction<T> {
+  if (providerId !== 'openai') return basePrepareStep
+  return async (options) => {
+    const result = await basePrepareStep(options)
+    const messages = cloneWithoutOpenAIItemIds(result?.messages ?? options.messages)
+    return {
+      ...(result ?? {}),
+      messages,
+    }
+  }
+}
+
 /**
  * Builds the wrapper-owned `PrepareStepFunction` that enforces the tool
  * allowlist and mutation-approval contract on every step, then composes
@@ -1052,18 +1119,21 @@ export async function composeSystemPrompt(
   const entityType = pageContext?.entityType
   const recordId = pageContext?.recordId
   if (typeof entityType !== 'string' || entityType.length === 0) return baseFromOverride
-  if (typeof recordId !== 'string' || recordId.length === 0) return baseFromOverride
+  const hasRecordContext = typeof recordId === 'string' && recordId.length > 0
+  const hasListContext = typeof pageContext?.tableId === 'string' && pageContext.tableId.length > 0
+  if (!hasRecordContext && !hasListContext) return baseFromOverride
   if (!container) {
     logger.warn('Agent declares resolvePageContext but no container was passed to runAiAgentText; skipping hydration', { agentId: agent.id })
     return baseFromOverride
   }
   const hydrationInput: AiAgentPageContextInput = {
+    ...pageContext,
     entityType,
-    recordId,
+    recordId: hasRecordContext ? recordId : '',
     container,
     tenantId,
     organizationId,
-  }
+  } as AiAgentPageContextInput
   try {
     const hydrated = await resolve(hydrationInput)
     if (typeof hydrated === 'string' && hydrated.trim().length > 0) {
@@ -1493,8 +1563,10 @@ export async function runAiAgentText(input: RunAiAgentTextInput): Promise<Respon
   const effectiveLoop = resolveEffectiveLoopConfig(agent, input.loop, WRAPPER_DEFAULT_LOOP_CHAT)
   const stopConditions = translateStopConditions(effectiveLoop, sanitizeToolNameForModel)
   const wrapperPrepareStep = buildWrapperPrepareStep(agent, effectiveLoop, tools)
+  const sdkPrepareStep = buildOpenAIResponsesPrepareStep(wrapperPrepareStep, resolvedModel.providerId)
   const sdkActiveTools = mapActiveToolsForModel(effectiveLoop.activeTools, tools)
   const sdkToolChoice = mapToolChoiceForModel(effectiveLoop.toolChoice)
+  const sdkProviderOptions = resolveOpenAIResponsesProviderOptions(resolvedModel.providerId)
 
   // Phase 3 + Phase 4 — budget enforcement + LoopTrace collection.
   // Layer order (outer → inner):
@@ -1572,13 +1644,14 @@ export async function runAiAgentText(input: RunAiAgentTextInput): Promise<Respon
       model,
       tools: tools as ToolSet,
       stopWhen: stopConditions,
-      prepareStep: wrapperPrepareStep,
+      prepareStep: sdkPrepareStep,
       onStepFinish: wiredOnStepFinish,
       ...(effectiveLoop.repairToolCall !== undefined
         ? { experimental_repairToolCall: effectiveLoop.repairToolCall }
         : {}),
       ...(sdkActiveTools !== undefined ? { activeTools: sdkActiveTools } : {}),
       ...(sdkToolChoice !== undefined ? { toolChoice: sdkToolChoice } : {}),
+      ...(sdkProviderOptions !== undefined ? { providerOptions: sdkProviderOptions } : {}),
     }
     builtToolLoopAgent = new ToolLoopAgent(agentSettings)
   }
@@ -1598,6 +1671,7 @@ export async function runAiAgentText(input: RunAiAgentTextInput): Promise<Respon
     experimental_repairToolCall: effectiveLoop.repairToolCall,
     activeTools: sdkActiveTools,
     toolChoice: sdkToolChoice,
+    providerOptions: sdkProviderOptions,
     abortSignal: abortController.signal,
     finalizeLoopTrace: () => loopTraceCollector.finalize(budgetEnforcer.abortReason),
     ...(builtToolLoopAgent !== undefined ? { toolLoopAgent: builtToolLoopAgent } : {}),
@@ -1659,21 +1733,22 @@ export async function runAiAgentText(input: RunAiAgentTextInput): Promise<Respon
 
   // Default stream-text path (executionEngine === 'stream-text' or unset).
   const result = streamText({
-    model,
-    system: systemPrompt,
-    messages: modelMessages,
-    tools,
-    stopWhen: stopConditions as never,
-    prepareStep: wrapperPrepareStep as never,
-    onStepFinish: wiredOnStepFinish as never,
-    experimental_onStepStart: effectiveLoop.onStepStart as never,
-    experimental_onToolCallStart: effectiveLoop.onToolCallStart as never,
-    experimental_onToolCallFinish: effectiveLoop.onToolCallFinish as never,
-    experimental_repairToolCall: effectiveLoop.repairToolCall as never,
-    ...(sdkActiveTools !== undefined ? { activeTools: sdkActiveTools } : {}),
-    ...(sdkToolChoice !== undefined ? { toolChoice: sdkToolChoice } : {}),
-    abortSignal: abortController.signal,
-  })
+      model,
+      system: systemPrompt,
+      messages: modelMessages,
+      tools,
+      stopWhen: stopConditions as never,
+      prepareStep: sdkPrepareStep as never,
+      onStepFinish: wiredOnStepFinish as never,
+      experimental_onStepStart: effectiveLoop.onStepStart as never,
+      experimental_onToolCallStart: effectiveLoop.onToolCallStart as never,
+      experimental_onToolCallFinish: effectiveLoop.onToolCallFinish as never,
+      experimental_repairToolCall: effectiveLoop.repairToolCall as never,
+      ...(sdkActiveTools !== undefined ? { activeTools: sdkActiveTools } : {}),
+      ...(sdkToolChoice !== undefined ? { toolChoice: sdkToolChoice } : {}),
+      ...(sdkProviderOptions !== undefined ? { providerOptions: sdkProviderOptions } : {}),
+      abortSignal: abortController.signal,
+    })
   if (wallClockTimer !== undefined) {
     const clearTimer = () => clearTimeout(wallClockTimer!)
     Promise.resolve(result.consumeStream()).then(clearTimer, clearTimer)

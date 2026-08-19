@@ -4,8 +4,6 @@ import type { ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardDescription } from '@helios/ui/primitives/card'
-import { Input } from '@helios/ui/primitives/input'
 import { EmailInput } from '@helios/ui/primitives/email-input'
 import { PasswordInput } from '@helios/ui/primitives/password-input'
 import { Label } from '@helios/ui/primitives/label'
@@ -339,14 +337,26 @@ export default function LoginPage() {
   const formReady = clientReady && !authOverridePending
 
   return (
-    <div className="min-h-svh flex items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="flex flex-col items-center gap-4 text-center p-10">
-          <Image alt={translate('auth.login.logoAlt', 'Helios logo')} src="/helios.svg" width={120} height={120} className="dark:invert" priority />
-          <h1 className="text-2xl font-semibold">{translate('auth.login.brandName', 'Helios')}</h1>
-          <CardDescription>{translate('auth.login.subtitle', 'Access your workspace')}</CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div className="min-h-svh lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+      {/* Form first (left on desktop) — flips the previous brand-left split. */}
+      <div className="flex items-center justify-center bg-background px-4 py-10 sm:px-8 lg:px-12">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 flex flex-col items-center gap-3 text-center lg:items-start lg:text-left">
+            <Image
+              alt={translate('auth.login.logoAlt', 'Helios logo')}
+              src="/helios.svg"
+              width={48}
+              height={48}
+              className="dark:invert"
+              priority
+            />
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {translate('auth.login.brandName', 'Helios')}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {translate('auth.login.subtitle', 'Access your workspace')}
+            </p>
+          </div>
           <LoginFormSection>
             <form className="grid gap-3" onSubmit={onSubmit} noValidate data-auth-ready={formReady ? '1' : '0'}>
               {tenantId ? (
@@ -438,15 +448,17 @@ export default function LoginPage() {
                   <span>{translate('auth.login.rememberMe', 'Remember me')}</span>
                 </label>
               )}
-              <Button type="submit" disabled={submitting || !formReady} className="h-10 mt-2">
+              <Button type="submit" disabled={submitting} className="mt-2 h-10">
                 {submitting
                   ? translate('auth.login.loading', 'Loading...')
-                  : authOverride
-                    ? authOverride.providerLabel
-                    : translate('auth.signIn', 'Sign in')}
+                  : authOverridePending
+                    ? translate('auth.login.loading', 'Loading...')
+                    : authOverride
+                      ? authOverride.providerLabel
+                      : translate('auth.signIn', 'Sign in')}
               </Button>
               {!authOverride?.hideForgotPassword && (
-                <div className="text-xs text-muted-foreground mt-2">
+                <div className="mt-2 text-xs text-muted-foreground">
                   <Link className="underline" href="/reset">
                     {translate('auth.login.forgotPassword', 'Forgot password?')}
                   </Link>
@@ -454,8 +466,43 @@ export default function LoginPage() {
               )}
             </form>
           </LoginFormSection>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      <aside className="relative hidden overflow-hidden border-l border-sidebar-border bg-sidebar px-10 py-10 text-sidebar-foreground lg:flex lg:flex-col lg:justify-between">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-40"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle at 82% 18%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 45%), radial-gradient(circle at 12% 88%, color-mix(in oklab, var(--brand-violet) 12%, transparent), transparent 38%)',
+          }}
+        />
+        <div className="relative flex items-center gap-3">
+          <Image
+            alt={translate('auth.login.logoAlt', 'Helios logo')}
+            src="/helios.svg"
+            width={44}
+            height={44}
+            className="dark:invert"
+            priority
+          />
+          <span className="text-base font-semibold tracking-tight">
+            {translate('auth.login.brandName', 'Helios')}
+          </span>
+        </div>
+        <div className="relative ml-auto max-w-md space-y-3 text-right">
+          <p className="text-balance text-3xl font-semibold tracking-tight">
+            {translate('auth.login.panelHeadline', 'Run your business with calm clarity.')}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {translate('auth.login.subtitle', 'Access your workspace')}
+          </p>
+        </div>
+        <p className="relative text-right text-xs text-muted-foreground">
+          {translate('auth.login.brandName', 'Helios')}
+        </p>
+      </aside>
     </div>
   )
 }

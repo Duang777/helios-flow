@@ -794,6 +794,48 @@ async function readErrorEnvelope(response: Response): Promise<AiChatErrorEnvelop
   return { message: text || `Agent dispatch failed (${response.status}).` }
 }
 
+class AiChatStreamError extends Error {
+  readonly envelope: AiChatErrorEnvelope
+
+  constructor(envelope: AiChatErrorEnvelope) {
+    super(envelope.message)
+    this.name = 'AiChatStreamError'
+    this.envelope = envelope
+  }
+}
+
+function extractErrorMessage(value: unknown): string | undefined {
+  if (typeof value === 'string' && value.trim().length > 0) return value.trim()
+  if (!value || typeof value !== 'object') return undefined
+  const record = value as Record<string, unknown>
+  if (typeof record.message === 'string' && record.message.trim().length > 0) {
+    return record.message.trim()
+  }
+  if (typeof record.error === 'string' && record.error.trim().length > 0) {
+    return record.error.trim()
+  }
+  return undefined
+}
+
+function extractStreamErrorEnvelope(chunk: unknown): AiChatErrorEnvelope | null {
+  if (!chunk || typeof chunk !== 'object' || Array.isArray(chunk)) return null
+  const record = chunk as Record<string, unknown>
+  if (record.type !== 'error') return null
+
+  const message =
+    extractErrorMessage(record.error) ??
+    extractErrorMessage(record.errorText) ??
+    extractErrorMessage(record.message) ??
+    'The AI provider returned an error while streaming.'
+  const code =
+    typeof record.code === 'string'
+      ? record.code
+      : typeof record.errorCode === 'string'
+        ? record.errorCode
+        : 'stream_error'
+  return { code, message }
+}
+
 export function useAiChat(input: UseAiChatInput): UseAiChatResult {
   const { agent, apiPath, pageContext, attachmentIds, debug, initialMessages, onError, conversationId: conversationIdInput, providerOverride, modelOverride, onConversationNotFound } = input
 
@@ -1198,17 +1240,21 @@ export function useAiChat(input: UseAiChatInput): UseAiChatResult {
           const data = extractDataPayload(block)
           if (!data) continue
           if (data === '[DONE]') continue
+          let parsed: { type?: string; trace?: unknown } | null = null
           try {
-            const parsed = JSON.parse(data) as { type?: string; trace?: unknown }
-            if (!parsed || typeof parsed.type !== 'string') continue
-            if (parsed.type === 'loop-finish') {
-              // Capture the loop trace for post-stream state update.
-              pendingLoopTrace = parsed.trace as LoopTracePanelTrace ?? null
-            } else {
-              builder = applyChunk(builder, parsed as { type: string })
-            }
+            parsed = JSON.parse(data) as { type?: string; trace?: unknown }
           } catch {
             // Tolerate malformed events / SSE comments.
+            continue
+          }
+          const streamError = extractStreamErrorEnvelope(parsed)
+          if (streamError) throw new AiChatStreamError(streamError)
+          if (!parsed || typeof parsed.type !== 'string') continue
+          if (parsed.type === 'loop-finish') {
+            // Capture the loop trace for post-stream state update.
+            pendingLoopTrace = parsed.trace as LoopTracePanelTrace ?? null
+          } else {
+            builder = applyChunk(builder, parsed as { type: string })
           }
         }
       }
@@ -1284,6 +1330,13 @@ export function useAiChat(input: UseAiChatInput): UseAiChatResult {
           // Cancelled by the user — keep whatever we have so far and exit
           // quietly.
         } else {
+          if (streamError instanceof AiChatStreamError) {
+            emitError(streamError.envelope)
+            updateMessages((current) => current.filter((entry) => entry.id !== assistantId), {
+              persistWhenUnmounted: true,
+            })
+            return
+          }
           const rawMessage =
             streamError instanceof Error
               ? streamError.message

@@ -97,6 +97,8 @@ describe('inbox_ops llmProvider shim', () => {
     const generateCall = (generateObject as jest.Mock).mock.calls[0][0]
     expect(generateCall.model).toBe(fakeModel)
     expect(generateCall.schema).toBe(extractionOutputSchema)
+    expect(generateCall.maxRetries).toBe(2)
+    expect(typeof generateCall.experimental_repairText).toBe('function')
     expect(generateCall.system).toBe('system prompt')
     expect(generateCall.prompt).toBe('user prompt')
     expect(result.object).toBe(FAKE_EXTRACTION_OBJECT)

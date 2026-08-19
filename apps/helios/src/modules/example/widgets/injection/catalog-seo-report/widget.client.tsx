@@ -17,7 +17,7 @@ type ProductSummary = {
 type ProductSeoIssue = {
   id: string
   title: string
-  issue: string
+  issue: 'titleShort' | 'titleLong' | 'descriptionShort'
 }
 
 async function fetchProductsNeedingSeo(): Promise<ProductSeoIssue[]> {
@@ -37,15 +37,15 @@ async function fetchProductsNeedingSeo(): Promise<ProductSeoIssue[]> {
     const description = typeof item.description === 'string' ? item.description.trim() : ''
     if (!title) continue
     if (title.length < 10) {
-      issues.push({ id: String(item.id), title, issue: 'Title is too short (< 10 chars)' })
+      issues.push({ id: String(item.id), title, issue: 'titleShort' })
       continue
     }
     if (title.length > 60) {
-      issues.push({ id: String(item.id), title, issue: 'Title is too long (> 60 chars)' })
+      issues.push({ id: String(item.id), title, issue: 'titleLong' })
       continue
     }
     if (!description || description.length < 50) {
-      issues.push({ id: String(item.id), title, issue: 'Description missing or too short (< 50 chars)' })
+      issues.push({ id: String(item.id), title, issue: 'descriptionShort' })
     }
   }
   return issues.slice(0, 5)
@@ -104,7 +104,9 @@ export default function CatalogSeoReportWidget(_props: InjectionWidgetComponentP
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-sm font-medium text-foreground dark:text-amber-50">{issue.title}</div>
-                  <div className="text-overline text-amber-800 dark:text-amber-300">{issue.issue}</div>
+                  <div className="text-overline text-amber-800 dark:text-amber-300">
+                    {t(`example.widgets.catalogSeoReport.issues.${issue.issue}`, 'SEO item needs review.')}
+                  </div>
                 </div>
                 <Button asChild size="sm" variant="outline">
                   <a href={`/backend/catalog/products/${issue.id}`} className="text-xs">

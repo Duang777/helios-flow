@@ -42,6 +42,19 @@ export function getCustomerDictionaryManageHref(kind: CustomerDictionaryKind) {
   return `${CUSTOMER_DICTIONARIES_MANAGE_HREF}#${getCustomerDictionarySettingsSectionId(kind)}`
 }
 
+/** Prefer i18n label for seeded dictionary values; fall back to the stored label. */
+export function translateCustomerDictionaryLabel(
+  t: (key: string, fallback?: string) => string,
+  kind: 'deal-statuses' | 'pipeline-stages' | string,
+  value: string | null | undefined,
+  fallback: string,
+): string {
+  if (!value) return fallback
+  const key = `customers.dict.${kind}.${value}`
+  const translated = t(key, fallback)
+  return translated === key ? fallback : translated
+}
+
 export function createEmptyCustomerDictionaryMaps(): Record<CustomerDictionaryKind, CustomerDictionaryMap> {
   return CUSTOMER_DICTIONARY_KINDS.reduce<Record<CustomerDictionaryKind, CustomerDictionaryMap>>(
     (acc, kind) => {

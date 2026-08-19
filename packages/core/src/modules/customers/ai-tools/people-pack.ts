@@ -32,6 +32,8 @@ import { assertTenantScope, type CustomersAiToolDefinition, type CustomersToolCo
 import {
   buildRelatedRecords,
   buildScope,
+  customerListHref,
+  customerRecordHref,
   resolveEm,
   toCustomerListSummary,
   toIso,
@@ -142,10 +144,14 @@ const listPeopleTool = defineApiBackedAiTool<ListPeopleInput, ListPeopleApiRespo
     const data = (response.data ?? {}) as ListPeopleApiResponse
     const rawItems: ListPeopleApiItem[] = Array.isArray(data.items) ? data.items : []
     return {
-      items: rawItems.map((row) => toCustomerListSummary(row)),
+      items: rawItems.map((row) => ({
+        ...toCustomerListSummary(row),
+        href: customerRecordHref('person', row.id),
+      })),
       total: typeof data.total === 'number' ? data.total : 0,
       limit,
       offset,
+      href: customerListHref('person'),
     }
   },
 }) as unknown as CustomersAiToolDefinition
@@ -220,6 +226,7 @@ const getPersonTool: CustomersAiToolDefinition = {
         tenantId: personRow.tenantId ?? null,
         createdAt: toIso(personRow.createdAt),
         updatedAt: toIso(personRow.updatedAt),
+        href: customerRecordHref('person', personRow.id),
       },
       profile: profileRow
         ? {

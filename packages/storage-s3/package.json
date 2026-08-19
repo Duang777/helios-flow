@@ -72,8 +72,8 @@
     "@helios/core": "workspace:*"
   },
   "peerDependencies": {
-    "@mikro-orm/postgresql": "^6.6.10",
-    "@helios/shared": "workspace:*"
+    "@helios/shared": "workspace:*",
+    "@mikro-orm/postgresql": "^6.6.10"
   },
   "devDependencies": {
     "@helios/shared": "workspace:*",

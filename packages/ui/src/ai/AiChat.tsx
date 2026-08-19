@@ -1072,11 +1072,14 @@ function ContextItemsPill({ items }: { items: AiChatContextItem[] }) {
       {items.map((item, index) => (
         <span
           key={index}
-          className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-xs text-secondary-foreground"
+          className="inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-xs text-secondary-foreground"
           data-ai-chat-context-item={index}
           title={item.detail}
         >
-          {item.label}
+          <span className="font-medium">{item.label}</span>
+          {item.detail ? (
+            <span className="max-w-64 truncate font-mono text-muted-foreground">{item.detail}</span>
+          ) : null}
         </span>
       ))}
     </div>
@@ -1552,6 +1555,7 @@ export function AiChat({
       aria-label={t('ai_assistant.chat.regionLabel', 'AI chat')}
       data-ai-chat-agent={agent}
       data-ai-chat-conversation-id={chat.conversationId}
+      data-ai-chat-status={chat.status}
     >
       <div className="flex min-w-0 items-center justify-between gap-2 border-b border-border pb-2">
         <div className="flex min-w-0 flex-1 items-center gap-2 text-xs text-muted-foreground">

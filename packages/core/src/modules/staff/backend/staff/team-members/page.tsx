@@ -413,6 +413,7 @@ export default function StaffTeamMembersPage() {
     <Page>
       <PageBody>
         <DataTable<TeamMemberRow>
+          extensionTableId="staff.team_members"
           title={labels.title}
           data={rows}
           columns={columns}

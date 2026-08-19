@@ -275,6 +275,24 @@ export async function loadAllModuleTools(): Promise<void> {
   }
 }
 
+let allModuleToolsLoadPromise: Promise<void> | null = null
+
+/**
+ * Idempotent public entrypoint for HTTP/runtime paths that need module AI
+ * tools available before resolving an agent's allowlist. The underlying loader
+ * remains re-runnable for tests and explicit MCP startup flows; request paths
+ * should use this helper so concurrent chats share one generated-registry load.
+ */
+export async function ensureAllModuleToolsLoaded(): Promise<void> {
+  if (!allModuleToolsLoadPromise) {
+    allModuleToolsLoadPromise = loadAllModuleTools().catch((error) => {
+      allModuleToolsLoadPromise = null
+      throw error
+    })
+  }
+  await allModuleToolsLoadPromise
+}
+
 /**
  * Index all registered tools for hybrid search discovery.
  * This should be called after loadAllModuleTools() when the search service is available.

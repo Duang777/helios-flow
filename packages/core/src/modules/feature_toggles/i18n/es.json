@@ -51,6 +51,7 @@
   "feature_toggles.list.headers.name": "Nombre",
   "feature_toggles.list.headers.type": "Tipo",
   "feature_toggles.list.table.refresh": "Actualizar",
+  "feature_toggles.nav.description": "Global feature flags with tenant-level overrides.",
   "feature_toggles.nav.global": "Global",
   "feature_toggles.nav.group": "Interruptores de Funciones",
   "feature_toggles.nav.overrides": "Anulaciones",

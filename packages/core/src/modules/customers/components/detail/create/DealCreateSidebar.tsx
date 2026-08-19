@@ -60,7 +60,7 @@ export function DealCreateSidebar({
         tips={[
           tr(
             'customers.deals.create.tips.item1',
-            'Use the company name + short deliverable format in the title (e.g. "Copperleaf — Q3 Renewal")',
+            'Use the company name + short deliverable format in the title (e.g. "青桐设计 — Q3 续约")',
           ),
           tr(
             'customers.deals.create.tips.item2',

@@ -24,6 +24,17 @@ interface AiToolDefinition {
   description: string
   inputSchema: z.ZodType
   requiredFeatures?: string[]
+  isMutation?: boolean
+  loadBeforeRecord?: (
+    input: never,
+    ctx: ToolContext,
+  ) => Promise<{
+    recordId: string
+    entityType: string
+    recordVersion: string | null
+    before: Record<string, unknown>
+    after?: Record<string, unknown>
+  } | null>
   handler: (input: never, ctx: ToolContext) => Promise<unknown>
 }
 
@@ -36,6 +47,14 @@ function requireTenantContext(ctx: ToolContext): { tenantId: string; organizatio
     throw new Error('Tenant context is required')
   }
   return { tenantId: ctx.tenantId, organizationId: ctx.organizationId }
+}
+
+function inboxOpsListHref(): string {
+  return '/backend/inbox-ops'
+}
+
+function inboxProposalHref(proposalId: string): string {
+  return `/backend/inbox-ops/proposals/${proposalId}`
 }
 
 function resolveCrossModuleEntities(container: ToolContext['container']) {
@@ -66,7 +85,7 @@ const listProposalsTool = {
   name: 'inbox_ops_list_proposals',
   description: `List inbox proposals with optional filters by status, category, and date range.
 
-Returns: total count and an array of proposals with id, summary, status, category, confidence, actionCount, and createdAt.`,
+Returns: total count, list href, and an array of proposals with id, summary, status, category, confidence, actionCount, createdAt, and href.`,
   inputSchema: z.object({
     status: z
       .enum(['pending', 'partial', 'accepted', 'rejected'])
@@ -154,6 +173,7 @@ Returns: total count and an array of proposals with id, summary, status, categor
 
     return {
       total,
+      href: inboxOpsListHref(),
       proposals: proposals.map((p) => ({
         id: p.id,
         summary: p.summary,
@@ -162,6 +182,7 @@ Returns: total count and an array of proposals with id, summary, status, categor
         confidence: Number(p.confidence),
         actionCount: actionCountMap.get(p.id) ?? 0,
         createdAt: p.createdAt.toISOString(),
+        href: inboxProposalHref(p.id),
       })),
     }
   },
@@ -175,7 +196,7 @@ const getProposalTool = {
   name: 'inbox_ops_get_proposal',
   description: `Get full details of an inbox proposal including its actions and discrepancies.
 
-Returns: proposal with id, summary, status, category, confidence, actions array, and discrepancies array.`,
+Returns: proposal with id, summary, status, category, confidence, href, actions array, and discrepancies array.`,
   inputSchema: z.object({
     proposalId: z.string().uuid().describe('The UUID of the proposal to retrieve'),
   }),
@@ -234,6 +255,7 @@ Returns: proposal with id, summary, status, category, confidence, actions array,
         status: proposal.status,
         category: proposal.category ?? null,
         confidence: Number(proposal.confidence),
+        href: inboxProposalHref(proposal.id),
         actions: actions.map((a) => ({
           id: a.id,
           actionType: a.actionType,
@@ -259,13 +281,44 @@ Returns: proposal with id, summary, status, category, confidence, actions array,
   },
 }
 
+async function loadScopedProposalAction(
+  em: EntityManager,
+  input: { proposalId: string; actionId: string },
+  scope: { tenantId: string; organizationId: string },
+) {
+  return findOneWithDecryption(
+    em,
+    InboxProposalAction,
+    {
+      id: input.actionId,
+      proposalId: input.proposalId,
+      organizationId: scope.organizationId,
+      tenantId: scope.tenantId,
+      deletedAt: null,
+    },
+    undefined,
+    scope,
+  )
+}
+
+function actionPreviewSnapshot(action: InboxProposalAction) {
+  return {
+    proposalId: action.proposalId,
+    actionType: action.actionType,
+    description: action.description,
+    status: action.status,
+    requiredFeature: action.requiredFeature ?? null,
+    matchedEntityType: action.matchedEntityType ?? null,
+  }
+}
+
 // =============================================================================
 // inbox_ops_accept_action — Accept and execute a specific action
 // =============================================================================
 
 const acceptActionTool = {
   name: 'inbox_ops_accept_action',
-  description: `Accept and execute a specific action from an inbox proposal. Creates the entity in the target module (e.g., order, contact).
+  description: `Accept and execute a specific action from an inbox proposal. Creates the entity in the target module (e.g., order, contact). Requires confirmation.
 
 Returns on success: { ok: true, createdEntityId, createdEntityType }
 Returns on error: error message with appropriate detail.`,
@@ -278,6 +331,23 @@ Returns on error: error message with appropriate detail.`,
   // etc.) in target modules — must surface as a write so any agent that
   // whitelists it routes through the approval card.
   isMutation: true,
+  loadBeforeRecord: async (
+    input: { proposalId: string; actionId: string },
+    ctx: ToolContext,
+  ) => {
+    const scope = requireTenantContext(ctx)
+    const em = ctx.container.resolve<EntityManager>('em').fork()
+    const action = await loadScopedProposalAction(em, input, scope)
+    if (!action) return null
+    const before = actionPreviewSnapshot(action)
+    return {
+      recordId: action.id,
+      entityType: 'inbox_ops.proposal_action',
+      recordVersion: action.updatedAt ? action.updatedAt.toISOString() : null,
+      before,
+      after: { ...before, status: 'accepted' as const },
+    }
+  },
   handler: async (input: { proposalId: string; actionId: string }, ctx: ToolContext) => {
     const scope = requireTenantContext(ctx)
     if (!ctx.userId) {
@@ -285,20 +355,7 @@ Returns on error: error message with appropriate detail.`,
     }
 
     const em = ctx.container.resolve<EntityManager>('em').fork()
-
-    const action = await findOneWithDecryption(
-      em,
-      InboxProposalAction,
-      {
-        id: input.actionId,
-        proposalId: input.proposalId,
-        organizationId: scope.organizationId,
-        tenantId: scope.tenantId,
-        deletedAt: null,
-      },
-      undefined,
-      scope,
-    )
+    const action = await loadScopedProposalAction(em, input, scope)
 
     if (!action) {
       return { error: 'Action not found' }
@@ -359,6 +416,7 @@ Returns on error: error message with appropriate detail.`,
       ok: true,
       createdEntityId: result.createdEntityId ?? null,
       createdEntityType: result.createdEntityType ?? null,
+      href: inboxProposalHref(input.proposalId),
     }
   },
 }

@@ -38,5 +38,6 @@
   "api_keys.list.success.deleted": "API-Schlüssel gelöscht",
   "api_keys.list.title": "API-Schlüssel",
   "api_keys.nav.apiKeys": "API-Schlüssel",
-  "api_keys.nav.apiKeys.create": "API-Schlüssel erstellen"
+  "api_keys.nav.apiKeys.create": "API-Schlüssel erstellen",
+  "api_keys.nav.description": "Manage access tokens for external API access."
 }

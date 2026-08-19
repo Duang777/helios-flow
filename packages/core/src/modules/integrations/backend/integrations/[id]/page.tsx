@@ -7,7 +7,7 @@ import { CrudForm, type CrudField } from '@helios/ui/backend/CrudForm'
 import { WebhookSetupGuide } from '@helios/ui/backend/WebhookSetupGuide'
 import { InjectionSpot, useInjectionWidgets } from '@helios/ui/backend/injection/InjectionSpot'
 import { useGuardedMutation } from '@helios/ui/backend/injection/useGuardedMutation'
-import { FormHeader } from '@helios/ui/backend/forms'
+import { FormActionButtons, FormHeader } from '@helios/ui/backend/forms'
 import { Card, CardHeader, CardTitle, CardContent } from '@helios/ui/primitives/card'
 import { Badge } from '@helios/ui/primitives/badge'
 import { Button } from '@helios/ui/primitives/button'
@@ -84,7 +84,9 @@ type IntegrationDetail = {
   integration: {
     id: string
     title: string
+    titleKey?: string | null
     description?: string
+    descriptionKey?: string | null
     category?: string
     hub?: string
     providerKey?: string | null
@@ -97,7 +99,7 @@ type IntegrationDetail = {
     }
     credentials?: { fields: CredentialField[] }
   }
-  bundle?: { id: string; title: string; credentials?: { fields: CredentialField[] } }
+  bundle?: { id: string; title: string; titleKey?: string | null; credentials?: { fields: CredentialField[] } }
   state: {
     isEnabled: boolean
     apiVersion: string | null
@@ -290,18 +292,39 @@ function resolvePathnameId(pathname: string): string | undefined {
   return decodeURIComponent(integrationId)
 }
 
-function buildCredentialFields(credFields: CredentialField[]): CrudField[] {
+function translateMetadata(
+  t: ReturnType<typeof useT>,
+  key: string | null | undefined,
+  fallback: string | null | undefined,
+): string {
+  return key ? t(key, fallback ?? key) : (fallback ?? '')
+}
+
+function translateCredentialField(field: CredentialField, t: ReturnType<typeof useT>) {
+  const label = translateMetadata(t, field.labelKey, field.label)
+  return {
+    label,
+    helpText: translateMetadata(t, field.helpTextKey, field.helpText),
+    placeholder: translateMetadata(t, field.placeholderKey, field.placeholder),
+    options: field.type === 'select' && field.options
+      ? field.options.map((option) => ({ ...option, label: translateMetadata(t, option.labelKey, option.label) }))
+      : undefined,
+  }
+}
+
+function buildCredentialFields(credFields: CredentialField[], t: ReturnType<typeof useT>): CrudField[] {
   return credFields.map((field) => {
+    const localized = translateCredentialField(field, t)
     const shared = {
       id: field.key,
-      label: field.label,
+      label: localized.label,
       description: field.helpDetails ? (
         <div className="space-y-1">
-          {field.helpText ? <div>{field.helpText}</div> : null}
-          <WebhookSetupGuide guide={field.helpDetails} buttonLabel="Show details" />
+          {localized.helpText ? <div>{localized.helpText}</div> : null}
+          <WebhookSetupGuide guide={field.helpDetails} buttonLabel={t('ui.webhookGuide.showDetails', 'Show details')} />
         </div>
-      ) : field.helpText,
-      placeholder: field.placeholder,
+      ) : localized.helpText,
+      placeholder: localized.placeholder,
       required: field.required,
       visibleWhen: field.visibleWhen,
     }
@@ -313,7 +336,7 @@ function buildCredentialFields(credFields: CredentialField[]): CrudField[] {
         component: ({ id, value, setValue, disabled }) => (
           <PasswordInput
             id={id}
-            placeholder={field.placeholder}
+            placeholder={localized.placeholder}
             value={typeof value === 'string' ? value : ''}
             onChange={(event) => setValue(event.target.value)}
             disabled={disabled}
@@ -326,7 +349,7 @@ function buildCredentialFields(credFields: CredentialField[]): CrudField[] {
       return {
         ...shared,
         type: 'select' as const,
-        options: field.options,
+        options: localized.options ?? field.options,
       }
     }
 
@@ -355,16 +378,16 @@ function extractHealthDetails(payload: Record<string, unknown> | null | undefine
   )
 }
 
-function formatHealthValue(value: unknown): string {
-  if (typeof value === 'boolean') return value ? 'Yes' : 'No'
+function formatHealthValue(value: unknown, t: ReturnType<typeof useT>): string {
+  if (typeof value === 'boolean') return value ? t('integrations.common.boolean.yes', 'Yes') : t('integrations.common.boolean.no', 'No')
   if (typeof value === 'string') return value
   if (typeof value === 'number') return String(value)
   if (value instanceof Date) return value.toLocaleString()
   return JSON.stringify(value)
 }
 
-function formatTypeLabel(value: string): string {
-  return value.split('_').filter(Boolean).map((part) => part[0]?.toUpperCase() + part.slice(1)).join(' ')
+function formatTypeLabel(value: string, t: ReturnType<typeof useT>): string {
+  return t(`integrations.marketplace.categories.${value}`, value.split('_').filter(Boolean).map((part) => part[0]?.toUpperCase() + part.slice(1)).join(' '))
 }
 
 function isPrimitiveLogValue(value: unknown): value is string | number | boolean | null {
@@ -381,9 +404,9 @@ function formatLogDetailLabel(key: string): string {
     .join(' ')
 }
 
-function formatLogPrimitiveValue(value: string | number | boolean | null): string {
-  if (value === null) return 'None'
-  if (typeof value === 'boolean') return value ? 'Yes' : 'No'
+function formatLogPrimitiveValue(value: string | number | boolean | null, t: ReturnType<typeof useT>): string {
+  if (value === null) return t('integrations.common.none', 'None')
+  if (typeof value === 'boolean') return value ? t('integrations.common.boolean.yes', 'Yes') : t('integrations.common.boolean.no', 'No')
   return String(value)
 }
 
@@ -837,14 +860,15 @@ export default function IntegrationDetailPage({ params }: IntegrationDetailPageP
     [detail?.bundle?.credentials?.fields, detail?.integration.credentials?.fields],
   )
   const credentialFormFields = React.useMemo(
-    () => buildCredentialFields(editableCredentialFields),
-    [editableCredentialFields],
+    () => buildCredentialFields(editableCredentialFields, t),
+    [editableCredentialFields, t],
   )
   const credentialSchema = React.useMemo(() => (
     z.object({}).passthrough().superRefine((rawValues, ctx) => {
       const values = rawValues as Record<string, unknown>
 
       editableCredentialFields.forEach((field) => {
+        const fieldLabel = translateMetadata(t, field.labelKey, field.label)
         if (field.visibleWhen) {
           const targetValue = values[field.visibleWhen.field]
           if (targetValue !== field.visibleWhen.equals) return
@@ -863,7 +887,7 @@ export default function IntegrationDetailPage({ params }: IntegrationDetailPageP
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
               path: [field.key],
-              message: t('integrations.detail.credentials.validation.required', '{field} is required.', { field: field.label }),
+              message: t('integrations.detail.credentials.validation.required', '{field} is required.', { field: fieldLabel }),
             })
           }
           return
@@ -884,7 +908,7 @@ export default function IntegrationDetailPage({ params }: IntegrationDetailPageP
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: [field.key],
-            message: t('integrations.detail.credentials.validation.required', '{field} is required.', { field: field.label }),
+            message: t('integrations.detail.credentials.validation.required', '{field} is required.', { field: fieldLabel }),
           })
         }
 
@@ -904,7 +928,7 @@ export default function IntegrationDetailPage({ params }: IntegrationDetailPageP
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: [field.key],
-            message: t('integrations.detail.credentials.validation.url', '{field} must be a valid http(s) URL.', { field: field.label }),
+            message: t('integrations.detail.credentials.validation.url', '{field} must be a valid http(s) URL.', { field: fieldLabel }),
           })
         }
 
@@ -1075,29 +1099,46 @@ export default function IntegrationDetailPage({ params }: IntegrationDetailPageP
       <PageBody className="space-y-6">
         <FormHeader
           backHref="/backend/integrations"
-          title={resolvedIntegration.title}
-          actions={{
-            cancelHref: showCredentialActions ? '/backend/integrations' : undefined,
-            submit: showCredentialActions
-              ? {
-                formId: credentialsFormId,
-                pending: isSavingCredentials,
-                label: t('integrations.detail.credentials.save', 'Save credentials'),
-                pendingLabel: t('ui.forms.status.saving', 'Saving...'),
-              }
-              : undefined,
-          }}
+          title={translateMetadata(t, resolvedIntegration.titleKey, resolvedIntegration.title)}
+          actionsContent={(
+            <div className="flex flex-wrap items-center gap-2">
+              <InjectionSpot
+                spotId="detail:integrations.integration:header"
+                context={{
+                  entityType: 'integrations.integration',
+                  recordId: resolvedIntegration.id,
+                  integrationId: resolvedIntegration.id,
+                  resourceKind: 'integrations.integration',
+                  resourceId: resolvedIntegration.id,
+                }}
+                data={{ integration: resolvedIntegration }}
+              />
+              {showCredentialActions ? (
+                <FormActionButtons
+                  cancelHref="/backend/integrations"
+                  submit={{
+                    formId: credentialsFormId,
+                    pending: isSavingCredentials,
+                    label: t('integrations.detail.credentials.save', 'Save credentials'),
+                    pendingLabel: t('ui.forms.status.saving', 'Saving...'),
+                  }}
+                />
+              ) : null}
+            </div>
+          )}
         />
 
         <div className="space-y-2">
           {resolvedIntegration.description ? (
-            <p className="text-sm text-muted-foreground">{resolvedIntegration.description}</p>
+            <p className="text-sm text-muted-foreground">
+              {translateMetadata(t, resolvedIntegration.descriptionKey, resolvedIntegration.description)}
+            </p>
           ) : null}
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             {resolvedIntegration.category ? (
               <div className="flex items-center gap-2">
                 {CategoryIcon ? <CategoryIcon className="h-4 w-4" /> : null}
-                <span>{formatTypeLabel(resolvedIntegration.category)}</span>
+                <span>{formatTypeLabel(resolvedIntegration.category, t)}</span>
               </div>
             ) : null}
             {resolvedIntegration.hub ? (
@@ -1105,7 +1146,7 @@ export default function IntegrationDetailPage({ params }: IntegrationDetailPageP
                 <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground/80">
                   {t('integrations.detail.hub.label', 'Hub')}
                 </span>
-                <span>{formatTypeLabel(resolvedIntegration.hub)}</span>
+                <span>{formatTypeLabel(resolvedIntegration.hub, t)}</span>
               </div>
             ) : null}
           </div>
@@ -1243,7 +1284,9 @@ export default function IntegrationDetailPage({ params }: IntegrationDetailPageP
               <section className="space-y-4 rounded-lg border bg-card p-6">
                 {detail.bundle ? (
                   <div className="rounded-lg border border-status-info-border bg-status-info-bg p-3 text-sm text-status-info-text">
-                    {t('integrations.detail.credentials.bundleShared', { bundle: detail.bundle.title })}
+                    {t('integrations.detail.credentials.bundleShared', {
+                      bundle: translateMetadata(t, detail.bundle.titleKey, detail.bundle.title),
+                    })}
                   </div>
                 ) : null}
                 {credentialFormFields.length === 0 ? (
@@ -1395,7 +1438,7 @@ export default function IntegrationDetailPage({ params }: IntegrationDetailPageP
                             {healthDetailEntries.map(([key, value]) => (
                               <div key={key}>
                                 <dt className="text-xs font-medium text-muted-foreground">{formatLogDetailLabel(key)}</dt>
-                                <dd className="mt-0.5 text-sm">{formatHealthValue(value)}</dd>
+                                <dd className="mt-0.5 text-sm">{formatHealthValue(value, t)}</dd>
                               </div>
                             ))}
                           </dl>
@@ -1500,7 +1543,7 @@ export default function IntegrationDetailPage({ params }: IntegrationDetailPageP
                                       {formatLogDetailLabel(key)}
                                     </dt>
                                     <dd className="mt-1 break-words text-sm">
-                                      {formatLogPrimitiveValue(value)}
+                                      {formatLogPrimitiveValue(value, t)}
                                     </dd>
                                   </div>
                                 ))}

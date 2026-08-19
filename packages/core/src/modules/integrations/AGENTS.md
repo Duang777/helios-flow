@@ -27,7 +27,7 @@ The `integrations` module is the foundation layer for all external connectors (p
 ## Never
 
 - Never import from provider modules — integrations module is generic; providers import from integrations, not vice versa.
-- Never log credential values — log service strips secret fields from payload.
+- **Never log credential values** — log service strips secret fields from payload. Operating-loop `integrations.list_integrations` / `integrations.get_integration` must stay credential-free.
 - Never special-case provider env presets, credentials, mappings, or enabled state in core.
 - Never remove legacy `integrations.detail:tabs` fallback without a compatibility plan.
 

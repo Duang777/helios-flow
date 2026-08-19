@@ -12,6 +12,7 @@ import { IntegrationsButton } from '@helios/ui/backend/IntegrationsButton'
 import { ProfileDropdown } from '@helios/ui/backend/ProfileDropdown'
 import { SettingsButton } from '@helios/ui/backend/SettingsButton'
 import { useBackendChrome } from '@helios/ui/backend/BackendChromeProvider'
+import { LanguageSwitcher } from '@helios/ui/frontend/LanguageSwitcher'
 import { useT } from '@helios/shared/lib/i18n/context'
 import { AiAssistantShellIntegration } from '@/components/AiAssistantShellIntegration'
 
@@ -196,6 +197,9 @@ export function BackendHeaderChrome({
       </span>
 
       {isReady && showNotifications ? <LazyNotificationBellWrapper /> : null}
+      <span className="hidden sm:flex items-center">
+        <LanguageSwitcher />
+      </span>
       <ProfileDropdown email={email} />
     </>
   )

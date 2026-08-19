@@ -188,6 +188,13 @@ export async function ensureDictionaryEntry(
   })
   if (existing) {
     let changed = false
+    if (params.label !== undefined) {
+      const nextLabel = params.label?.trim() || trimmed
+      if (existing.label !== nextLabel) {
+        existing.label = nextLabel
+        changed = true
+      }
+    }
     if (color !== undefined) {
       if (existing.color !== color) {
         existing.color = color ?? null
