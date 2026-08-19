@@ -83,7 +83,7 @@ function mapReservation(row: Record<string, unknown>): Record<string, unknown> {
 }
 
 function mapList(
-  response: { data?: ListApiResponse | null },
+  response: { data?: unknown },
   input: ListInput,
   mapper: (row: Record<string, unknown>) => Record<string, unknown>,
 ) {

@@ -677,3 +677,38 @@ Harden verification, force multi-hop Chinese regressions, add read-only messages
 - [x] Add `projects.manage_risk` confirm-required write.
 - [x] Run `yarn generate`, focused tests, acceptance scripts, and feishu verify (`ok` on 2026-08-12).
 - [x] `yarn ai:live-eval` Phase 18 prompts green (`zh_cross_hop_customer_to_governance`, `zh_messages_inbox`, `zh_staff_roster`, `zh_risk_confirm_write`) plus `zh_project_loop`; live-eval default timeout raised to 240s with per-prompt tool budget, `LIVE_AI_ACCEPTANCE_PROMPT_IDS`, and `LIVE_AI_ACCEPTANCE_CONTINUE_ON_FAIL`. Full suite initially 17/23; remaining 6 flaky prompts retuned and individually green (including `zh_bulk_governance_disposition`).
+
+## Deployment Checklist (external demo / PoC)
+
+### Pre-flight
+- [x] Merge `origin/main` into `feat/operating-loop-platform-coverage` (README conflict resolved).
+- [x] `yarn build:app` green (includes WMS ai-tools typing fix).
+- [ ] Rotate any API keys that were pasted into chat or logs.
+- [ ] Set production secrets only via host env — never commit `.env`.
+
+### Required production env (minimum)
+- `APP_URL` — public HTTPS origin
+- `DATABASE_URL` — PostgreSQL 17 + pgvector
+- `REDIS_URL` — events/queue/cache
+- `JWT_SECRET` / `AUTH_SECRET` — strong random values
+- `DEMO_MODE=false` — disable demo shortcuts
+- Do **not** set `HELIOS_AUTOLOGIN_*` in production
+
+### AI (OpenAI-compatible gateway; no OpenCode/MCP required)
+- `HELIOS_AI_PROVIDER=openai`
+- `HELIOS_AI_MODEL=deepseek-v4-flash` (or operator-chosen model id)
+- `HELIOS_AI_BASE_URL=https://ai.rjk66.cn/v1`
+- `OPENAI_API_KEY` — gateway key (inject via platform secret store)
+- `OPENAI_BASE_URL=https://ai.rjk66.cn/v1`
+- `HELIOS_AI_OPENAI_RESPONSES_STORE=false`
+
+### Deploy paths
+1. **Docker full stack (VPS / 内网)** — `docker compose -f docker-compose.fullapp.yml up --build -d`, then initialize once.
+2. **Railway** — `export RAILWAY_API_TOKEN=...`, `yarn helios deploy railway --dry-run`, then deploy. See `apps/docs/docs/deployment/railway.mdx`.
+3. **Feature branch direct** — deploy `feat/operating-loop-platform-coverage` without waiting for PR #4 merge if PoC timeline is tight; track merge separately.
+
+### Post-deploy smoke
+- Login → `/backend/insights/operating-loop/today`
+- Ask operating-loop assistant a Chinese multi-hop prompt (延期 + 回款 + KPI + 治理)
+- Confirm writes show approval card, not silent persistence
+- Optional: `yarn operating-loop:feishu:verify -- --as-of=2026-08-12` against imported org
