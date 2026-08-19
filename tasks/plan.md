@@ -703,9 +703,9 @@ Harden verification, force multi-hop Chinese regressions, add read-only messages
 - `HELIOS_AI_OPENAI_RESPONSES_STORE=false`
 
 ### Deploy paths
-1. **Docker full stack (VPS / 内网)** — `docker compose -f docker-compose.fullapp.yml up --build -d`, then initialize once.
-2. **Railway** — `export RAILWAY_API_TOKEN=...`, `yarn helios deploy railway --dry-run`, then deploy. See `apps/docs/docs/deployment/railway.mdx`.
-3. **Feature branch direct** — deploy `feat/operating-loop-platform-coverage` without waiting for PR #4 merge if PoC timeline is tight; track merge separately.
+1. **Docker full stack (VPS / 内网)** — copy `.env.production.example` → repo-root `.env`, fill secrets, then `./scripts/deploy-docker-poc.sh` (wraps `docker compose -f docker-compose.fullapp.yml up --build -d` + health wait).
+2. **Railway** — copy `apps/helios/.env.example` → `apps/helios/.env.production`, fill secrets, `export RAILWAY_API_TOKEN=...`, then `./scripts/deploy-railway-poc.sh` (dry-run) and `yarn helios deploy railway --env-file apps/helios/.env.production --source git`.
+3. **Feature branch direct** — deploy `main` after PR #4 merge (done: `f70638cba`).
 
 ### Post-deploy smoke
 - Login → `/backend/insights/operating-loop/today`
