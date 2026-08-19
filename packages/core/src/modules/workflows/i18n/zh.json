@@ -604,7 +604,7 @@
   "workflows.fieldEditors.preConditions.selectBusinessRuleDescription": "选择要添加为工作流启动前置条件的业务规则",
   "workflows.fieldEditors.preConditions.validationMessages": "验证消息（locale: message，每行一条）",
   "workflows.fieldEditors.preConditions.validationMessagesHint": "格式：locale: message（例如 en: Error message, pl: Komunikat błędu）",
-  "workflows.fieldEditors.preConditions.validationMessagesPlaceholder": "en: Your cart is empty. Please add items before checkout.\npl: Twój koszyk jest pusty. Dodaj produkty przed zakupem.",
+  "workflows.fieldEditors.preConditions.validationMessagesPlaceholder": "zh: 购物车为空，请先添加商品再结账。\nen: Your cart is empty. Please add items before checkout.\npl: Twój koszyk jest pusty. Dodaj produkty przed zakupem.",
   "workflows.fieldEditors.workflowSelector.browseWorkflows": "浏览工作流",
   "workflows.fieldEditors.workflowSelector.confirmClear": "确定要清除所选工作流吗？",
   "workflows.fieldEditors.workflowSelector.description": "选择要作为子工作流调用的工作流",
