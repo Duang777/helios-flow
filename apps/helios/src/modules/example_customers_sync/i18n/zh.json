@@ -1,11 +1,11 @@
 {
-  "exampleCustomersSync.errors.invalidCursor": "Invalid cursor.",
-  "exampleCustomersSync.errors.invalidJson": "Invalid JSON body.",
-  "exampleCustomersSync.errors.mappingsLoadFailed": "失败 to load Example customer sync mappings.",
-  "exampleCustomersSync.errors.organizationContextRequired": "组织 context is required.",
-  "exampleCustomersSync.errors.organizationScopeMismatch": "组织 scope mismatch.",
-  "exampleCustomersSync.errors.reconcileEnqueueFailed": "失败 to enqueue Example customer sync reconciliation.",
-  "exampleCustomersSync.errors.tenantScopeMismatch": "租户 scope mismatch.",
-  "exampleCustomersSync.errors.unauthorized": "Unauthorized",
-  "exampleCustomersSync.errors.validationFailed": "Validation failed"
+  "exampleCustomersSync.errors.invalidCursor": "游标无效。",
+  "exampleCustomersSync.errors.invalidJson": "JSON 请求体无效。",
+  "exampleCustomersSync.errors.mappingsLoadFailed": "加载示例客户同步映射失败。",
+  "exampleCustomersSync.errors.organizationContextRequired": "必须提供组织上下文。",
+  "exampleCustomersSync.errors.organizationScopeMismatch": "组织范围不匹配。",
+  "exampleCustomersSync.errors.reconcileEnqueueFailed": "排队示例客户同步对账失败。",
+  "exampleCustomersSync.errors.tenantScopeMismatch": "租户范围不匹配。",
+  "exampleCustomersSync.errors.unauthorized": "未授权",
+  "exampleCustomersSync.errors.validationFailed": "校验失败"
 }
