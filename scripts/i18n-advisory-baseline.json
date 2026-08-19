@@ -1,52 +1,52 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-12T01:07:31.301Z",
+  "updatedAt": "2026-08-19T07:28:53.476Z",
   "generatedBy": "node scripts/i18n-advisory-baseline.mjs --update",
   "metrics": {
     "usage": {
-      "totalKeys": 17790,
-      "totalReferences": 37384,
-      "usedKeys": 13957,
-      "dynamicCount": 501,
+      "totalKeys": 17847,
+      "totalReferences": 37582,
+      "usedKeys": 14014,
+      "dynamicCount": 552,
       "missingKeys": 0,
       "unusedKeys": 3833
     },
     "hardcoded": {
       "totalFindings": 820,
       "totalAllowlisted": 0,
-      "totalFiles": 4819,
+      "totalFiles": 4840,
       "modulesWithFindings": 59
     },
     "values": {
       "modulesProcessed": 53,
       "locales": {
         "zh": {
-          "total": 18058,
-          "identical": 4258,
-          "identicalSignificant": 3881,
+          "total": 18115,
+          "identical": 4118,
+          "identicalSignificant": 3759,
           "missing": 0,
-          "translated": 13800
+          "translated": 13997
         },
         "pl": {
-          "total": 18058,
+          "total": 18115,
           "identical": 1364,
           "identicalSignificant": 1179,
           "missing": 0,
-          "translated": 16694
+          "translated": 16751
         },
         "es": {
-          "total": 18058,
+          "total": 18115,
           "identical": 3685,
           "identicalSignificant": 3363,
           "missing": 0,
-          "translated": 14373
+          "translated": 14430
         },
         "de": {
-          "total": 18058,
-          "identical": 3936,
+          "total": 18115,
+          "identical": 3937,
           "identicalSignificant": 3464,
           "missing": 0,
-          "translated": 14122
+          "translated": 14178
         }
       }
     }

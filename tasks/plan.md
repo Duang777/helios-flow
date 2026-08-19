@@ -399,7 +399,7 @@ Move the operating advisor from “competition-stable demo” toward a productio
 - Confirm-required write tools already exist for `projects.manage_project`, `projects.manage_milestone`, `commercial.manage_contract`, `commercial.manage_invoice`, `commercial.manage_payment`, `commercial.manage_allocation`, and `insights.manage_kpi_target`.
 - Governance already supports single `acknowledge_finding`, single `update_finding_disposition`, and batch `acknowledge_findings`.
 - `insights.operating_loop_assistant` already allows the write tools above and runs with `mutationPolicy: confirm-required`.
-- Gaps remain in bulk governance disposition (owner role, suggested due date, status, impact summary), richer prompt regression, broader page-context coverage, digest navigation UI, and Chinese presentation sweep.
+- Phase 11A–11E are closed: bulk governance disposition, prompt expansion, page context, digest UI, and Chinese presentation sweep for operating-loop / inbox surfaces.
 
 ### Architecture Decisions
 - Do not introduce mock write responses. AI write tools must call existing API/command routes through `createAiApiOperationRunner` or the pending-action confirm handler.
@@ -410,11 +410,16 @@ Move the operating advisor from “competition-stable demo” toward a productio
 - Extend the live-model prompt set with stable observable requirements rather than brittle exact text.
 
 ### Phase 11A: Governance Bulk Disposition
-- [ ] Add `governance.update_findings_disposition` as a confirm-required bulk mutation.
-- [ ] Support per-record patch fields: `status`, `ownerRole`, `suggestedDueOn`, `impactSummary`.
-- [ ] Preview the batch as a pending action and execute through `/governance/findings` PUT per record.
-- [ ] Return per-record `updated` / `failed` results with `href`.
-- [ ] Add unit coverage for ACL declaration, API runner calls, partial failures, and linked mutation exposure.
+- [x] Add `governance.update_findings_disposition` as a confirm-required bulk mutation.
+- [x] Support per-record patch fields: `status`, `ownerRole`, `suggestedDueOn`, `impactSummary`.
+- [x] Preview the batch as a pending action and execute through `/governance/findings` PUT per record.
+- [x] Return per-record `updated` / `failed` results with `href`.
+- [x] Add unit coverage for ACL declaration, API runner calls, partial failures, and linked mutation exposure.
+
+### Phase 11A Verification Notes
+- Tool already shipped in `packages/core/src/modules/governance/ai-tools.ts` with `isMutation` / `isBulk` / `loadBeforeRecords`.
+- Focused unit coverage in `governance-tools.test.ts` covers per-record owner/due/status/impact patches and partial failures with `href`.
+- Linked mutation exposure covered in `governance-explain-suggest.test.ts`.
 
 ### Phase 11B: Real-Model Prompt Expansion
 - [x] Expand `OPERATING_LOOP_ACCEPTANCE_PROMPTS` from 3 prompts to 10+ Chinese prompts across project delay, overdue AR, KPI gap, governance disposition, write suggestions, and page-context follow-ups.
@@ -473,10 +478,17 @@ login/home or notifications -> Today Operating Digest -> overdue receivables / d
 - Build gates passed: `yarn i18n:check-sync`, `yarn generate`, `yarn workspace @helios/core build`, `yarn build:packages`, and `yarn build:app --force`.
 
 ### Phase 11E: Chinese Presentation Sweep
-- [ ] Use `yarn i18n:check` baseline to detect new advisory debt.
-- [ ] Sweep high-visibility M5-M7 screens and AI surfaces for English strings that are not stable ids/codes.
-- [ ] Translate user-facing demo data while preserving codes, SKUs, UUIDs, provider names, and technical integration names where appropriate.
-- [ ] Keep English switching via locale dictionaries.
+- [x] Use `yarn i18n:check` baseline to detect new advisory debt.
+- [x] Sweep high-visibility M5-M7 screens and AI surfaces for English strings that are not stable ids/codes.
+- [x] Translate user-facing demo data while preserving codes, SKUs, UUIDs, provider names, and technical integration names where appropriate.
+- [x] Keep English switching via locale dictionaries.
+
+### Phase 11E Verification Notes
+- `yarn i18n:check` stayed green; refreshed `scripts/i18n-advisory-baseline.json` after intentional zh cleanup (`values.zh.identicalSignificant` 3881 → 3759).
+- Insights Today Digest / operating-loop zh copy no longer keeps English loanwords like `critical` / `confirm-required` / `prompt` on operator-facing strings.
+- Inbox Ops zh dictionary rewritten end-to-end (was mixed broken bilingual); English locale unchanged. SKU / ID / JSON / RFQ kept where technical.
+- Demo-data Chinese closure for staff and catalog already landed in Phases 8–9; this slice did not reseed.
+- Remaining larger identical-zh pockets: WMS config surfaces (~595), workflow editor placeholders, a few catalog technical labels. Track separately if a demo path hits them.
 
 ## Phase 12: Build Trace Warning Closure
 
