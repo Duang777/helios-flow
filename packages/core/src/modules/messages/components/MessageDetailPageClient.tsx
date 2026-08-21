@@ -225,60 +225,77 @@ export function MessageDetailPageClient({ id }: { id: string }) {
 
   return (
     <div className="space-y-3">
-      <MainMessageHeader
-        subject={detail.subject}
-        priority={(detail.priority as 'low' | 'normal' | 'high' | 'urgent') ?? 'normal'}
-        canReply={!detail.isDraft && detail.typeDefinition.allowReply && Boolean(firstConversationMessageId)}
-        canForwardAll={!detail.isDraft && detail.typeDefinition.allowForward && Boolean(latestConversationMessageId)}
-        conversationArchived={conversationArchived}
-        conversationAllUnread={conversationAllUnread}
-        actionsDisabled={Boolean(state.activeConversationAction)}
-        activeActionId={state.activeConversationAction}
-        onReply={() => {
-          if (!firstConversationMessageId) return
-          setActiveInlineComposer({
-            variant: 'reply',
-            messageId: firstConversationMessageId,
-          })
-        }}
-        onForwardAll={() => {
-          if (!latestConversationMessageId) return
-          setActiveInlineComposer({
-            variant: 'forward',
-            messageId: latestConversationMessageId,
-          })
-        }}
-        onToggleArchiveConversation={() => {
-          if (!canRunConversationActions) return
-          if (conversationArchived) {
-            void state.unarchiveConversation(firstConversationMessageId ?? undefined)
-          } else {
-            void state.archiveConversation(firstConversationMessageId ?? undefined)
-          }
-        }}
-        onToggleReadConversation={() => {
-          if (!canRunConversationActions) return
-          if (conversationAllUnread) {
-            void state.markConversationRead(firstConversationMessageId ?? undefined)
-          } else {
-            void state.markConversationUnread(firstConversationMessageId ?? undefined)
-          }
-        }}
-        onDeleteConversation={() => {
-          if (!canRunConversationActions || state.activeConversationAction) return
-          void (async () => {
-            const confirmed = await confirm({
-              title: state.t('messages.confirm.deleteConversationTitle', 'Delete conversation'),
-              text: state.t('messages.confirm.deleteConversation', 'Delete this conversation from your view?'),
-              confirmText: state.t('messages.actions.deleteConversation', 'Delete conversation'),
-              cancelText: state.t('common.cancel', 'Cancel'),
-              variant: 'destructive',
-            })
-            if (!confirmed) return
-            await state.deleteConversation(firstConversationMessageId ?? undefined)
-          })()
-        }}
-      />
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <MainMessageHeader
+            subject={detail.subject}
+            priority={(detail.priority as 'low' | 'normal' | 'high' | 'urgent') ?? 'normal'}
+            canReply={!detail.isDraft && detail.typeDefinition.allowReply && Boolean(firstConversationMessageId)}
+            canForwardAll={!detail.isDraft && detail.typeDefinition.allowForward && Boolean(latestConversationMessageId)}
+            conversationArchived={conversationArchived}
+            conversationAllUnread={conversationAllUnread}
+            actionsDisabled={Boolean(state.activeConversationAction)}
+            activeActionId={state.activeConversationAction}
+            onReply={() => {
+              if (!firstConversationMessageId) return
+              setActiveInlineComposer({
+                variant: 'reply',
+                messageId: firstConversationMessageId,
+              })
+            }}
+            onForwardAll={() => {
+              if (!latestConversationMessageId) return
+              setActiveInlineComposer({
+                variant: 'forward',
+                messageId: latestConversationMessageId,
+              })
+            }}
+            onToggleArchiveConversation={() => {
+              if (!canRunConversationActions) return
+              if (conversationArchived) {
+                void state.unarchiveConversation(firstConversationMessageId ?? undefined)
+              } else {
+                void state.archiveConversation(firstConversationMessageId ?? undefined)
+              }
+            }}
+            onToggleReadConversation={() => {
+              if (!canRunConversationActions) return
+              if (conversationAllUnread) {
+                void state.markConversationRead(firstConversationMessageId ?? undefined)
+              } else {
+                void state.markConversationUnread(firstConversationMessageId ?? undefined)
+              }
+            }}
+            onDeleteConversation={() => {
+              if (!canRunConversationActions || state.activeConversationAction) return
+              void (async () => {
+                const confirmed = await confirm({
+                  title: state.t('messages.confirm.deleteConversationTitle', 'Delete conversation'),
+                  text: state.t('messages.confirm.deleteConversation', 'Delete this conversation from your view?'),
+                  confirmText: state.t('messages.actions.deleteConversation', 'Delete conversation'),
+                  cancelText: state.t('common.cancel', 'Cancel'),
+                  variant: 'destructive',
+                })
+                if (!confirmed) return
+                await state.deleteConversation(firstConversationMessageId ?? undefined)
+              })()
+            }}
+          />
+        </div>
+        <InjectionSpot
+          spotId="detail:messages.message:header"
+          context={{
+            entityType: 'messages.message',
+            recordId: detail.id,
+            messageId: detail.id,
+            organizationId:
+              typeof (detail as { organizationId?: unknown }).organizationId === 'string'
+                ? (detail as { organizationId: string }).organizationId
+                : undefined,
+          }}
+          data={{ message: detail }}
+        />
+      </div>
       <div className="divide-y border-y">
         {state.conversationItems.map((item) => {
           const isForcedExpanded = item.id === state.forcedExpandedItemId

@@ -3,7 +3,15 @@ import path from "node:path";
 import { resolveAllowedDevOrigins } from './src/lib/dev-origins'
 
 const isDevelopment = process.env.NODE_ENV !== 'production'
-const allowedDevOrigins = isDevelopment ? resolveAllowedDevOrigins() : []
+// `allowedDevOrigins` is only consumed by `next dev`. Keep the list even when
+// the parent shell exports NODE_ENV=production (Cursor/agent sandboxes do this),
+// otherwise `/_next/*` 403s from Cloudflare Tunnel and the login form JS never loads.
+const allowedDevOrigins = Array.from(new Set([
+  ...resolveAllowedDevOrigins(),
+  '*.trycloudflare.com',
+  '*.ngrok-free.app',
+  '*.ngrok.io',
+]))
 
 const contentSecurityPolicy = [
   "default-src 'self'",

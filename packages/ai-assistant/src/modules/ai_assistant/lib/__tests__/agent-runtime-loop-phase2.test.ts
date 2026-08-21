@@ -216,6 +216,32 @@ describe('Phase 2: generateText callback on runAiAgentText', () => {
     expect(callArg.providerOptions).toEqual({ openai: { store: true } })
   })
 
+  it('forwards OpenAI reasoningEffort from HELIOS_AI_OPENAI_REASONING_EFFORT', async () => {
+    mockResolvedProviderId = 'openai'
+    delete process.env.HELIOS_AI_OPENAI_RESPONSES_STORE
+    process.env.HELIOS_AI_OPENAI_REASONING_EFFORT = 'none'
+    seedAgentRegistryForTests([
+      makeAgent({
+        id: 'mod.agent',
+        moduleId: 'mod',
+        loop: { maxSteps: 4 },
+      }),
+    ])
+
+    await runAiAgentText({
+      agentId: 'mod.agent',
+      messages: baseMessages as never,
+      authContext: baseAuth,
+    })
+
+    const callArg = streamTextMock.mock.calls[0][0] as {
+      providerOptions?: unknown
+    }
+    expect(callArg.providerOptions).toEqual({
+      openai: { reasoningEffort: 'none', forceReasoning: true },
+    })
+  })
+
   it('strips OpenAI item ids from prepared step messages before the next Responses call', async () => {
     mockResolvedProviderId = 'openai'
     process.env.HELIOS_AI_OPENAI_RESPONSES_STORE = 'true'

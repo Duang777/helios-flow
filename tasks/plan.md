@@ -712,3 +712,6 @@ Harden verification, force multi-hop Chinese regressions, add read-only messages
 - Ask operating-loop assistant a Chinese multi-hop prompt (延期 + 回款 + KPI + 治理)
 - Confirm writes show approval card, not silent persistence
 - Optional: `yarn operating-loop:feishu:verify -- --as-of=2026-08-12` against imported org
+
+### Manual module-by-module checklist
+- Operator walkthrough with copy-paste prompts: `docs/operating-loop-manual-checklist.zh.md`

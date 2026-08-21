@@ -18,6 +18,7 @@ import type { ModuleInjectionTable } from '@helios/shared/modules/widgets/inject
  *   - `data-table:messages:toolbar`              — auto-wired by `DataTable extensionTableId="messages"`
  *   - `detail:messages:message:body:after`       — placed in `MessageDetailPageClient.tsx`
  *   - `detail:messages:message:sidebar`          — placed in `MessageDetailPageClient.tsx`
+ *   - `detail:messages.message:header`           — placed in `MessageDetailPageClient.tsx` (operating-loop / cross-module)
  *   - `crud-form:messages:message:fields`        — placed in `ComposeMessagePageClient.tsx` as a standalone widget mount above the composer (NOT CrudForm field resolution; the compose page is not a CrudForm)
  *
  * The `communication_channels` hub (SPEC-045d) is the primary consumer of these spots,

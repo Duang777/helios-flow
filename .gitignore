@@ -156,6 +156,13 @@ apps/helios/data/*.db-shm
 # Local security-tooling working dir
 .deepsec/
 
+# Local demo-tunnel runbook (contains login credentials; never commit)
+.workbuddy/demo-tunnel-runbook.md
+.workbuddy/start-demo-tunnel.sh
+.workbuddy/stop-demo-tunnel.sh
+.workbuddy/demo-tunnel-url.txt
+.workbuddy/demo-tunnel-logs/
+
 # Official modules submodule — personal activation override
 official-modules.local.json
 apps/helios/src/module-facts.generated.json

@@ -25,6 +25,9 @@ export type OperatingLoopEntityType =
   | 'insights.operating_loop_digest'
   | 'governance.finding'
   | 'governance.identity_map'
+  | 'messages.message'
+  | 'staff.team_member'
+  | 'staff.leave_request'
 
 export type OperatingLoopPageContext = {
   view: 'operating_loop.detail' | 'operating_loop.list'
@@ -61,6 +64,9 @@ export type OperatingLoopPageContext = {
     taskId?: string
     integrationId?: string
     proposalId?: string
+    messageId?: string
+    teamMemberId?: string
+    leaveRequestId?: string
   }
 }
 
@@ -104,6 +110,9 @@ export type OperatingLoopHostContext = {
   taskId?: unknown
   integrationId?: unknown
   proposalId?: unknown
+  messageId?: unknown
+  teamMemberId?: unknown
+  leaveRequestId?: unknown
   resourceKind?: unknown
   resourceId?: unknown
   searchValue?: unknown
@@ -146,6 +155,9 @@ const OPERATING_LOOP_ENTITY_TYPES = new Set<OperatingLoopEntityType>([
   'insights.operating_loop_digest',
   'governance.finding',
   'governance.identity_map',
+  'messages.message',
+  'staff.team_member',
+  'staff.leave_request',
 ])
 
 function isOperatingLoopEntityType(value: unknown): value is OperatingLoopEntityType {
@@ -192,6 +204,9 @@ const LIST_TABLE_ENTITY_TYPES: Record<string, OperatingLoopEntityType> = {
   'governance.findings.list': 'governance.finding',
   'governance.identity_maps.list': 'governance.identity_map',
   'integrations.marketplace': 'integrations.integration',
+  'messages': 'messages.message',
+  'staff.team_members': 'staff.team_member',
+  'staff.leave_requests': 'staff.leave_request',
 }
 
 function readPositiveInteger(value: unknown): number | undefined {
@@ -284,6 +299,15 @@ function buildExtra(
     proposalId:
       readString(context?.proposalId) ??
       (entityType === 'inbox_ops.proposal' && recordId ? recordId : undefined),
+    messageId:
+      readString(context?.messageId) ??
+      (entityType === 'messages.message' && recordId ? recordId : undefined),
+    teamMemberId:
+      readString(context?.teamMemberId) ??
+      (entityType === 'staff.team_member' && recordId ? recordId : undefined),
+    leaveRequestId:
+      readString(context?.leaveRequestId) ??
+      (entityType === 'staff.leave_request' && recordId ? recordId : undefined),
   }
 }
 

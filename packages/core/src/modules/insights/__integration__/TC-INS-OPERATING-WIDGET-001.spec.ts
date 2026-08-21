@@ -17,6 +17,10 @@ import {
   submitTextExtraction,
   waitForEmailProcessed,
 } from '@helios/core/helpers/integration/inboxFixtures'
+import {
+  createStaffTeamMemberFixture,
+  deleteStaffEntityIfExists,
+} from '@helios/core/helpers/integration/staffFixtures'
 
 const LIST_TRIGGER_PAGES: Array<{ path: string; tableIds: string[] }> = [
   { path: '/backend/sales/orders', tableIds: ['sales.orders'] },
@@ -27,6 +31,8 @@ const LIST_TRIGGER_PAGES: Array<{ path: string; tableIds: string[] }> = [
   { path: '/backend/tasks', tableIds: ['workflows.tasks.list'] },
   { path: '/backend/wms/inventory', tableIds: ['wms.inventory.balances', 'wms.inventory.reservations'] },
   { path: '/backend/integrations', tableIds: ['integrations.marketplace'] },
+  { path: '/backend/staff/leave-requests', tableIds: ['staff.leave_requests'] },
+  { path: '/backend/staff/team-members', tableIds: ['staff.team_members'] },
 ]
 
 function listTriggerLocator(page: Page, tableIds: string[]) {
@@ -236,5 +242,80 @@ test.describe('TC-INS-OPERATING-WIDGET-001: Operating Loop page-context widget',
     await login(page, 'admin')
     await page.goto(`/backend/integrations/${integrationId}`, { waitUntil: 'domcontentloaded' })
     await expectOperatingLoopDetail(page, integrationId!)
+  })
+
+  test('leave list mounts the operating loop trigger after creating a leave fixture', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(120_000)
+    const token = await getAuthToken(request, 'admin')
+    let memberId: string | null = null
+    let leaveRequestId: string | null = null
+
+    try {
+      memberId = await createStaffTeamMemberFixture(request, token, {
+        displayName: `QA Operating Leave ${Date.now()}`,
+      })
+      const startDate = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString()
+      const endDate = new Date(Date.now() + 47 * 24 * 60 * 60 * 1000).toISOString()
+      const createLeave = await apiRequest(request, 'POST', '/api/staff/leave-requests', {
+        token,
+        data: { memberId, startDate, endDate, timezone: 'UTC' },
+      })
+      expect(createLeave.status(), `create leave failed: ${createLeave.status()}`).toBe(201)
+      const created = (await createLeave.json()) as { id?: string }
+      leaveRequestId = expectId(created.id, 'leave request id missing')
+
+      await login(page, 'admin')
+      await page.goto('/backend/staff/leave-requests', { waitUntil: 'domcontentloaded' })
+      await expect(
+        listTriggerLocator(page, ['staff.leave_requests']).first(),
+        'missing operating-loop trigger on leave-requests list',
+      ).toBeVisible({ timeout: 60_000 })
+    } finally {
+      if (leaveRequestId) {
+        await apiRequest(request, 'POST', '/api/staff/leave-requests/reject', {
+          token,
+          data: { id: leaveRequestId, decisionComment: 'QA cleanup' },
+        }).catch(() => undefined)
+      }
+      await deleteStaffEntityIfExists(request, token, '/api/staff/leave-requests', leaveRequestId)
+      await deleteStaffEntityIfExists(request, token, '/api/staff/team-members', memberId)
+    }
+  })
+
+  test('claimable workflow fixture mounts the operating loop trigger on tasks list', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(180_000)
+    const token = await getAuthToken(request, 'admin')
+    const payload = buildClaimableUserTaskDefinitionPayload(Date.now(), '-ol')
+    let definitionId: string | null = null
+    let instanceId: string | null = null
+
+    try {
+      definitionId = await createWorkflowDefinitionFixture(request, token, payload)
+      instanceId = await startWorkflowInstanceFixture(request, token, {
+        workflowId: payload.workflowId,
+        initialContext: {},
+      })
+      const pendingTask = await findInstanceUserTask(request, token, instanceId, {
+        statuses: ['PENDING'],
+        timeoutMs: 20_000,
+      })
+      expect(pendingTask?.id, 'a PENDING user task should be created for the instance').toBeTruthy()
+
+      await login(page, 'admin')
+      await page.goto('/backend/tasks', { waitUntil: 'domcontentloaded' })
+      await expect(
+        listTriggerLocator(page, ['workflows.tasks.list']).first(),
+        'missing operating-loop trigger on tasks list with claimable fixture',
+      ).toBeVisible({ timeout: 60_000 })
+    } finally {
+      await cancelWorkflowInstanceIfExists(request, token, instanceId)
+      await deleteWorkflowDefinitionIfExists(request, token, definitionId)
+    }
   })
 })

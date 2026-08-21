@@ -51,6 +51,9 @@ describe('buildOperatingLoopPageContext', () => {
         taskId: undefined,
         integrationId: undefined,
         proposalId: undefined,
+        messageId: undefined,
+        teamMemberId: undefined,
+        leaveRequestId: undefined,
       },
     })
   })
@@ -81,6 +84,9 @@ describe('buildOperatingLoopPageContext', () => {
       ['governance.findings.list', 'governance.finding'],
       ['governance.identity_maps.list', 'governance.identity_map'],
       ['integrations.marketplace', 'integrations.integration'],
+      ['messages', 'messages.message'],
+      ['staff.team_members', 'staff.team_member'],
+      ['staff.leave_requests', 'staff.leave_request'],
     ]
 
     for (const [tableId, entityType] of cases) {
@@ -127,6 +133,9 @@ describe('buildOperatingLoopPageContext', () => {
         taskId: undefined,
         integrationId: undefined,
         proposalId: undefined,
+        messageId: undefined,
+        teamMemberId: undefined,
+        leaveRequestId: undefined,
       },
     })
   })
@@ -252,5 +261,47 @@ describe('buildOperatingLoopPageContext', () => {
         resourceId: 'product-1',
       }),
     ).toMatchObject({ extra: { productId: 'product-1' } })
+  })
+
+  it('maps staff and messages list table ids', () => {
+    expect(buildOperatingLoopPageContext({ tableId: 'staff.leave_requests' })).toMatchObject({
+      view: 'operating_loop.list',
+      entityType: 'staff.leave_request',
+      tableId: 'staff.leave_requests',
+    })
+    expect(buildOperatingLoopPageContext({ tableId: 'staff.team_members' })).toMatchObject({
+      entityType: 'staff.team_member',
+    })
+    expect(buildOperatingLoopPageContext({ tableId: 'messages' })).toMatchObject({
+      entityType: 'messages.message',
+    })
+  })
+
+  it('maps staff leave and message detail contexts', () => {
+    expect(
+      buildOperatingLoopPageContext({
+        entityType: 'staff.leave_request',
+        recordId: 'leave-1',
+        leaveRequestId: 'leave-1',
+        organizationId: 'org-1',
+      }),
+    ).toMatchObject({
+      view: 'operating_loop.detail',
+      entityType: 'staff.leave_request',
+      recordId: 'leave-1',
+      extra: { leaveRequestId: 'leave-1' },
+    })
+
+    expect(
+      buildOperatingLoopPageContext({
+        entityType: 'messages.message',
+        recordId: 'msg-1',
+      }),
+    ).toMatchObject({
+      view: 'operating_loop.detail',
+      entityType: 'messages.message',
+      recordId: 'msg-1',
+      extra: { messageId: 'msg-1' },
+    })
   })
 })

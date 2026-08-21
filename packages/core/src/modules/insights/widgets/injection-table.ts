@@ -45,6 +45,8 @@ export const injectionTable: ModuleInjectionTable = {
   'detail:workflows.task:header': [operatingLoopTrigger],
   'detail:integrations.integration:header': [operatingLoopTrigger],
   'detail:projects.project:header': [operatingLoopTrigger],
+  'detail:messages.message:header': [operatingLoopTrigger],
+  'detail:staff.leave_request:header': [operatingLoopTrigger],
   'crud-form:catalog.product:header': [operatingLoopTrigger],
   'crud-form:projects.milestone:header': [operatingLoopTrigger],
   'crud-form:projects.risk:header': [operatingLoopTrigger],

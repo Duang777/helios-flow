@@ -15,6 +15,7 @@ import { flash } from '@helios/ui/backend/FlashMessages'
 import { useT } from '@helios/shared/lib/i18n/context'
 import { LeaveRequestForm, buildLeaveRequestPayload, type LeaveRequestFormValues } from '@helios/core/modules/staff/components/LeaveRequestForm'
 import { buildRecordInjectionContext, useSetCurrentRecordInjectionContext } from '@helios/ui/backend/injection/recordContext'
+import { InjectionSpot } from '@helios/ui/backend/injection/InjectionSpot'
 import { type LeaveRequestRecord, type LeaveRequestsResponse, type NormalizedLeaveRequest, normalizeLeaveRequest, resolveStatusVariant, formatDateLabel, formatDateRange } from '../../../../lib/leaveRequestHelpers'
 
 export default function StaffLeaveRequestDetailPage({ params }: { params?: { id?: string } }) {
@@ -176,6 +177,19 @@ const handleSubmit = React.useCallback(async (values: LeaveRequestFormValues) =>
   return (
     <Page>
       <PageBody>
+        <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
+          <InjectionSpot
+            spotId="detail:staff.leave_request:header"
+            context={{
+              entityType: 'staff.leave_request',
+              recordId: record.id,
+              organizationId: typeof record.organizationId === 'string' ? record.organizationId : undefined,
+              leaveRequestId: record.id,
+              teamMemberId: record.memberId ?? undefined,
+            }}
+            data={{ leaveRequest: record }}
+          />
+        </div>
         <div className="mb-6 space-y-2 rounded-lg border bg-card p-4">
           <div className="flex flex-wrap items-center gap-3">
             <Badge variant={resolveStatusVariant(status)}>

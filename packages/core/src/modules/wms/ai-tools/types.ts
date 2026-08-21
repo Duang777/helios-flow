@@ -22,6 +22,7 @@ export interface WmsAiToolDefinition<TInput = unknown, TOutput = unknown> {
   handler?: (input: TInput, ctx: WmsToolContext) => Promise<TOutput> | TOutput
   toOperation?: unknown
   mapResponse?: unknown
+  loadBeforeRecord?: unknown
 }
 
 export function assertTenantScope(ctx: WmsToolContext): {

@@ -63,6 +63,7 @@ import { isKnownMutationPolicy } from './agent-policy'
 import type { AiAgentMutationPolicy } from './ai-agent-definition'
 import { recordTokenUsage } from './token-usage-recorder'
 import { injectTaskPlanIntoStream } from './task-plan-stream'
+import { injectSseHeartbeatIntoStream } from './sse-heartbeat-stream'
 import { TASK_PLAN_RUNTIME_PROMPT_SECTION } from './task-plan-labels'
 
 // Ensure built-in LLM providers are registered. Side-effect import; identical to
@@ -236,6 +237,14 @@ export function resolveLoopBudgetPreset(
 }
 
 const SSE_ENCODER = new TextEncoder()
+
+/**
+ * Final outbound wrapper for chat SSE: keep the connection warm during long
+ * tool/LLM idle gaps so browsers and proxies do not drop the stream.
+ */
+function finalizeChatSseResponse(response: Response): Response {
+  return injectSseHeartbeatIntoStream(response)
+}
 
 /**
  * Wraps a streaming `Response` to append a typed `loop-finish` SSE event
@@ -901,8 +910,26 @@ export function resolveOpenAIResponsesProviderOptions(
   env: NodeJS.ProcessEnv = process.env,
 ): AiSdkProviderOptions | undefined {
   if (providerId !== 'openai') return undefined
-  if (!readBooleanEnv(env.HELIOS_AI_OPENAI_RESPONSES_STORE)) return undefined
-  return { openai: { store: true } }
+
+  const openaiOptions: Record<string, unknown> = {}
+  if (readBooleanEnv(env.HELIOS_AI_OPENAI_RESPONSES_STORE)) {
+    openaiOptions.store = true
+  }
+
+  // DeepSeek V4 (and similar gateways) default to thinking mode. The answer can
+  // land in non-OpenAI reasoning parts that AI SDK skips, so the UI shows tools
+  // but no assistant text. Set HELIOS_AI_OPENAI_REASONING_EFFORT=none to force
+  // visible content (Responses API: reasoning.effort=none).
+  // forceReasoning is required because third-party model ids are not treated as
+  // OpenAI reasoning models, so the SDK would otherwise drop the effort field.
+  const reasoningEffort = env.HELIOS_AI_OPENAI_REASONING_EFFORT?.trim()
+  if (reasoningEffort) {
+    openaiOptions.reasoningEffort = reasoningEffort
+    openaiOptions.forceReasoning = true
+  }
+
+  if (Object.keys(openaiOptions).length === 0) return undefined
+  return { openai: openaiOptions } as AiSdkProviderOptions
 }
 
 function cloneWithoutOpenAIItemIds<T>(value: T): T {
@@ -1696,9 +1723,11 @@ export async function runAiAgentText(input: RunAiAgentTextInput): Promise<Respon
       })
       const withTaskPlan = injectTaskPlanIntoStream(baseResponse, taskPlanId)
       if (input.emitLoopTrace) {
-        return appendLoopFinishToStream(withTaskPlan, preparedOptions.finalizeLoopTrace)
+        return finalizeChatSseResponse(
+          appendLoopFinishToStream(withTaskPlan, preparedOptions.finalizeLoopTrace),
+        )
       }
-      return withTaskPlan
+      return finalizeChatSseResponse(withTaskPlan)
     } finally {
       if (wallClockTimer !== undefined) clearTimeout(wallClockTimer)
     }
@@ -1726,9 +1755,11 @@ export async function runAiAgentText(input: RunAiAgentTextInput): Promise<Respon
     })
     const withTaskPlan = injectTaskPlanIntoStream(baseResponse, taskPlanId)
     if (input.emitLoopTrace) {
-      return appendLoopFinishToStream(withTaskPlan, preparedOptions.finalizeLoopTrace)
+      return finalizeChatSseResponse(
+        appendLoopFinishToStream(withTaskPlan, preparedOptions.finalizeLoopTrace),
+      )
     }
-    return withTaskPlan
+    return finalizeChatSseResponse(withTaskPlan)
   }
 
   // Default stream-text path (executionEngine === 'stream-text' or unset).
@@ -1762,9 +1793,11 @@ export async function runAiAgentText(input: RunAiAgentTextInput): Promise<Respon
   })
   const withTaskPlan = injectTaskPlanIntoStream(baseResponse, taskPlanId)
   if (input.emitLoopTrace) {
-    return appendLoopFinishToStream(withTaskPlan, preparedOptions.finalizeLoopTrace)
+    return finalizeChatSseResponse(
+      appendLoopFinishToStream(withTaskPlan, preparedOptions.finalizeLoopTrace),
+    )
   }
-  return withTaskPlan
+  return finalizeChatSseResponse(withTaskPlan)
 }
 
 /**

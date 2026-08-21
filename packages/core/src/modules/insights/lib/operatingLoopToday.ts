@@ -117,12 +117,14 @@ async function collectCriticalFindings(
   em: EntityManager,
   scope: OperatingLoopDigestScope,
 ): Promise<OperatingLoopDigestDetail[]> {
+  // Match the governance findings list default: open + critical for the org.
+  // Do not require exact asOf — day-scoped rule runs otherwise leave today's card at 0
+  // while the list still shows live open critical findings.
   const findings = await em.find(
     GovernanceFinding,
     {
       tenantId: scope.tenantId,
       organizationId: scope.organizationId,
-      asOf: scope.asOf,
       severity: 'critical',
       status: 'open',
       deletedAt: null,

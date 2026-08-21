@@ -224,6 +224,53 @@ describe('collectOperatingLoopTodayDigest', () => {
     expect(digest.metrics.kpiGapCount).toBe(1)
   })
 
+  it('counts open critical findings without requiring exact asOf match', async () => {
+    const em = createMockEntityManager({
+      find: (entity) => {
+        if (entity === GovernanceFinding) {
+          return [
+            createEntity({
+              id: 'finding-old-asof',
+              organizationId: 'org-1',
+              tenantId: 'tenant-1',
+              ruleId: 'gov.project_cost_over_budget',
+              severity: 'critical',
+              status: 'open',
+              title: '超预算',
+              reason: '成本超预算',
+              evidenceIds: [],
+              subjectType: 'projects.project',
+              subjectId: 'project-1',
+              detectedAt: new Date('2026-08-01T00:00:00Z'),
+              asOf: '2026-08-01',
+              deletedAt: null,
+            }),
+          ]
+        }
+        if (entity === ProjectMilestone || entity === Project) return []
+        if (entity === CommercialInvoice || entity === PaymentAllocation || entity === KpiTarget) return []
+        return []
+      },
+    })
+
+    const digest = await collectOperatingLoopTodayDigest(em as never, scope)
+
+    const findingCalls = em.calls.filter((call) => call.entity === GovernanceFinding)
+    expect(findingCalls.length).toBeGreaterThan(0)
+    for (const call of findingCalls) {
+      expect(call.filter).not.toHaveProperty('asOf')
+      expect(call.filter).toMatchObject({
+        severity: 'critical',
+        status: 'open',
+      })
+    }
+    expect(digest.metrics.criticalFindingCount).toBe(1)
+    expect(digest.groups.criticalFindings[0]).toMatchObject({
+      recordId: 'finding-old-asof',
+      facts: { asOf: '2026-08-01' },
+    })
+  })
+
   it('keeps partial group failures visible without replacing them with fake data', async () => {
     const em = createMockEntityManager({
       find: (entity) => {

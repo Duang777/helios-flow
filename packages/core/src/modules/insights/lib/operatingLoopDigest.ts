@@ -231,7 +231,6 @@ export async function collectOperatingLoopDigestMetrics(
     em.count(GovernanceFinding, {
       tenantId: scope.tenantId,
       organizationId: scope.organizationId,
-      asOf: scope.asOf,
       severity: 'critical',
       status: 'open',
       deletedAt: null,

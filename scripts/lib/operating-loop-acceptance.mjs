@@ -140,16 +140,32 @@ export const OPERATING_LOOP_ACCEPTANCE_PROMPTS = [
   {
     id: 'zh_wms_balances',
     prompt:
-      '当前库存余额怎样？给出数量、来源、证据 ID 和后台链接（即使为空也要给 /backend/wms 链接）。不要做收货、调整或移库。',
+      '当前库存余额怎样？给出数量、来源、证据 ID 和后台链接（即使为空也要给 /backend/wms 链接）。如需收货或调整，必须说明走确认卡，不要声称已写入。',
     requiredTools: ['wms.list_balances'],
     requiredMarkers: ['库存', '证据'],
   },
   {
+    id: 'zh_wms_receive_confirm',
+    prompt:
+      '演示一次库存收货确认写入：调用 wms.receive_inventory（可用现有仓库/库位/SKU 或明确缺字段），必须走确认卡，不要说已经收货成功。',
+    requiredTools: ['wms.receive_inventory'],
+    requiredMarkers: ['确认', '收货'],
+    skipChecks: ['hasFormulaSource', 'hasBackendHref'],
+  },
+  {
     id: 'zh_workflow_tasks',
     prompt:
-      '有哪些待办工作流任务？给出任务状态来源、证据 ID 和后台链接。认领或完成必须走确认卡。',
+      '有哪些待办工作流任务？给出任务状态来源、证据 ID 和后台链接。认领、完成、启动或取消必须走确认卡。',
     requiredTools: ['workflows.list_tasks'],
     requiredMarkers: ['任务', '确认', '证据'],
+  },
+  {
+    id: 'zh_workflow_cancel_confirm',
+    prompt:
+      '如果要取消或重试一个工作流实例，应调用 workflows.cancel_instance 或 workflows.retry_instance，并说明必须走确认卡，不要声称已取消或已重试。',
+    requiredTools: ['workflows.list_instances'],
+    requiredMarkers: ['确认', ['取消', '重试']],
+    skipChecks: ['hasFormulaSource'],
   },
   {
     id: 'zh_integrations_health',
@@ -189,16 +205,31 @@ export const OPERATING_LOOP_ACCEPTANCE_PROMPTS = [
   {
     id: 'zh_messages_inbox',
     prompt:
-      '列出站内消息，给出条数、来源、证据 ID 和后台链接。不要声称已发送或已归档。',
+      '列出站内消息，给出条数、来源、证据 ID 和后台链接。发送或回复必须走确认卡，且不要发邮件，不要声称已发送或已归档。',
     requiredTools: ['messages.list_messages'],
     requiredMarkers: ['消息', '证据'],
   },
   {
+    id: 'zh_messages_send_confirm',
+    prompt:
+      '演示一次站内消息发送确认写入：调用 messages.send_message（需要至少一个 recipientUserId、subject、body），必须走确认卡且 sendViaEmail 为 false，不要说已经发送成功。',
+    requiredTools: ['messages.send_message'],
+    requiredMarkers: ['确认', '消息'],
+    skipChecks: ['hasFormulaSource', 'hasBackendHref'],
+  },
+  {
     id: 'zh_staff_roster',
     prompt:
-      '列出当前团队成员，给出条数、来源、证据 ID 和后台链接。请假列表只读，不要审批。',
+      '列出当前团队成员，给出条数、来源、证据 ID 和后台链接。',
     requiredTools: ['staff.list_team_members'],
     requiredMarkers: ['团队', '证据'],
+  },
+  {
+    id: 'zh_staff_leave_confirm',
+    prompt:
+      '列出请假申请；若要批准或驳回，必须调用 staff.accept_leave_request 或 staff.reject_leave_request 并走确认卡，不要声称已审批。',
+    requiredTools: ['staff.list_leave_requests'],
+    requiredMarkers: ['请假', '确认'],
   },
   {
     id: 'zh_risk_confirm_write',

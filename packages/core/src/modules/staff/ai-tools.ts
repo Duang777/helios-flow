@@ -1,8 +1,16 @@
 import { z } from 'zod'
+import { defineAiTool } from '@helios/ai-assistant'
 import { defineApiBackedAiTool } from '@helios/ai-assistant/modules/ai_assistant/lib/api-backed-tool'
-import type { AiApiOperationRequest } from '@helios/ai-assistant/modules/ai_assistant/lib/ai-api-operation-runner'
+import {
+  createAiApiOperationRunner,
+  type AiApiOperationRequest,
+  type AiToolExecutionContext,
+} from '@helios/ai-assistant/modules/ai_assistant/lib/ai-api-operation-runner'
+import type { AiToolLoadBeforeSingleRecord } from '@helios/ai-assistant/modules/ai_assistant/lib/types'
 import type { AwilixContainer } from 'awilix'
+import type { EntityManager } from '@mikro-orm/postgresql'
 import type { ZodType } from 'zod'
+import { StaffLeaveRequest } from './data/entities'
 
 export interface StaffToolContext {
   tenantId: string | null
@@ -23,6 +31,7 @@ export interface StaffAiToolDefinition<TInput = unknown, TOutput = unknown> {
   toOperation?: unknown
   mapResponse?: unknown
   handler?: (input: TInput, ctx: StaffToolContext) => Promise<TOutput> | TOutput
+  loadBeforeRecord?: unknown
 }
 
 export function assertTenantScope(ctx: StaffToolContext): {
@@ -59,6 +68,61 @@ function toPageQuery(input: PageInput, extra?: Record<string, string | undefined
     pageSize: limit,
     search: input.q,
     ...extra,
+  }
+}
+
+function resolveEm(ctx: StaffToolContext): EntityManager {
+  return ctx.container.resolve<EntityManager>('em')
+}
+
+function leaveSnapshot(row: StaffLeaveRequest): Record<string, unknown> {
+  const member = row.member
+  const memberId =
+    member && typeof member === 'object' && 'id' in member && typeof member.id === 'string'
+      ? member.id
+      : null
+  return {
+    status: row.status,
+    startDate: row.startDate ?? null,
+    endDate: row.endDate ?? null,
+    memberId,
+    decisionComment: row.decisionComment ?? null,
+  }
+}
+
+async function loadLeaveForScope(
+  em: EntityManager,
+  ctx: StaffToolContext,
+  tenantId: string,
+  leaveRequestId: string,
+): Promise<StaffLeaveRequest | null> {
+  const row = await em.findOne(
+    StaffLeaveRequest,
+    {
+      id: leaveRequestId,
+      tenantId,
+      organizationId: ctx.organizationId ?? undefined,
+      deletedAt: null,
+    },
+    { populate: ['member'] },
+  )
+  if (!row) return null
+  if (ctx.organizationId && row.organizationId !== ctx.organizationId) return null
+  return row
+}
+
+async function loadLeavePreview(
+  input: { id: string },
+  ctx: StaffToolContext,
+): Promise<AiToolLoadBeforeSingleRecord | null> {
+  const { tenantId } = assertTenantScope(ctx)
+  const row = await loadLeaveForScope(resolveEm(ctx), ctx, tenantId, input.id)
+  if (!row) return null
+  return {
+    recordId: row.id,
+    entityType: 'staff.leave_request',
+    recordVersion: row.updatedAt ? row.updatedAt.toISOString() : null,
+    before: leaveSnapshot(row),
   }
 }
 
@@ -114,7 +178,7 @@ const listLeaveRequestsTool = defineApiBackedAiTool({
   name: 'staff.list_leave_requests',
   displayName: 'List leave requests',
   description:
-    'List staff leave requests. Read-only in the operating advisor; do not accept or reject leave from this agent.',
+    'List staff leave requests. Approve/reject with staff.accept_leave_request or staff.reject_leave_request (confirm-required).',
   inputSchema: pageInput.extend({
     status: z.string().optional(),
     memberId: z.string().uuid().optional(),
@@ -158,6 +222,90 @@ const listLeaveRequestsTool = defineApiBackedAiTool({
   },
 }) as unknown as StaffAiToolDefinition
 
-export const aiTools: StaffAiToolDefinition[] = [listTeamMembersTool, listLeaveRequestsTool]
+const decisionInput = z.object({
+  id: z.string().uuid(),
+  decisionComment: z.string().max(2000).optional().nullable(),
+})
+
+type DecisionInput = z.infer<typeof decisionInput>
+
+const acceptLeaveRequestTool = defineAiTool({
+  name: 'staff.accept_leave_request',
+  displayName: 'Accept leave request',
+  description:
+    'Approve a pending leave request. Confirm-required. Call staff.list_leave_requests first. Do not claim approval until the card is confirmed.',
+  inputSchema: decisionInput,
+  requiredFeatures: ['staff.leave_requests.manage'],
+  isMutation: true,
+  loadBeforeRecord: loadLeavePreview,
+  async handler(rawInput: DecisionInput, ctx: StaffToolContext) {
+    const { tenantId } = assertTenantScope(ctx)
+    const input = decisionInput.parse(rawInput)
+    const em = resolveEm(ctx)
+    const existing = await loadLeaveForScope(em, ctx, tenantId, input.id)
+    if (!existing) throw new Error(`Leave request "${input.id}" is not accessible to the caller.`)
+    const runner = createAiApiOperationRunner(ctx as unknown as AiToolExecutionContext)
+    const response = await runner.run<{ ok?: boolean; id?: string | null }>({
+      method: 'POST',
+      path: '/staff/leave-requests/accept',
+      body: {
+        id: input.id,
+        decisionComment: input.decisionComment ?? null,
+      },
+    })
+    if (!response.success) {
+      throw new Error(response.error ?? `Failed to approve leave request "${input.id}"`)
+    }
+    return {
+      id: response.data?.id ?? input.id,
+      commandName: 'staff.leave-requests.accept',
+      before: leaveSnapshot(existing),
+      href: `/backend/staff/leave-requests/${input.id}`,
+    }
+  },
+}) as StaffAiToolDefinition
+
+const rejectLeaveRequestTool = defineAiTool({
+  name: 'staff.reject_leave_request',
+  displayName: 'Reject leave request',
+  description:
+    'Reject a pending leave request. Confirm-required. Call staff.list_leave_requests first. Do not claim rejection until the card is confirmed.',
+  inputSchema: decisionInput,
+  requiredFeatures: ['staff.leave_requests.manage'],
+  isMutation: true,
+  loadBeforeRecord: loadLeavePreview,
+  async handler(rawInput: DecisionInput, ctx: StaffToolContext) {
+    const { tenantId } = assertTenantScope(ctx)
+    const input = decisionInput.parse(rawInput)
+    const em = resolveEm(ctx)
+    const existing = await loadLeaveForScope(em, ctx, tenantId, input.id)
+    if (!existing) throw new Error(`Leave request "${input.id}" is not accessible to the caller.`)
+    const runner = createAiApiOperationRunner(ctx as unknown as AiToolExecutionContext)
+    const response = await runner.run<{ ok?: boolean; id?: string | null }>({
+      method: 'POST',
+      path: '/staff/leave-requests/reject',
+      body: {
+        id: input.id,
+        decisionComment: input.decisionComment ?? null,
+      },
+    })
+    if (!response.success) {
+      throw new Error(response.error ?? `Failed to reject leave request "${input.id}"`)
+    }
+    return {
+      id: response.data?.id ?? input.id,
+      commandName: 'staff.leave-requests.reject',
+      before: leaveSnapshot(existing),
+      href: `/backend/staff/leave-requests/${input.id}`,
+    }
+  },
+}) as StaffAiToolDefinition
+
+export const aiTools: StaffAiToolDefinition[] = [
+  listTeamMembersTool,
+  listLeaveRequestsTool,
+  acceptLeaveRequestTool,
+  rejectLeaveRequestTool,
+]
 
 export default aiTools
